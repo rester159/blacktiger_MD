@@ -443,7 +443,7 @@ static void shots_step(void) {
                 player_hurt(s->damage);
                 s->active = 0;
             }
-        } else if(missile_hit_at(x,y,s->damage))s->active=0;
+        } else if(missile_hit_at(x,y,s->damage,s->kind))s->active=0;
         else
             for (j = 0; j < MAX_ACTORS; j++) {
                 Actor *a = &game.actors[j];
@@ -545,7 +545,7 @@ void game_tick(u16 input) {
     {
         u16 i;for(i=0;i<MAX_MISSILES;i++) {
             Missile *m=&missiles[i];
-            if(m->active && !m->dying && player_contact(m->x,m->y,m->width,m->height))player_hurt(m->damage);
+            if(missile_player_contact(i))player_hurt(m->damage);
         }
     }
     skeleton_weapons_tick();

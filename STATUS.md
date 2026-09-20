@@ -157,3 +157,10 @@ pool. Player-shot collision dimensions, global scanner cadence and viewport gati
 The old cartridge used unrelated fallback graphics for this variant, so it is excluded from
 old-pixel renderer equivalence fixtures; its actual animation frames are compared directly to
 source traces and were visually checked in the emulator.
+
+Normal small-projectile contact now uses the source's even-frame gate after movement. Dagger
+hits on these projectiles use source half sizes 4/2 and the same gate, replacing the provisional
+4/4 rectangle. Tests compare 196 original loader/collision cases and six linked-cartridge
+one-contact-tick cases, including inclusive edges and odd/even damage differences. Chain geometry,
+the source chain-hit shortcut through E906, alternate player posture, and complete weapon update
+scheduling still require porting; these checks do not establish full combat fidelity.

@@ -26,6 +26,8 @@ test: all
 	.venv/bin/python tests/test_zombie_runtime.py
 	.venv/bin/python tests/test_thrower.py
 	.venv/bin/python tests/test_thrower_runtime.py
+	.venv/bin/python tests/test_missile_contact.py
+	.venv/bin/python tests/test_missile_runtime.py
 	.venv/bin/python tests/test_wisp.py
 	.venv/bin/python tests/test_wisp_runtime.py
 	.venv/bin/python tests/test_emerge.py
