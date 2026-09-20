@@ -512,3 +512,14 @@ Both projectile types use the shared aim routine and 17 source direction clips e
 Cartridge fixtures exercise the actual round-seven placement, a natural aimed attack,
 first-layer recovery, final reward/consumption, and projectile damage 1/3 and destruction.
 Original global actor-pool contention, alternate player postures, and full routes remain gaps.
+
+Bank-three B7F3 was incorrectly classified as a boss. It is a fourth small falling-seed
+family, now handled by the shared crawler code with its source health 3 and reward 15.
+The profile adds five weighted walking/hopping choices, forward/reverse/vertical jumps,
+ceiling checks, center-foot wall probing and gravity until landing. The expanded crawler
+oracle checks 411,360 ticks in 1,722 cases and 342 three-body splits, including all sixteen
+random-table inputs. Cartridge tests cover the actual round-five row 51, initial immunity,
+splitting, weak/fatal hits, rewards and no round clear. The earlier bank-zero B1C1 flail
+fighter's stale boss classification was removed as well; its ordinary-enemy behavior was
+already independently verified. Four unported definitions remain in the provisional boss
+list (bank-two 8EF4; bank-three 8000, 991D, 9B24), and their labels still require source audit.

@@ -10,7 +10,7 @@ def crawler_fire(r,slot,damage):
   if not s.shots[0].active:return s
  raise AssertionError('Crawler dagger was not handled')
 cases=[]
-for profile,(bank,constructor,health,reward_points) in enumerate(((3,0xaab3,2,10),(3,0xb153,8,15),(7,0xa3b6,16,15))):
+for profile,(bank,constructor,health,reward_points) in enumerate(((3,0xaab3,2,10),(3,0xb153,8,15),(7,0xa3b6,16,15),(3,0xb7f3,3,15))):
  r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
  slot,row,level=fixture(r,0,bank,constructor,approach=32,vertical=0)
  s=state(r);score=s.score
@@ -41,6 +41,7 @@ for profile,(bank,constructor,health,reward_points) in enumerate(((3,0xaab3,2,10
    r.run(1);s=state(r)
   assert s.actors[part].state and s.score==before+reward,(part,damage,s.score,before,s.actors[part].state)
  assert state(r).score==score+2*reward_points
+ assert state(r).mode==1 and not state(r).boss_dead, "Crawler must not clear the round"
  r.close();cases.append(dict(profile=profile,source_round=level+1,source_row=row,three_bodies=True,initial_immunity=True,health=health,weak_hit_score=0,strong_hit_score=reward_points))
 # Hold a live poison body in place to exercise the cartridge's contact dispatch.
 contacts=[];ref=json.loads((ROOT/'reference/crawler.json').read_text())

@@ -1,6 +1,7 @@
 #include "crawler.h"
 #include "assets.h"
 #include "progress.h"
+#include "loot.h"
 typedef struct {AnimState animation;u16 segment;u8 fraction,left,mode,pending;} CrawlerState;
 static CrawlerState crawlers[MAX_ACTORS];
 static const u16 *roots(Actor *a) {return crawler_roots+13*(crawler_kinds[a->def]-1);}
@@ -29,8 +30,16 @@ static void gravity(CrawlerState *s) {
  u16 v=((u16)(u8)s->animation.vy<<8)+s->fraction+64;if((v>>8)==5)v=1280;
  s->fraction=v;s->animation.vy=v>>8;
 }
+static u16 choose(Actor *a,CrawlerState *s) {
+ u8 choice=crawler_choices[(loot_random>>8)&15],left=s->left;
+ if(choice<2)return roots(a)[(choice==0?left:!left)?4:5];
+ s->animation.vy=-3;s->fraction=0;
+ if(choice==2 && !ground(a,8,0))return crawler_jump_roots[2];
+ if(choice==4 && !ground(a,8,0))left=!left;
+ return crawler_jump_roots[left?0:1];
+}
 static u16 face(Actor *a,CrawlerState *s) {
- s->left=(u16)PX(a->x)>=(u16)PX(game.p.x);return roots(a)[s->left?4:5];
+ s->left=(u16)PX(a->x)>=(u16)PX(game.p.x);return crawler_kinds[a->def]==4?choose(a,s):roots(a)[s->left?4:5];
 }
 void crawler_step(u16 slot) {
  Actor *a=&game.actors[slot];CrawlerState *s=&crawlers[slot];u16 tries;
@@ -60,10 +69,12 @@ void crawler_step(u16 slot) {
   case 5:
    if(!ground(a,8,16)) {
     s->animation.vx=s->animation.vy=s->fraction=0;gravity(s);target=roots(a)[7];
-   }else if(ground(a,s->left?0:16,8))target=roots(a)[6];
+   }else if(ground(a,crawler_kinds[a->def]==4?8:s->left?0:16,8))target=roots(a)[6];
    break;
   case 6:target=face(a,s);break;
   case 7:if(ground(a,8,16))target=face(a,s);else{gravity(s);target=roots(a)[7];}break;
+  case 10:target=choose(a,s);break;
+  case 11:if(ground(a,8,16))target=crawler_jump_roots[3];else gravity(s);break;
   default:a->active=0;game.spawned[a->source]&=254;return;
   }
   select_segment(s,target);
