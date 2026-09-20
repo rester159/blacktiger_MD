@@ -61,7 +61,7 @@ void game_round(u8 round) {
     skeleton_reset();
     emerge_reset();
     zombie_reset();
-    missile_reset();statue_shell_reset();
+    missile_reset();statue_shell_reset();waveboss_reset();
     loot_reset();
     container_round(round);
     if(preserve)container_actor_restart();else container_actor_reset();
@@ -98,7 +98,7 @@ void game_new(void) {
 }
 void game_boss_clear(void) {
  zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
- missile_reset();statue_shell_reset();loot_reset();skeleton_reset();container_actor_restart();
+ missile_reset();statue_shell_reset();waveboss_reset();loot_reset();skeleton_reset();container_actor_restart();
  game.boss_dead=1;game.mode=CLEAR;game.mode_timer=180;game.sound=SND_CLEAR;
 }
 static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
@@ -122,6 +122,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CHEST || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (waveboss_kinds[a->def]){waveboss_hit(a-game.actors,damage);return;}
     if (eruption_kinds[a->def])return;
     if (teleporter_kinds[a->def]){teleporter_hit(a-game.actors,damage);return;}
     if (hunter_kinds[a->def]){hunter_hit(a-game.actors,damage);return;}
@@ -168,7 +169,7 @@ static void actor_hit(Actor *a, u8 damage) {
 static void spawn_actors(void) {
     const Round *r = &rounds[game.round];
     u16 i, j;
-    if(boss_present() || hunter_present())return;
+    if(boss_present() || hunter_present() || waveboss_present())return;
     for (i = game.frame & 3; i < r->spawn_count; i += 4) {
         const Spawn *s = &r->spawns[i];
         s16 sx=s->x,sy=s->y;
@@ -185,9 +186,9 @@ static void spawn_actors(void) {
         if (pair_kinds[s->def] && !pair_ready(sx,sy))continue;
         if (!npc_spawn_ready(i))
             continue;
-        if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2) {
+        if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def]) {
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
-            missile_reset();statue_shell_reset();loot_reset();skeleton_reset();container_actor_restart();
+            missile_reset();statue_shell_reset();waveboss_reset();loot_reset();skeleton_reset();container_actor_restart();
         }
         for (j = 0; j < MAX_ACTORS; j++)
             if (!game.actors[j].active) {
@@ -203,6 +204,7 @@ static void spawn_actors(void) {
                 a->timer = i * 7;
                 if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);
+                if(waveboss_kinds[a->def])waveboss_spawn(j);
                 if(eruption_kinds[a->def])eruption_spawn(j);
                 if(teleporter_kinds[a->def])teleporter_spawn(j);
                 if(hunter_kinds[a->def])hunter_spawn(j,hunter_kinds[a->def]-1);
@@ -221,7 +223,7 @@ static void spawn_actors(void) {
                 if (actor_defs[s->def].kind == HIDDEN_WALL)
                     hidden_spawn(j);
                 game.spawned[i] = eruption_kinds[s->def]?game.spawned[i]:pair_kinds[s->def]?2:1;
-                if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2)return;
+                if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def])return;
                 break;
             }
     }
@@ -328,7 +330,8 @@ static void screen_attack(void) {
         a->hit = 0;
         a->hp = 1;
         a->life = 1;
-        if(eruption_kinds[a->def]){a->active=0;game.spawned[a->source]^=1;}
+        if(waveboss_kinds[a->def])waveboss_screen_attack(j);
+        else if(eruption_kinds[a->def]){a->active=0;game.spawned[a->source]^=1;}
         else if(teleporter_kinds[a->def])teleporter_screen_attack(j);
         else if(hunter_kinds[a->def])hunter_screen_attack(j);
         else if(crawler_kinds[a->def])crawler_screen_attack(j);
@@ -359,6 +362,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (waveboss_kinds[a->def]) {
+        waveboss_step(i);
+        if(a->active && waveboss_contact(i) && waveboss_player_contact(i))player_hurt(actor_damage[a->def]);
         return;
     }
     if (eruption_kinds[a->def]) {
@@ -553,11 +561,17 @@ static void shots_step(void) {
         else
             for (j = 0; j < MAX_ACTORS; j++) {
                 Actor *a = &game.actors[j];
+                if(a->active && waveboss_kinds[a->def]){
+                    u8 contact=waveboss_weapon_contact(j,x,y);
+                    if(contact){if(contact==2)actor_hit(a,s->kind==1?(s->damage>1?s->damage>>1:1):s->damage);s->active=0;break;}
+                    continue;
+                }
                 if (a->active && (s->kind==1?actor_dagger_contact(j,x,y):
                     (absolute(x - PX(a->x) - 16) < 20 && absolute(y - PX(a->y) - 16) < 20))) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CHEST || k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
+                    if (waveboss_kinds[a->def] && !waveboss_vulnerable(j))continue;
                     if (eruption_kinds[a->def])continue;
                     if (teleporter_kinds[a->def] && !teleporter_vulnerable(j))continue;
                     if (hunter_kinds[a->def] && !hunter_vulnerable(j))continue;
@@ -647,7 +661,7 @@ void game_tick(u16 input) {
         return;
     }
     world_tick();
-    if (boss_locked() || hunter_locked()) input=pressed=0;
+    if (boss_locked() || (hunter_locked() || waveboss_locked())) input=pressed=0;
     player_step(input, pressed);
     if (game.mode != PLAY)
         return;
@@ -660,7 +674,7 @@ void game_tick(u16 input) {
         if(!game.p.invincible && statue_shell_player_contact(i,0))statue_shell_contact(i);
         if(statue_shell_player_contact(i,1))player_hurt(1);
     }}
-    container_traps_tick();
+    container_traps_tick();waveboss_seeds_tick();
     {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact=container_trap_contact(i);if(contact==1)player_hurt(1);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
     {
         u16 i;for(i=0;i<MAX_MISSILES;i++) {

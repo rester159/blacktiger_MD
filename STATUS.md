@@ -403,3 +403,17 @@ even during ordinary hurt invulnerability; a cartridge case verifies poison with
 leaves the primary weapon available, matching the source dagger-entry guard. Round entry
 clears poison, and the existing shop cure removes it. Source poison lifecycle outside these
 paths and palette presentation remain unverified; no damage-over-time behavior is assumed.
+
+Bank 1 98A3/98E8 now use a shared native large wave-boss engine, replacing provisional
+walker behavior in rounds five and seven. Thirty-one compiled segments drive both 64x64
+bodies and their wave-seeding projectiles. The 192-case body oracle compares 230,400 ticks:
+engagement, all weighted movement choices, screen-edge return, facing, initial and later
+hit callbacks, five/six damage layers, 5,000/15,000-point rewards and the clear callback.
+Small projectile allocation is kept available in the body oracle to isolate controller
+behavior; 3,840 additional source ticks cover both projectile directions, variants, heights,
+terrain branches and retirement. Native seeds dispatch the existing ordinary/special
+six-part wave engine. Cartridge tests verify actual boss rows, natural seed/wave attacks,
+all health layers through head hits, rewards, persistence and cleanup before round clear.
+The renderer draws all sixteen original sprite pieces with the native palette conversion.
+Boss health display, the separate death-flash task, full weapon-contact geometry/posture
+validation, exact shared-pool contention and the complete clear presentation remain gaps.
