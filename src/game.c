@@ -61,7 +61,7 @@ void game_round(u8 round) {
     skeleton_reset();
     emerge_reset();
     zombie_reset();
-    missile_reset();statue_shell_reset();waveboss_reset();
+    missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();
     loot_reset();
     container_round(round);
     if(preserve)container_actor_restart();else container_actor_reset();
@@ -98,7 +98,7 @@ void game_new(void) {
 }
 void game_boss_clear(void) {
  zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
- missile_reset();statue_shell_reset();waveboss_reset();loot_reset();skeleton_reset();container_actor_restart();
+ missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();loot_reset();skeleton_reset();container_actor_restart();
  game.boss_dead=1;game.mode=CLEAR;game.mode_timer=180;game.sound=SND_CLEAR;
 }
 static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
@@ -122,6 +122,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CHEST || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (flailer_kinds[a->def]){flailer_hit(a-game.actors,damage);return;}
     if (waveboss_kinds[a->def]){waveboss_hit(a-game.actors,damage);return;}
     if (eruption_kinds[a->def])return;
     if (teleporter_kinds[a->def]){teleporter_hit(a-game.actors,damage);return;}
@@ -188,7 +189,7 @@ static void spawn_actors(void) {
             continue;
         if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def]) {
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
-            missile_reset();statue_shell_reset();waveboss_reset();loot_reset();skeleton_reset();container_actor_restart();
+            missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();loot_reset();skeleton_reset();container_actor_restart();
         }
         for (j = 0; j < MAX_ACTORS; j++)
             if (!game.actors[j].active) {
@@ -204,6 +205,7 @@ static void spawn_actors(void) {
                 a->timer = i * 7;
                 if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);
+                if(flailer_kinds[a->def])flailer_spawn(j);
                 if(waveboss_kinds[a->def])waveboss_spawn(j);
                 if(eruption_kinds[a->def])eruption_spawn(j);
                 if(teleporter_kinds[a->def])teleporter_spawn(j);
@@ -321,6 +323,7 @@ static void player_step(u16 in, u16 pressed) {
     }
 }
 static void screen_attack(void) {
+    flailer_weapons_clear_attack();
     u16 j;
     for(j=0;j<MAX_MISSILES;j++)missile_hit(j,255);
     for (j = 0; j < MAX_ACTORS; j++) {
@@ -330,7 +333,8 @@ static void screen_attack(void) {
         a->hit = 0;
         a->hp = 1;
         a->life = 1;
-        if(waveboss_kinds[a->def])waveboss_screen_attack(j);
+        if(flailer_kinds[a->def])flailer_screen_attack(j);
+        else if(waveboss_kinds[a->def])waveboss_screen_attack(j);
         else if(eruption_kinds[a->def]){a->active=0;game.spawned[a->source]^=1;}
         else if(teleporter_kinds[a->def])teleporter_screen_attack(j);
         else if(hunter_kinds[a->def])hunter_screen_attack(j);
@@ -359,9 +363,13 @@ static void actor_step(u16 i, u16 pressed) {
         return;
     }
     if (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300) {
-        if (game.spawned[a->source] != 2)
-            game.spawned[a->source] = 0;
+        game.spawned[a->source]&=254; /* Preserve the consumed bit during offscreen cleanup. */
         a->active = 0;
+        return;
+    }
+    if (flailer_kinds[a->def]) {
+        flailer_step(i);
+        if(a->active && flailer_vulnerable(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
         return;
     }
     if (waveboss_kinds[a->def]) {
@@ -557,7 +565,7 @@ static void shots_step(void) {
                 player_hurt(s->damage);
                 s->active = 0;
             }
-        } else if(hunter_shell_hit_at(x,y,s->kind) || statue_shell_hit_at(x,y,s->kind) || missile_hit_at(x,y,s->damage,s->kind))s->active=0;
+        } else if(flailer_weapon_hit(x,y,s->kind) || hunter_shell_hit_at(x,y,s->kind) || statue_shell_hit_at(x,y,s->kind) || missile_hit_at(x,y,s->damage,s->kind))s->active=0;
         else
             for (j = 0; j < MAX_ACTORS; j++) {
                 Actor *a = &game.actors[j];
@@ -572,6 +580,7 @@ static void shots_step(void) {
                     if (k == CHEST || k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
                     if (waveboss_kinds[a->def] && !waveboss_vulnerable(j))continue;
+                    if (flailer_kinds[a->def] && !flailer_vulnerable(j))continue;
                     if (eruption_kinds[a->def])continue;
                     if (teleporter_kinds[a->def] && !teleporter_vulnerable(j))continue;
                     if (hunter_kinds[a->def] && !hunter_vulnerable(j))continue;
@@ -674,7 +683,8 @@ void game_tick(u16 input) {
         if(!game.p.invincible && statue_shell_player_contact(i,0))statue_shell_contact(i);
         if(statue_shell_player_contact(i,1))player_hurt(1);
     }}
-    container_traps_tick();waveboss_seeds_tick();
+    container_traps_tick();waveboss_seeds_tick();flailer_weapons_tick();
+    {u16 i;for(i=0;i<MAX_ACTORS;i++){u8 contact=flailer_weapon_contact(i);if(contact==1)player_hurt(1);else if(contact==2 && status_poison_cloud_contact())player_hurt(2);}}
     {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact=container_trap_contact(i);if(contact==1)player_hurt(1);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
     {
         u16 i;for(i=0;i<MAX_MISSILES;i++) {

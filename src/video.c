@@ -342,6 +342,7 @@ static void sprites(void) {
         if (pair_kinds[a->def]) {
             const AnimFrame *f=pair_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;
         }
+        if (flailer_kinds[a->def]){const AnimFrame *f=flailer_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
         if (waveboss_kinds[a->def]) {
             const AnimFrame *f=waveboss_frame(i);u16 col,row;
             if(f)for(row=0;row<4;row++)for(col=0;col<4;col++)piece(f->code+row*8+(f->flip?3-col:col),f->palette,x+col*16,y+row*16,f->flip);
@@ -407,6 +408,7 @@ static void sprites(void) {
         if (f)
             piece(f->code, f->palette, wx - game.cam_x, wy - game.cam_y, f->flip);
     }
+    for(i=0;i<MAX_ACTORS;i++){const AnimFrame *f=flailer_weapon_frame(i);if(f)piece(f->code,f->palette,flailer_weapons[i].x-game.cam_x,flailer_weapons[i].y-game.cam_y,f->flip);}
     for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){const AnimFrame *f=waveboss_seed_frame(i);if(f)piece(f->code,f->palette,waveboss_seeds[i].x-game.cam_x,waveboss_seeds[i].y-game.cam_y,f->flip);}
     for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     for(i=0;i<MAX_STATUE_SHELLS;i++) {

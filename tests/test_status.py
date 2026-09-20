@@ -11,7 +11,9 @@ with tempfile.TemporaryDirectory() as folder:
   if line=='COMPLETE':break
   v=line.split('|')
   if v[0]=='CONTACT':
-   c=ref['cases'][int(v[1])];lib.setup(c['gate'],c['reverse'],c['antidotes'],c['poison']);(lib.status_poison_contact if c['poison_contact'] else lib.status_reverse_contact)()
+   c=ref['cases'][int(v[1])];lib.setup(c['gate'],c['reverse'],c['antidotes'],c['poison'])
+   if c['poison_contact']==2:assert lib.status_poison_cloud_contact()==int(v[8])
+   else:(lib.status_poison_contact if c['poison_contact'] else lib.status_reverse_contact)()
    actual=[C.c_uint8.in_dll(lib,name).value for name in ('status_gate','status_reverse','shop_antidotes')]
    assert actual==list(map(int,v[2:5])),(c,actual,v)
    assert v[5:7]==['4','2'],'Status effect precedes ordinary damage dispatch'

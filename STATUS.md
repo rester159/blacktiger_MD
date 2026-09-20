@@ -379,7 +379,7 @@ antidote consumption, shop cure, recurring construction and POW defeat.
 
 The attack's special contact 43 reverses horizontal controls; it is separate from poison.
 E919 provides a shared 60-tick contact gate, or 30 ticks after consuming a stored antidote.
-The native status routine matches 253 source contact/timer cases and 128 control masks;
+The native status routine matches 349 source contact/timer cases and 128 control masks;
 health and armor are unchanged. Shop cures clear both statuses, while unrelated purchases
 preserve the distinction. The source diagonal posture dispatch for input 5, status palette
 flashing, full poison lifecycle and exact constructor scan scheduling remain unverified. Shared source
@@ -426,3 +426,25 @@ uses screen coordinates and extracted template dimensions. Cartridge tests confi
 damage and non-damaging body blocks for both weapon kinds and both bosses. The native
 player still uses normal posture and provisional main-weapon animation/extents; this check
 does not establish full player attack fidelity or the entire original collision schedule.
+
+Bank-zero AB33/AB4A/B1C1/B1D8 now share a native flail-wielder controller and independent
+weapon pool. The source graph contains 108 compiled segments across the two health/speed
+profiles and both starting directions. A 144-case oracle compares 57,600 body ticks covering
+proximity activation, facing, walking, obstacles, jumps, falling, fractional gravity, attack
+linkage, 24/56 internal health, recoil, defeat and 20/50-point rewards. Another 3,600 source
+ticks cover the weapon profiles/directions, trajectories, destruction and parent cancellation.
+Cartridge checks cover actual rows in rounds one, three and seven, natural attacks, recoil
+cancelling a linked weapon, defeat rewards and retirement. B1D8's only extracted row is at
+X=16352 in a 2048-pixel-wide round; its mirrored profile is exercised in a controlled slot,
+not reported as a naturally reached placement. Original scan behavior for that row remains
+unverified. Native flail allocation has its own pool rather than original global contention.
+
+Flail contact 42 differs from ground-flame contact 38: its antidote/gate paths return without
+ordinary damage, while an unprotected contact applies poison and two damage. The second
+flail profile deals one ordinary damage. The expanded status oracle checks those dispatch
+branches; cartridge fixtures confirm both damage values and the zero-damage protected paths.
+Native chain geometry and global contact scheduling remain separately scoped limitations.
+
+Shared offscreen actor cleanup now clears only the active bit, preserving the consumed bit
+when a defeated actor leaves the view before its death animation finishes. A cartridge
+regression moves a dying flail-wielder offscreen and verifies that it stays consumed.

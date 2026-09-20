@@ -27,7 +27,7 @@ meta=json.loads((ROOT/'reports/assets.json').read_text())
 # The pinned cartridge's thrower used unrelated fallback graphics; its new source
 # frames are checked by test_thrower. Layered bosses now also use source frames,
 # checked by test_boss_motion rather than the old generic rendering fixture.
-chosen=[d['id'] for d in meta['actor_definitions'] if d['pieces']==4 and not d['npc_kind'] and d['kind']!=9 and (d['bank'],d['address']) not in ((1,0x92e6),(1,0x8d33),(1,0x8a5d),(1,0x8a03),(1,0x8b9b),(1,0x8bf5),(1,0x98a3),(1,0x98e8),(1,0x9f83),(1,0x9fc4),(0,0xb84f),(1,0xacbe),(1,0xacd3),(0,0x89c6),(4,0xb338),(4,0x9a4c),(4,0x9eb1),(4,0x9f16),(0,0x8389),(0,0x93ed),(0,0x9b85),(0,0xa35c),(2,0xb67f))]
+chosen=[d['id'] for d in meta['actor_definitions'] if d['pieces']==4 and not d['npc_kind'] and d['kind']!=9 and (d['bank'],d['address']) not in ((1,0x92e6),(1,0x8d33),(1,0x8a5d),(1,0x8a03),(1,0x8b9b),(1,0x8bf5),(1,0x98a3),(1,0x98e8),(0,0xab33),(0,0xab4a),(0,0xb1c1),(0,0xb1d8),(1,0x9f83),(1,0x9fc4),(0,0xb84f),(1,0xacbe),(1,0xacd3),(0,0x89c6),(4,0xb338),(4,0x9a4c),(4,0x9eb1),(4,0x9f16),(0,0x8389),(0,0x93ed),(0,0x9b85),(0,0xa35c),(2,0xb67f))]
 baseline='--baseline-rom' in sys.argv
 baseline_dir=Path(os.environ.get('BLACKTIGER_RENDER_BASELINE',str(ROOT/'dist')))
 if baseline:assert hashlib.sha256((baseline_dir/'blacktiger_astra.bin').read_bytes()).hexdigest()=='308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','Baseline mode requires the d0b1baf cartridge and its matching symbols.'
@@ -75,7 +75,7 @@ for level in range(8):
 # Reproduce the old conservative-band overflow with room under hardware scanline limits.
 s=state(r);s.p.y=(s.cam_y+92)*256;s.p.attack=0;s.p.face=0
 for q in s.shots:q.active=0
-for i in range(12):s.actors[i].definition=chosen[i];s.actors[i].face=-1
+for i in range(12):s.actors[i].definition=chosen[i%len(chosen)];s.actors[i].face=-1
 put(r,s);r.run(100);before=int.from_bytes(r.read('video_dropped_sprites'),'big');r.run(20)
 crowded_drops=(int.from_bytes(r.read('video_dropped_sprites'),'big')-before)&65535
 if not baseline:validate_sat(r);assert crowded_drops==0

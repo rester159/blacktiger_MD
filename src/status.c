@@ -8,6 +8,7 @@ void status_poison_contact(void) {
  if(shop_antidotes){shop_antidotes--;status_gate=30;}
  else {shop_poison=0x26;status_gate=60;}
 }
+u8 status_poison_cloud_contact(void){u8 hurt=!status_gate && !shop_antidotes;status_poison_contact();return hurt;}
 void status_reverse_contact(void) {
  if(status_gate)return;
  if(shop_antidotes){shop_antidotes--;status_gate=30;}
