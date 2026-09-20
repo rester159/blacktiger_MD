@@ -7,6 +7,7 @@
 #include "game_over.h"
 #include "player_dagger.h"
 #include "assets.h"
+#include "clear_screen_data.inc"
 #include "container.h"
 #include "shop.h"
 #include "progress.h"
@@ -32,6 +33,7 @@ static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
 static u8 line_count[28], sprite_slot_for_key[16384];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
+static u8 clear_screen_active;
 static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
@@ -467,7 +469,7 @@ static void overlay(void) {
     char b[40];
     u16 stats = (game.p.hp << 12) | (game.p.armor << 8) | (game.p.weapon << 4) | game.p.lives;
     if (changed) {
-        VDP_clearPlane(BG_A, TRUE);
+        if(!clear_screen_active)VDP_clearPlane(BG_A, TRUE);
         last_mode = m;
     }
     VDP_setTextPlane(WINDOW);
@@ -519,9 +521,7 @@ static void overlay(void) {
         }
         text(3, 23, "A BUY   B / START EXIT");
     } else if (m == CLEAR) {
-        if(round_clear.phase==2) {
-            text(10,11,"Zenny BONUS");digits(b,round_clear_reward(game.round),5);b[5]=0;text(13,14,b);
-        }
+        /* The source bonus artwork is installed by video_frame. */
     } else if (m == DEAD)
         text(10, 11, "TRY AGAIN...");
     else if (m == GAMEOVER) {
@@ -553,6 +553,7 @@ void video_init(void) {
     VDP_setBackgroundColor(0);
 }
 void video_round(void) {
+    clear_screen_active=0;
     terrain_state();
     u16 i;
     SYS_disableInts();
@@ -583,10 +584,41 @@ void video_round(void) {
     VDP_setEnable(TRUE);
     SYS_enableInts();
 }
+static void bonus_screen(void) {
+    /* This replaces the terrain cache only after the victory animation ends. */
+    SYS_disableInts();
+    VDP_setEnable(FALSE);
+    DMA_flushQueue();
+    VDP_clearPlane(BG_A, TRUE);
+    VDP_clearPlane(BG_B, TRUE);
+    PAL_setColors(0, clear_screen_palette, 48, CPU);
+    VDP_loadTileData(clear_screen_patterns, 16, CLEAR_SCREEN_TILES, DMA);
+    VDP_setTileMapDataRect(BG_B, clear_bg[game.round], 0, 0, 32, 28, 32, DMA);
+    VDP_setTileMapDataRect(BG_A, clear_fg[game.round], 0, 0, 32, 28, 32, DMA);
+    VDP_setHorizontalScroll(BG_B,0);
+    VDP_setVerticalScroll(BG_B,0);
+    VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);
+    VDP_updateSprites(1,DMA);
+    {
+        u16 value=game.coins, digits[5],i;
+        for(i=5;i>0;i--){digits[i-1]=clear_digits[value%10];value/=10;}
+        VDP_setTileMapDataRow(BG_A,digits,4,26,5,CPU);
+    }
+    clear_screen_active=game.round+1;
+    VDP_setEnable(TRUE);
+    SYS_enableInts();
+}
 volatile u16 video_cost[3];
 void video_frame(void) {
     u32 t = getSubTick();
     video_dma_bytes = 0;
+    if(game.mode==CLEAR && round_clear.phase==2 && game.round<7) {
+        if(clear_screen_active!=game.round+1)bonus_screen();
+        overlay();
+        video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;
+        return;
+    }
+    if(clear_screen_active)video_round();
     if (last_round != game.round || (game.cam_x >> 3) - old_x > 1 ||
         old_x - (game.cam_x >> 3) > 1 || (game.cam_y >> 3) - old_y > 1 ||
         old_y - (game.cam_y >> 3) > 1)

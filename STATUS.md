@@ -824,3 +824,14 @@ fresh-title input-only replay comparing persistent RAM and CPU PC/SR/SP. Standar
 exploration failed replay verification and was rejected. The verified controller
 currently stalls mid-round one; this is a controller limitation, not a completed
 playthrough or evidence justifying a terrain change. See `reports/route-play.json`.
+
+## Original round-bonus artwork
+
+Replaced the placeholder clear panel and scrolling terrain with the source bonus
+artwork and lettering for all seven ordinary rounds. Shared Genesis patterns use
+two exact RGB333 background palettes and one character palette; no additional
+color quantization is needed. Original digit glyphs display the native current
+Zenny balance. Gameplay sprites are hidden and the next round rebuilds its
+terrain cache and palettes. Original-ROM setup captures and cartridge VRAM,
+pattern, palette, balance and transition checks cover all seven screens.
+Fades, original HUD, final cutscene and natural full-game completion remain open.
