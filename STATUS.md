@@ -79,3 +79,12 @@ small/medium actor target filters, compiled from witnessed constructor pool/cont
 Checks cover 406 item ticks, 192 original target cases, 66 compiled definition filters, and both
 actual cartridge pickup spawns. Unported enemy death callbacks, later contact-type changes and
 shared-pool/projectile effects remain incomplete; this is not full screen-attack fidelity.
+
+The renderer now packs four-piece bodies into one 32×32 hardware sprite, sharing the existing
+320 sprite tiles with small objects and retaining per-frame cache pinning. Forty-eight paused
+fixtures retain identical pixels, while direct VRAM checks validate mixed cache textures and
+hardware scanline limits. Sprite construction cost in those fixtures falls by 47.7%; a crowded
+case no longer drops a visible piece due to the old conservative band count. The slowest sampled
+route improves from 129 to 149 logic updates per 180 video frames; three additional sampled
+rounds reach 180/180. Other routes still overrun, and worst-case/PAL performance remains unproven.
+See `reports/renderer-performance.json` for the exact scope and before/after cartridge hashes.

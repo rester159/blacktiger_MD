@@ -54,7 +54,8 @@ maps and collision tables, extracts spawn records, and reduces palettes to Genes
 two background palettes, one hero palette, and one shared object palette. Transparent sprite pen 15
 becomes Genesis pen 0; opaque black stays opaque. Horizontal/vertical flip deduplication reduces tile
 storage. The renderer streams a 64×32 tile ring through a 1,056-tile background cache and an 80-entry
-sprite cache. DMA queue capacity is 192; full round loading is batched with the display disabled.
+sprite cache. Full bodies share this cache as 32×32 hardware sprites (four slots per body),
+with a fallback to individual pieces when needed. DMA queue capacity is 192; full round loading is batched with the display disabled.
 
 Files:
 
@@ -161,3 +162,12 @@ small/medium actor target filters, compiled from witnessed constructor pool/cont
 Checks cover 406 item ticks, 192 original target cases, 66 compiled definition filters, and both
 actual cartridge pickup spawns. Unported enemy death callbacks, later contact-type changes and
 shared-pool/projectile effects remain incomplete; this is not full screen-attack fidelity.
+
+The renderer now packs four-piece bodies into one 32×32 hardware sprite, sharing the existing
+320 sprite tiles with small objects and retaining per-frame cache pinning. Forty-eight paused
+fixtures retain identical pixels, while direct VRAM checks validate mixed cache textures and
+hardware scanline limits. Sprite construction cost in those fixtures falls by 47.7%; a crowded
+case no longer drops a visible piece due to the old conservative band count. The slowest sampled
+route improves from 129 to 149 logic updates per 180 video frames; three additional sampled
+rounds reach 180/180. Other routes still overrun, and worst-case/PAL performance remains unproven.
+See `reports/renderer-performance.json` for the exact scope and before/after cartridge hashes.

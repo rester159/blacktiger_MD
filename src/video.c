@@ -10,6 +10,8 @@
 static u16 logical_to_slot[1700], slot_to_logical[BG_SLOTS], sprite_keys[SPR_SLOTS],
     sprite_stamp[SPR_SLOTS];
 static u16 visible[1700];
+/* A body occupies four existing 16x16 cache slots; both formats share the same VRAM. */
+static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
 static u8 line_count[28], sprite_slot_for_key[16384];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
@@ -203,13 +205,14 @@ static void piece(u16 code, u8 palette, s16 x, s16 y, u8 flip) {
             slot = sprite_eviction;
             if (++sprite_eviction == SPR_SLOTS)
                 sprite_eviction = 0;
-            if (sprite_stamp[slot] != epoch)
+            if (sprite_stamp[slot] != epoch && body_stamp[slot / 4] != epoch)
                 break;
         }
         if (i == SPR_SLOTS) {
             video_dropped_sprites++;
             return;
         }
+        body_keys[slot / 4] = 65535;
         if (sprite_keys[slot] != 65535)
             sprite_slot_for_key[sprite_keys[slot]] = 255;
         sprite_keys[slot] = key;
@@ -226,11 +229,65 @@ static void piece(u16 code, u8 palette, s16 x, s16 y, u8 flip) {
                       sprite_count + 1);
     sprite_count++;
 }
-static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
+static void body_pieces(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
     piece(code + (flip ? 1 : 0), pal, x, y, flip);
     piece(code + (flip ? 0 : 1), pal, x + 16, y, flip);
     piece(code + (flip ? 9 : 8), pal, x, y + 16, flip);
     piece(code + (flip ? 8 : 9), pal, x + 16, y + 16, flip);
+}
+static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
+    u16 key = code + pal * 2048, block, i, j, start, end;
+    if (code > 2038 || sprite_count >= 63 || x <= -32 || x >= 256 || y <= -32 || y >= 224)
+        return;
+    start = y < 0 ? 0 : y >> 3;
+    end = (y + 39) >> 3;
+    if (end > 28) end = 28;
+    for (i = start; i < end; i++)
+        if (line_count[i] > 14) {
+            body_pieces(code, pal, x, y, flip);
+            return;
+        }
+    for (block = 0; block < SPR_SLOTS / 4; block++)
+        if (body_keys[block] == key) break;
+    if (block == SPR_SLOTS / 4) {
+        if (sprite_uploads > 28) {
+            body_pieces(code, pal, x, y, flip);
+            return;
+        }
+        for (i = 0; i < SPR_SLOTS / 4; i++) {
+            block = body_eviction;
+            if (++body_eviction == SPR_SLOTS / 4) body_eviction = 0;
+            if (body_stamp[block] == epoch) continue;
+            for (j = 0; j < 4; j++)
+                if (sprite_stamp[block * 4 + j] == epoch) break;
+            if (j == 4) break;
+        }
+        if (i == SPR_SLOTS / 4) {
+            body_pieces(code, pal, x, y, flip);
+            return;
+        }
+        for (j = 0; j < 4; j++) {
+            u16 slot = block * 4 + j;
+            if (sprite_keys[slot] != 65535) sprite_slot_for_key[sprite_keys[slot]] = 255;
+            sprite_keys[slot] = 65535;
+        }
+        body_keys[block] = key;
+        /* Hardware sprite tiles run down each column. Interleave top/bottom piece columns. */
+        for (j = 0; j < 4; j++) {
+            const u32 *source = object_patterns + (u32)(key + (j >> 1)) * 32 + (j & 1) * 16;
+            u16 tile = SPR_BASE + block * 16 + j * 4;
+            VDP_loadTileData(source, tile, 2, DMA_QUEUE);
+            VDP_loadTileData(source + 8 * 32, tile + 2, 2, DMA_QUEUE);
+        }
+        sprite_uploads += 4;
+        video_dma_bytes += 512;
+    }
+    body_stamp[block] = epoch;
+    for (i = start; i < end; i++) line_count[i] += 2;
+    VDP_setSpriteFull(sprite_count, x, y, SPRITE_SIZE(4, 4),
+                      TILE_ATTR_FULL(pal ? PAL3 : PAL2, TRUE, FALSE, flip, SPR_BASE + block * 16),
+                      sprite_count + 1);
+    sprite_count++;
 }
 static void sprites(void) {
     Player *p = &game.p;
@@ -246,11 +303,11 @@ static void sprites(void) {
     if (++epoch == 0) {
         epoch = 1;
         memset(sprite_stamp, 0, sizeof sprite_stamp);
+        memset(body_stamp, 0, sizeof body_stamp);
     }
     memset(line_count, 0, sizeof line_count);
     if (!p->invincible || (game.frame & 4)) {
-        for (i = 0; i < 4; i++)
-            piece(h->code[i], 0, x + (i & 1) * 16, y + (i >> 1) * 16, h->flip);
+        body(h->code[0] - (h->flip ? 1 : 0), 0, x, y, h->flip);
         piece(h->code[4], 0, x + h->dx, y + h->dy, h->weapon_flip);
     }
     for (i = 0; i < MAX_SHOTS; i++) {
@@ -435,7 +492,9 @@ void video_round(void) {
     memset(sprite_keys, 255, sizeof sprite_keys);
     memset(sprite_slot_for_key, 255, sizeof sprite_slot_for_key);
     memset(sprite_stamp, 0, sizeof sprite_stamp);
-    eviction = sprite_eviction = epoch = 0;
+    memset(body_stamp, 0, sizeof body_stamp);
+    memset(body_keys, 255, sizeof body_keys);
+    eviction = sprite_eviction = body_eviction = epoch = 0;
     PAL_setColors(0, rounds[game.round].palette, 32, CPU);
     PAL_setColors(32, object_palette, 32, CPU); /* SGDK font uses foreground pen 15. */
     PAL_setColor(63, 0xeee);
