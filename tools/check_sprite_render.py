@@ -39,6 +39,8 @@ r.run(100);r.run(3,8);r.run(30);checks=[];costs=[]
 for level in range(8):
  s=state(r);s.round=level;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(100)
  for phase in range(6):
+  # Drain the active gameplay frame before replacing actors/private animation state.
+  s=state(r);s.mode=2;put(r,s);r.run(60)
   flip=phase&1
   s=state(r);s.mode=2;s.cam_x=128;s.cam_y=128;s.p.x=-1024*256;s.p.y=-1024*256;s.p.vx=s.p.vy=0;s.p.grounded=1;s.p.climb=s.p.invincible=0;s.p.attack=(0,5,12,17,8,20)[phase];s.p.face=flip
   s.p.hp=4;s.p.armor=2;s.p.weapon=1;s.p.lives=3;s.score=0;s.coins=123;s.time=160

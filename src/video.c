@@ -30,6 +30,7 @@ static u8 line_count[28], sprite_slot_for_key[16384];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
 static u8 last_round = 255, last_mode = 255, last_opened;
+static u8 last_bonus_entered,last_bonus_phases[4];
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
 static u16 word_at(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
@@ -125,44 +126,50 @@ static void pin_row(s16 x, s16 y, s16 delta) {
             visible[v - 16] += delta;
     }
 }
+static void terrain_cell(u16 x,u16 y,u8 pass) {
+ const Round *r=&rounds[game.round];u16 original,old,next,v;
+ if(x<old_x || x>=old_x+33 || y<old_y || y>=old_y+29)return;
+ original=r->map[(y<<(r->width==2048?8:7))+x];
+ old=world_override(x,y,bonus_word_state(x,y,original,last_bonus_entered,last_bonus_phases),last_opened);
+ next=world_word(x,y,original);
+ if(old==next)return;
+ if(!pass){
+  v=old&2047;if(v>=16)visible[v-16]--;
+  v=next&2047;if(v>=16)visible[v-16]++;
+ }else{
+  v=cached(next);
+  VDP_setTileMapData(VDP_getBGBAddress(),&v,((y&31)<<6)|(x&63),1,2,DMA_QUEUE_COPY);
+  video_dma_bytes+=2;
+ }
+}
+static void terrain_state(void){
+ u8 i;last_opened=world_opened;last_bonus_entered=bonus_entered;
+ for(i=0;i<4;i++)last_bonus_phases[i]=bonus_phases[i];
+}
 static void terrain_updates(void) {
-    const Round *r = &rounds[game.round];
-    u16 i, dx, dy, shift = r->width == 2048 ? 7 : 6;
-    u8 changed = world_opened ^ last_opened;
-    if (!changed)
-        return;
-    /* Update residency counts before allocating any replacement patterns. */
-    for (i = 0; i < r->patch_count; i++)
-        if (changed & (1 << i)) {
-            u16 cell = r->patches[i].cell, px = (cell & ((1 << shift) - 1)) * 2,
-                py = (cell >> shift) * 2;
-            for (dy = 0; dy < 4; dy++)
-                for (dx = 0; dx < 2; dx++) {
-                    u16 x = px + dx, y = py + dy, old;
-                    if (x < old_x || x >= old_x + 33 || y < old_y || y >= old_y + 29)
-                        continue;
-                    old = bonus_word(x,y,r->map[(y << (shift + 1)) + x]) & 2047;
-                    if (old >= 16)
-                        visible[old - 16]--;
-                    pin(x, y, 1);
-                }
-        }
-    for (i = 0; i < r->patch_count; i++)
-        if (changed & (1 << i)) {
-            u16 cell = r->patches[i].cell, px = (cell & ((1 << shift) - 1)) * 2,
-                py = (cell >> shift) * 2;
-            for (dy = 0; dy < 4; dy++)
-                for (dx = 0; dx < 2; dx++) {
-                    u16 x = px + dx, y = py + dy, word;
-                    if (x < old_x || x >= old_x + 33 || y < old_y || y >= old_y + 29)
-                        continue;
-                    word = cached(word_at(x, y));
-                    VDP_setTileMapData(VDP_getBGBAddress(), &word, ((y & 31) << 6) | (x & 63), 1, 2,
-                                       DMA_QUEUE_COPY);
-                    video_dma_bytes += 2;
-                }
-        }
-    last_opened = world_opened;
+ const Round *r=&rounds[game.round];const BonusRound *b=&bonus_rounds[game.round];
+ u16 i,j,dx,dy,shift=r->width==2048?7:6,width=r->width>>4;u8 changed=last_opened!=world_opened || last_bonus_entered!=bonus_entered,pass;
+ if(!changed && !b->count)return;
+ for(i=0;i<4;i++)changed|=last_bonus_phases[i]!=bonus_phases[i];
+ if(!changed)return;
+ /* Every affected cell is visited once; unpin all old patterns before allocation. */
+ for(pass=0;pass<2;pass++){
+  for(i=0;i<r->patch_count;i++){
+   u16 cell=r->patches[i].cell,x=(cell&(width-1))*2,y=(cell>>shift)*2;
+   if(x+2<=old_x || x>=old_x+33 || y+4<=old_y || y>=old_y+29)continue;
+   if(!((last_opened^world_opened)&(1<<i)) && ((world_opened&(1<<i)) || (!bonus_rows[y>>1] && !bonus_rows[(y+2)>>1])))continue;
+   for(dy=0;dy<4;dy++)for(dx=0;dx<2;dx++)terrain_cell(x+dx,y+dy,pass);
+  }
+  for(i=0;i<b->count;i++){
+   u16 cell=b->patches[i].cell,x=(cell&(width-1))*2,y=(cell>>shift)*2;
+   if(last_bonus_entered==bonus_entered && last_bonus_phases[b->patches[i].bank]==bonus_phases[b->patches[i].bank])continue;
+   if(x+2<=old_x || x>=old_x+33 || y+2<=old_y || y>=old_y+29)continue;
+   for(j=0;j<r->patch_count;j++)if(cell==r->patches[j].cell || cell==r->patches[j].cell+width)break;
+   if(j<r->patch_count)continue;
+   for(dy=0;dy<2;dy++)for(dx=0;dx<2;dx++)terrain_cell(x+dx,y+dy,pass);
+  }
+ }
+ terrain_state();
 }
 static void scene(u8 full) {
     s16 x = game.cam_x >> 3, y = game.cam_y >> 3, xx, yy;
@@ -573,7 +580,7 @@ void video_init(void) {
     VDP_setBackgroundColor(0);
 }
 void video_round(void) {
-    last_opened = world_opened;
+    terrain_state();
     u16 i;
     SYS_disableInts();
     VDP_setEnable(FALSE);

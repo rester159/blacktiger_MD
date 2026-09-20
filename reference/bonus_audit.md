@@ -40,10 +40,8 @@ extracted coordinate policy, including low-byte overflow and nonzero movement
 flags. The captured traces are development evidence only; original program
 instructions must never enter the cartridge.
 
-Remaining integration: native trigger state and collision; shared transient-pool
-reset preserving player rewards and consumed rows; player/camera relocation;
-door/background animation and collision patches; transition presentation;
-death/restart behavior and natural entrance-to-exit cartridge validation.
+Remaining verification includes source transition presentation, scheduler lifecycle
+behavior and natural entrance-to-exit routes.
 
 ## Native integration
 
@@ -60,10 +58,24 @@ including both camera branches, reward/persistence preservation, music, restart
 and actual VRAM pattern residency. The shared gate/camera policy also matches
 225 original-ROM cases. These fixtures do not establish a natural room route.
 
-The compiler currently installs the first animation phase for each latch state,
-including the changed doorway collision tiles. All eight source phase lists are
-retained in bonus.json, but native phase scheduling and source fade/presentation
-are still outstanding. Map patching remains generic across every round.
+The compiler installs both animation phases for each latch state, including
+collision values. Native bank phases change at ticks 0/1/2/3 and 13/14/15/16 of a
+26-tick cycle. Background source capture verifies 384 yields and 2,376 byte writes
+across all eight rounds, both latch states and three complete cycles. The task
+scheduler itself is intercepted, so this proves task-relative cadence rather than
+whole-board timing. Native background updates run alongside play, rescue, shop,
+death and clear states, and stop during pause/title/end screens; equivalence of
+all those lifecycle contexts still needs full-route verification.
+
+The renderer updates only changed resident tile words. It releases old pattern
+references before allocating replacements and avoids double-processing cells
+shared with hidden-wall patches. Cartridge tests compare actual VRAM patterns
+and attributes for both phases in all six populated rounds and both latch states.
+Source fade/presentation remains outstanding.
 
 A normal grounded round-one entrance also passes without the ladder override;
 the destination hidden-wall actor spawns through the production scanner.
+
+Performance: updates skip offscreen rectangles and banks whose phase did not
+change. The all-round profile still falls short of sustained 60 Hz; animation
+integration does not resolve the existing game/renderer scheduling shortfalls.

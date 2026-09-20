@@ -105,7 +105,7 @@ void game_bonus_transition(void) {
  u16 i,x=player_motion.scroll_x,y=player_motion.scroll_y;
  music_request=bonus_entered?0x21+game.round:0x2d;
  bonus_destination(game.round,bonus_entered,&x,&y,&bonus_saved_x,&bonus_saved_y);
- bonus_entered=1;
+ bonus_entered=1;bonus_animation_reset();
  zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
  for(i=0;i<160;i++)game.spawned[i]&=254;
  world_restart();npc_reset();skeleton_reset();emerge_reset();zombie_reset();
@@ -749,6 +749,7 @@ void game_tick(u16 input) {
             game.mode = PLAY;
         return;
     }
+    if(game.mode!=ENDING && game.mode!=GAMEOVER)bonus_tick();
     if (game.mode == RESCUE) {
         npc_rescue_tick();
         return;

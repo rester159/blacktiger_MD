@@ -31,10 +31,9 @@ void world_restart(void) {
     u8 opened=world_opened,collected=taken;
     world_reset();world_opened=opened;taken=collected;
 }
-u16 world_word(u16 x, u16 y, u16 original) {
-    original=bonus_word(x,y,original);
+u16 world_override(u16 x, u16 y, u16 original,u8 opened) {
     const Round *r = &rounds[game.round];
-    u8 mask = world_rows[y] & world_opened, i;
+    u8 mask = world_rows[y] & opened, i;
     u16 shift = r->width == 2048 ? 7 : 6;
     for (i = 0; mask; i++, mask >>= 1)
         if (mask & 1) {
@@ -44,6 +43,7 @@ u16 world_word(u16 x, u16 y, u16 original) {
         }
     return original;
 }
+u16 world_word(u16 x,u16 y,u16 original){original=bonus_word(x,y,original);return world_opened?world_override(x,y,original,world_opened):original;}
 u8 world_collision(u16 cell, u8 original) {
     const Round *r = &rounds[game.round];
     u8 i, mask = world_opened;

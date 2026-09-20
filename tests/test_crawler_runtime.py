@@ -48,7 +48,7 @@ contacts=[];ref=json.loads((ROOT/'reference/crawler.json').read_text())
 definition=next(d['id'] for d in json.loads((ROOT/'reports/assets.json').read_text())['actor_definitions'] if (d['bank'],d['address'])==(7,0xa3b6))
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
 for antidotes,gate in ((0,0),(1,0),(0,30)):
- s=state(r);s.mode=2;put(r,s);r.run(20)
+ s=state(r);s.mode=2;s.cam_x=16;s.cam_y=752;put(r,s);r.run(60)
  s=state(r);s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.armor=4;s.p.hp=4;s.p.invincible=0
  for a in s.actors:a.active=0
  for q in s.shots:q.active=0

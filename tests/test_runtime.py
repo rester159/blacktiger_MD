@@ -30,9 +30,9 @@ def check_video_cache(r,s):
     ptr,count=struct.unpack_from('>IH',rom,r.symbols['bonus_rounds']+level*20)
     cell=(y//2)*(width//2)+x//2
     for pi in range(count):
-     at=ptr+pi*20
+     at=ptr+pi*40
      if int.from_bytes(rom[at:at+2],'big')==cell:
-      expected=struct.unpack_from('>H',rom,at+2+r.read('bonus_entered',1)[0]*8+((y&1)*2+(x&1))*2)[0];break
+      expected=struct.unpack_from('>H',rom,at+2+(r.read('bonus_entered',1)[0]*2+r.read('bonus_phases',4)[rom[at+38]])*8+((y&1)*2+(x&1))*2)[0];break
    assert actual&0xf800==expected&0xf800,(level,x,y,'attribute')
    original=(expected&2047)-16;physical=actual&2047
    assert bytes(v[(physical*32+k)^1] for k in range(32))==patterns[original*32:original*32+32],(level,x,y,'tile')

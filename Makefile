@@ -13,6 +13,7 @@ res/generated/object_patterns.bin: tools/extract.py tools/extract_bonus.py tools
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
 test: all
+	.venv/bin/python tests/test_background_runtime.py
 	.venv/bin/python tests/test_bonus.py
 	.venv/bin/python tests/test_bonus_runtime.py
 	.venv/bin/python tests/test_music_catalog_runtime.py

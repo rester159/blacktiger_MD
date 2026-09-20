@@ -506,7 +506,7 @@ def main():
         # Compile source alternate-area tile writes with this round's palette mapping.
         phase_maps=[]
         for phases in bonus['rounds'][r]['background']:
-            phase_maps.append({v['offset']:v['tile'] for phase in phases[:4] for v in phase})
+            for at in (0,4):phase_maps.append({v['offset']:v['tile'] for phase in phases[at:at+4] for v in phase})
         patches=[]
         for y in range(h):
             for x in range(w):
@@ -526,7 +526,7 @@ def main():
                         if b not in unique:unique[b]=len(unique);pats.extend(b)
                         words_out.append((unique[b]+16)|(int(groups[p])<<13)|flags)
                     variants.append('{'+','.join(map(str,words_out))+'}');collisions.append(collision[code])
-                patches.append('{'+str(y*w+x)+',{'+','.join(variants)+'},{'+','.join(map(str,collisions))+'}}')
+                patches.append('{'+str(y*w+x)+',{'+','.join(variants)+'},{'+','.join(map(str,collisions))+'},'+str(offset//4096)+',0}')
         body.append(f'const BonusPatch bonus_patches{r}[]={{'+','.join(patches or ['{0}'])+'};')
         br=bonus['rounds'][r];triggers=br['triggers']
         bonus_definitions.append('{bonus_patches'+str(r)+','+','.join(map(str,[len(patches),*br['camera'],br['return_x_low_add'],len(triggers)]))+',{'+','.join('{'+str(t['x'])+','+str(t['y'])+'}' for t in triggers or [dict(x=0,y=0)])+'}}')

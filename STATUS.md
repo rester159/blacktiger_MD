@@ -734,3 +734,17 @@ Validation completed for the current ROM, including normal grounded round-one
 entry and destination hidden-wall spawning. Existing injected-state tests now
 wait for mode/VDP completion where fixed short delays raced the running cartridge.
 Audio mode tracking uses the mode captured at the start of its update.
+
+## Native animated backgrounds
+
+Compiled both source background phases and their collision codes for every
+round/alternate-area state. A shared native 26-tick clock preserves staggered
+four-bank updates. Source capture checks 384 yields and 2,376 byte writes; native
+clock comparisons and 12 fixed-camera cartridge rendering cases pass. The tile
+cache updates changed visible cells and preserves hidden-wall overrides. Exact
+whole-board task timing/lifecycle behavior and transition fades remain unverified.
+
+Animation updates now reject unchanged banks and offscreen patches before tile
+lookups. The current 180-frame entry profile spans 99–168 logic updates across
+rounds; sustained 60 Hz remains unfinished. Paused rendering fixtures drain the
+active gameplay frame before replacing actors and private animation state.

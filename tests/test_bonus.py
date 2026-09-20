@@ -3,6 +3,10 @@ import ctypes as C,json,hashlib,subprocess,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 ref=json.loads((ROOT/'reference/bonus_oracle.json').read_text());data=json.loads((ROOT/'reference/bonus.json').read_text())
+# Both source phases write the same addresses; absent entries can use base tiles.
+for row in data['rounds']:
+ for phases in row['background']:
+  assert {w['offset'] for phase in phases[:4] for w in phase}=={w['offset'] for phase in phases[4:] for w in phase}
 for key,path in [('trace_sha256','reference/bonus_oracle_events.txt'),('lua_sha256','tools/bonus_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
 with tempfile.TemporaryDirectory() as d:
  p=Path(d);(p/'genesis.h').write_text('')
@@ -18,5 +22,16 @@ with tempfile.TemporaryDirectory() as d:
   else:
    x,y,sx,sy=map(u,[c['x'],c['y'],c['saved_x'],c['saved_y']]);lib.bonus_destination(c['round'],c['alternate'],C.byref(x),C.byref(y),C.byref(sx),C.byref(sy));assert [x.value,y.value,sx.value,sy.value]==expected[:4]
   count+=1
- report=dict(passed=True,source_cases=count,scope='Native gate and camera selection only; production integration is checked by bonus-runtime-tests.')
+ background=json.loads((ROOT/'reference/background_oracle.json').read_text())
+ for key,path in [('trace_sha256','reference/background_oracle_events.txt'),('lua_sha256','tools/background_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==background[key]
+ phases=(C.c_uint8*4).in_dll(lib,'bonus_phases');clock=C.c_uint8.in_dll(lib,'bonus_clock');case=-1;checks=0
+ for line in (ROOT/'reference/background_oracle_events.txt').read_text().splitlines():
+  if not line.startswith('WAIT|'):continue
+  _,current,tick,phase,delay=map(str,line.split('|'));current=int(current);tick=int(tick);phase=int(phase)
+  if current!=case:case=current;lib.bonus_animation_reset();time=0;expected=[0]*4
+  while time<tick:lib.bonus_tick();time+=1
+  expected[phase%4]=phase//4
+  assert list(phases)==expected and clock.value==tick%26,(current,tick,list(phases),expected)
+  checks+=1
+ report=dict(passed=True,background_source_yields=checks,source_cases=count,scope='Native contact/camera policy plus all 384 captured background task yields; production rendering and transitions have separate cartridge tests.')
  (ROOT/'reports/bonus-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
