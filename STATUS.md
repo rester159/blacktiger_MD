@@ -547,3 +547,28 @@ entry points are not yet called by the cartridge game loop: projectile owners, 1
 rendering, collision and integration remain outstanding. Source details and next steps
 are recorded in reference/dragon_audit.md. These subsystem tests do not prove boss or
 round completion in the cartridge.
+
+Dragon integration is now active in the cartridge: all three source placements use
+the native shared body controller, 128x64 sprite renderer, targeted weak points, aimed
+orbs, medium explosions, ground-flame seeds and the shared six-part flame controller.
+Projectile comparisons cover 33,120 ticks in 207 cases, including terrain, fatal hits,
+edge retirement, seed-to-wave positions and full explosion pools. The source full-pool
+failure reads a zero-duration frame; the native counter matches its 256-tick meaning,
+and every possible 16-bit Y retires before any later misaligned record could execute.
+Wide collision matches 31,200 source cases, including the final dragon's signed head
+offsets and the source dagger-Y carry. Actual round 3/row 79, round 6/row 103 and round 8/row 96
+fixtures verify natural attacks, ordinary/dagger damage, all 3/6/8 health layers,
+1,000-point rewards and round-clear callbacks. Cartridge checks also verify orb and
+explosion contact damage and seed/death-phase immunity. Screenshots confirm all 32
+sprite pieces render. Dynamic boss palettes, health bars, full death presentation,
+source global pool contention and natural complete routes remain unverified/incomplete.
+The next major shared system is the exact native player controller and chain weapon.
+
+Orb contact conversion was also corrected: source contact41 creates an explosion at
+the player's origin and retires the orb next tick; the explosion applies damage.
+The native full-contact-pool path discards the orb without damage instead of following
+the source's misaligned animation pointer. Cartridge tests cover both outcomes.
+For the upcoming player work, the prior repository has partial native walk/fall code
+in game/src/player.c and source ownership evidence under reference/arcade/oracles/
+BT-RE-006: fixed1E17 selects bank7 and enters8000. Those older routines are source leads,
+not evidence of a completed player port.

@@ -1,7 +1,7 @@
-# Pending native dragon family
+# Native dragon family audit
 
 Source aggregate e54221c17ce6b5ee4b98c63205f02d6a14ad9c2532b52263be9a25335700d30e.
-These are source-reading notes, not a completed implementation or validation claim.
+Source-reading notes and verified implementation boundaries; full natural gameplay remains unverified.
 All addresses hexadecimal. Bank 3 unless identified as fixed.
 
 ## Construction and rendering
@@ -10,7 +10,7 @@ Constructors 8000/991D/9B24 copy 48-byte templates 8045/9962/9B69 to FAA0,
 call fixed 59B2 boss entry, set E90D=3, display FF44, persistent primary OR 1.
 Categories 28/29/30; initial/reset HP 80/120/100; layers 3/6/8; damage 2/3/5.
 Mode 24, facing left, shared initial cursor 8364 (first frame 8369), hit cursor 836F.
-Body bounds 32x32,32x32,16x24; weak boxes: offsets(0,0),bounds32x32 for first two;
+Body bounds 32x32,32x32,16x24; weak boxes: offsets(0,0),bounds 32x32 for first two;
 third offsets(0,-24),bounds12x12, weak X becomes -56/+56 facing left/right on engagement.
 
 Fixed loader 3D8C/3DAB uses standard five-byte animation records, callback 00,
@@ -76,8 +76,10 @@ ticks in 384 cases and 2,625 launch snapshots. The collision loop gates hits by 
 not actor 80/40 state; pre-engagement hits can retain 40 after mode returns to 24.
 The native hit gate and manual-hit oracle preserve this behavior.
 It accepts a projectile-launch callback so the projectile owner controls allocation.
-The cartridge game loop does not yet call it. The 128x64 renderer, projectile family,
-collision and real cartridge integration remain to be done.
+The cartridge now calls it for all three original boss placements, renders 32 sprite
+pieces, dispatches native projectiles and checks source-derived wide collision.
+Runtime tests verify both weapon types, all layers, natural attacks, rewards and clear
+callbacks. Original palette changes, health display and full cutscene timing remain gaps.
 
 ## Projectile continuation notes
 
@@ -105,3 +107,33 @@ Their 5,760-tick oracle checks graphics, movement, contact mode, and retirement;
 contact return distinguishes ordinary damage from reversed controls. The source wave
 constructor ground search and pool-group allocation still need dedicated validation. Fixed allocator0412 uses return-address skipping at03C5 on
 success; the following unconditional JP is the failure path, not dead allocation code.
+
+## Verified projectile and collision integration
+
+Native src/dragon_shot.c uses 44 compiled segments for 16 orb directions, two seed
+directions and the medium impact explosion. Source tests compare 33,120 ticks including
+available/full secondary pools, 8,560 explosion ticks and 444 active-wave snapshots.
+When the medium pool is full, source FF/A079 reads callback bytes as a raw frame:
+duration0,code469,palette6,flip1,VX1,VY-110. The loader uses a 256-tick byte countdown.
+The compiler resolves that frame offline; an exhaustive 16-bit Y proof shows retirement
+within 8 ticks, so later misaligned records are unreachable. Native animation supports
+the zero-duration counter without executing source instructions. The oracle exercises
+36 such zero-countdown frames. Small native projectile capacity and shared source
+actor-pool contention remain distinct from these isolated full-pool checks.
+
+Wide collision routines435B/4463/4550 use weapon X origin 56, player X origin 48.
+Normal player Y subtracts 16; alternate posture adds 26 and uses body bounds 3x3.
+Dagger weak-Y subtraction retains carry from subtracting the signed weak offset;
+other dragon axes clear it. The native shared geometry helpers match 31,200 source
+cases across all three templates, both final-dragon weak-X offsets, both weapons,
+normal/alternate postures and unsigned screen-coordinate edges. Native player posture
+and chain extents still await the exact player controller port.
+
+Orb contact handler fixed48F7 allocates the same medium explosion at playerX/playerY,
+then sets the orb cursorA08E with remaining1 so it retires next tick. It does not
+directly damage the player. Native contact now preserves that conversion and current
+frame. On full medium-pool failure, the source advances its current animation pointer
+by3 and subsequently reads misaligned frame bytes. The native port deliberately
+discards that orb without damage instead; cartridge tests verify both available/full
+contact outcomes. This is distinct from the correctly traced full-pool terrain/weapon
+impact path at9E69, whose zero-duration frame is preserved.

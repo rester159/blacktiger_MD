@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory() as folder:
  int v[]={a->active,PX(a->x),PX(a->y),a->hp,a->life,s->mode,s->left,s->animation.remaining,f?f->code:-1,f?f->palette:-1,f?f->flip:-1,game.score,game.spawned[0],s->engaged,s->alternate,s->direction,s->recovery,s->weak_x};
  for(int i=0;i<18;i++)out[i]=v[i];}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','sentry.c','loot.c','progress.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'s.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','large_contact.c','sentry.c','loot.c','progress.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'s.dylib')],check=True)
  lib=C.CDLL(str(tmp/'s.dylib'));out=(C.c_int*18)();current=-1;count=0;launches=0;cleared=set();rewarded=set();pending_launch=None
  for line in (ROOT/'reference/dragon_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break

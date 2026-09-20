@@ -6,18 +6,21 @@ no ROM pointers, original instructions, or CPU state enter the native runtime.
 from arcade_source import Source,ROOT
 import json
 
-def compile_clip(source,bank,start):
+def compile_clip(source,bank,start,raw_jump_frames=False):
  frames=[];addresses={};pc=start
  while len(frames)<256:
   if pc in addresses:return {'frames':frames,'loop':addresses[pc],'terminal':'loop','event':None}
+  jumped=False
   marker=source.read(bank,pc,1)[0]
   if marker==255:
    pc=source.word(bank,pc+1)
    # The loader reads one jump then assumes an ordinary frame, so reject chains.
-   assert source.read(bank,pc,1)[0] not in (0,254,255),('invalid animation jump',bank,hex(pc))
-   continue
-  if marker==254:return {'frames':frames,'loop':None,'terminal':'retire','event':None}
-  if marker==0:return {'frames':frames,'loop':None,'terminal':'event','event':{'bank':bank,'address':source.word(bank,pc+1),'record':pc}}
+   if not raw_jump_frames:
+    assert source.read(bank,pc,1)[0] not in (0,254,255),('invalid animation jump',bank,hex(pc))
+    continue
+   jumped=True;marker=source.read(bank,pc,1)[0]
+  if not jumped and marker==254:return {'frames':frames,'loop':None,'terminal':'retire','event':None}
+  if not jumped and marker==0:return {'frames':frames,'loop':None,'terminal':'event','event':{'bank':bank,'address':source.word(bank,pc+1),'record':pc}}
   addresses[pc]=len(frames);duration,base,attr,vx,vy=source.read(bank,pc,5)
   frames.append({'duration':duration,'code':base|((attr&224)<<3),'palette':attr&7,'flip':bool(attr&8),
     'vx':None if vx==128 else vx if vx<128 else vx-256,

@@ -31,11 +31,12 @@ const AnimFrame *animation_tick(AnimState *s, const AnimClip *clip) {
         s->frame = clip->loop;
     }
     frame = animation_current(s, clip);
-    if (!frame || !frame->duration) {
+    if (!frame) {
         s->finished = 1;
         return 0;
     }
-    s->remaining = frame->duration;
+    /* A raw jump can load duration zero: the source byte counter takes 256 ticks. */
+    s->remaining = frame->duration ? frame->duration : 256;
     if (!(frame->hold & ANIM_HOLD_X))
         s->vx = frame->vx;
     if (!(frame->hold & ANIM_HOLD_Y))

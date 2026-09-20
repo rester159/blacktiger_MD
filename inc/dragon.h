@@ -1,6 +1,9 @@
 #ifndef DRAGON_H
 #define DRAGON_H
 #include "animation.h"
+#include "large_contact.h"
+extern const LargeContactShape dragon_shapes[3];
+extern const u8 dragon_kinds[];
 typedef struct {const AnimClip *clip;u16 next[2];u8 event;} DragonSegment;
 typedef struct {AnimState animation;u16 segment;u8 mode,pending,left,profile,engaged,alternate,direction,recovery;s8 weak_x;} DragonState;
 /* The projectile owner handles allocation; the body never waits for a free slot. */
@@ -12,4 +15,9 @@ void dragon_spawn(u16 slot,u8 profile);
 void dragon_step(u16 slot,DragonLaunch launch);
 u8 dragon_hit(u16 slot,u8 damage);
 const AnimFrame *dragon_frame(u16 slot);
+u8 dragon_present(void);
+u8 dragon_locked(void);
+void dragon_screen_attack(u16 slot);
+u8 dragon_player_contact(u16 slot);
+u8 dragon_weapon_contact(u16 slot,s16 x,s16 y,u8 dagger);
 #endif
