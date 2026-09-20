@@ -334,3 +334,13 @@ life restore and eight-digit score clear; cartridge life-loss tests check retain
 state and inventory through Continue, then verify a separate fresh-game reset. Holding Start
 through either transition does not pause. The native port currently offers free Continue; the
 original credit handling, countdown presentation and continue DIP option remain unimplemented.
+
+Bank 0 B84F (32 placements) now uses a shared native stationary caster routine.
+Its body matches 18,000 original-loader ticks across facing/random choices and repeated
+weak/strong hits: six initial HP, four damage layers, four HP on subsequent layers, recoil
+immunity and a 100-point final reward with source loot/persistence. The 16-direction shell
+and independent medium explosion match another 8,640 source ticks, including cycle expiry,
+weapon hits and contact-triggered placement. Linked cartridge checks exercise a real source
+row, natural firing, all four layers, independent shell lifetime and one-point blast damage.
+Source shared small/medium pool contention is not reproduced: native effects use dedicated
+bounded pools. Chain geometry, exact scheduling and complete natural routes remain gaps.

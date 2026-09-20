@@ -9,6 +9,7 @@
 #include "zombie.h"
 #include "boss.h"
 #include "missile.h"
+#include "statue_shell.h"
 #include "npc.h"
 #include "world.h"
 #include <genesis.h>
@@ -341,6 +342,7 @@ static void sprites(void) {
         if (pair_kinds[a->def]) {
             const AnimFrame *f=pair_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;
         }
+        if (statue_kinds[a->def]) {const AnimFrame *f=statue_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
         if (boulder_kinds[a->def]) {
             const AnimFrame *f=boulder_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;
         }
@@ -397,6 +399,12 @@ static void sprites(void) {
             piece(f->code, f->palette, wx - game.cam_x, wy - game.cam_y, f->flip);
     }
     for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
+    for(i=0;i<MAX_STATUE_SHELLS;i++) {
+        const AnimFrame *f=statue_shell_frame(&statue_shells[i]);
+        if(f)piece(f->code,f->palette,statue_shells[i].x-game.cam_x,statue_shells[i].y-game.cam_y,f->flip);
+        f=statue_shell_frame(&statue_blasts[i]);
+        if(f)body(f->code,f->palette,statue_blasts[i].x-game.cam_x,statue_blasts[i].y-game.cam_y,f->flip);
+    }
     for(i=0;i<MAX_MISSILES;i++){const AnimFrame *f=missile_frame(i);if(f)piece(f->code,f->palette,missiles[i].x-game.cam_x,missiles[i].y-game.cam_y,f->flip);}
     for (i = 0; i < MAX_LOOT; i++) {
         const AnimFrame *f = loot_frame(i);

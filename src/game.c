@@ -14,6 +14,7 @@
 #include "wisp.h"
 #include "zombie.h"
 #include "missile.h"
+#include "statue_shell.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -59,7 +60,7 @@ void game_round(u8 round) {
     skeleton_reset();
     emerge_reset();
     zombie_reset();
-    missile_reset();
+    missile_reset();statue_shell_reset();
     loot_reset();
     container_round(round);
     if(preserve)container_actor_restart();else container_actor_reset();
@@ -115,6 +116,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CHEST || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (statue_kinds[a->def]){statue_hit(a-game.actors,damage);return;}
     if (pair_hit(a-game.actors,damage)) return;
     if (boulder_hit(a-game.actors,damage)) return;
     if (boss_hit(a-game.actors,damage)) return;
@@ -173,7 +175,7 @@ static void spawn_actors(void) {
             continue;
         if(layered_boss_kinds[s->def]) {
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
-            missile_reset();loot_reset();skeleton_reset();
+            missile_reset();statue_shell_reset();loot_reset();skeleton_reset();
         }
         for (j = 0; j < MAX_ACTORS; j++)
             if (!game.actors[j].active) {
@@ -189,6 +191,7 @@ static void spawn_actors(void) {
                 a->timer = i * 7;
                 if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);
+                if(statue_kinds[a->def])statue_spawn(j);
                 if(pair_kinds[a->def])pair_spawn(j);
                 if(boulder_kinds[a->def])boulder_spawn(j);
                 npc_spawn(j);
@@ -298,11 +301,12 @@ static void player_step(u16 in, u16 pressed) {
 }
 static void screen_attack(void) {
     u16 j;
+    for(j=0;j<MAX_STATUE_SHELLS;j++)statue_shell_hit(j);
     for(j=0;j<MAX_MISSILES;j++)missile_hit(j,255);
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
-        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def] || pair_kinds[a->def])) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def] || pair_kinds[a->def] || statue_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
         a->life = 1;
@@ -332,6 +336,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (statue_kinds[a->def]) {
+        statue_step(i);
+        if(a->active && statue_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
         return;
     }
     if (boulder_kinds[a->def]) {
@@ -494,7 +503,7 @@ static void shots_step(void) {
                 player_hurt(s->damage);
                 s->active = 0;
             }
-        } else if(missile_hit_at(x,y,s->damage,s->kind))s->active=0;
+        } else if(statue_shell_hit_at(x,y,s->kind) || missile_hit_at(x,y,s->damage,s->kind))s->active=0;
         else
             for (j = 0; j < MAX_ACTORS; j++) {
                 Actor *a = &game.actors[j];
@@ -503,6 +512,7 @@ static void shots_step(void) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CHEST || k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
+                    if (statue_kinds[a->def] && !statue_vulnerable(j))continue;
                     if (pair_kinds[a->def] && !pair_vulnerable(j))continue;
                     if ((layered_boss_kinds[a->def] || stone_kinds[a->def]) && !boss_vulnerable(j)) continue;
                     if (zombie_kinds[a->def] && !zombie_vulnerable(j)) continue;
@@ -593,6 +603,11 @@ void game_tick(u16 input) {
         return;
     loot_tick();
     missile_tick();
+    statue_shell_tick();
+    {u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++) {
+        if(!game.p.invincible && statue_shell_player_contact(i,0))statue_shell_contact(i);
+        if(statue_shell_player_contact(i,1))player_hurt(1);
+    }}
     container_traps_tick();
     {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++)if(container_trap_contact(i))player_hurt(1);}
     {

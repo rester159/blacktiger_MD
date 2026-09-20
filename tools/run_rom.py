@@ -39,6 +39,13 @@ class Runner:
    if len(v)>=3:
     try:self.symbols[v[2]]=int(v[0],16)
     except ValueError:pass
+  # GCC LTO may promote file-local storage and suffix its debug symbol. Alias
+  # only unambiguous names so RAM fixtures remain independent of optimizer naming.
+  aliases={}
+  for name,address in self.symbols.items():
+   if '.lto_priv.' in name:aliases.setdefault(name.split('.lto_priv.')[0],[]).append(address)
+  for name,addresses in aliases.items():
+   if len(addresses)==1:self.symbols.setdefault(name,addresses[0])
  def run(self,n,mask=0):
   self.mask=mask
   for _ in range(n):self.lib.retro_run();self.frames+=1

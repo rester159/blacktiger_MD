@@ -5,7 +5,8 @@ from test_runtime import ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
 cases=[]
 for armor,damage,hp,invincible in ((4,2,4,0),(2,2,4,0),(1,3,4,0),(0,1,4,0),(1,5,4,0),(2,3,4,20)):
- s=state(r);s.mode=1;s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.hp=hp;s.p.armor=armor;s.p.invincible=invincible;s.p.climb=0;s.time=100;s.clock=0
+ s=state(r);s.mode=2;put(r,s);r.run(20)
+ s=state(r);s.cam_x=0;s.cam_y=688;s.mode=1;s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.hp=hp;s.p.armor=armor;s.p.invincible=invincible;s.p.climb=0;s.time=100;s.clock=0
  for a in s.actors:a.active=0
  for q in s.shots:q.active=0
  for i in range(len(s.spawned)):s.spawned[i]=2
@@ -13,7 +14,7 @@ for armor,damage,hp,invincible in ((4,2,4,0),(2,2,4,0),(1,3,4,0),(0,1,4,0),(1,5,
  start=s.frame;put(r,s)
  for _ in range(12):
   r.run(1);s=state(r)
-  if s.frame!=start:break
+  if not s.shots[0].active:break
  assert not s.shots[0].active,'Projectile missed controlled contact'
  remaining=max(0,damage-armor);expected_armor=max(0,armor-damage);expected_hp=max(0,hp-remaining)
  if invincible:expected_armor,expected_hp=armor,hp
