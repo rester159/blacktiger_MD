@@ -11,7 +11,7 @@ with tempfile.TemporaryDirectory() as folder:
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''int check(int kind,int parity,int dx,int dy) {
  game=(Game){0};game.frame=parity;game.p.x=(120+dx)*256;game.p.y=(88+dy)*256;
- missile_reset();missile_spawn(128,96,0,0,1,8,4);
+ missile_reset();missile_spawn(128,96,0,0,1,8,4,1);
  return kind?missile_hit_at(128+dx,96+dy,1,1):missile_player_contact(0);}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/missile.c'),str(ROOT/'src/data.c'),str(tmp/'stub.c'),'-o',str(tmp/'m.dylib')],check=True)

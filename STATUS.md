@@ -238,3 +238,13 @@ compiled contact shapes, including screen edges and all weapon strengths. Cartri
 a dagger surviving exactly one collision tick to verify both parities, boundary hits/misses and
 half damage. Chain geometry, large-actor geometry and exact weapon-state update timing remain
 unported; these changes do not establish full player/combat fidelity.
+
+The third recurring walker (bank 0 89C6) now shares the existing walking/throwing/jumping
+routine, replacing generic flying pursuit. Its profile supplies 16 HP, 30-point defeat, 45-cycle
+lifetime, spawn positions, source animations, aim-gated firing and all 32 projectile direction
+indices. The common projectile pool now stores health, so this actor's projectile survives one
+weak hit and breaks on the next; POW bypasses that durability. Source comparisons cover
+10,920 body/projectile ticks and 1,920 constructor attempts. A real round-six row verifies
+emergence, nonfatal/fatal body hits, firing, two-hit projectile destruction and independence
+from parent death. Shared pool contention, source spawn scanning cadence and full routes remain
+unverified.
