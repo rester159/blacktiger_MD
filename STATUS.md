@@ -326,3 +326,11 @@ calls spanning every cell, boundary offsets, 16-bit wrapping and both source sav
 Thirty-two linked DEAD-to-PLAY cases verify camera/hero placement and life debit. Some table
 entries address unused regions, so injected lookup coverage is not proof of natural route
 reachability. Continuous source camera limits, scrolling and continue behavior remain unported.
+
+Continue now restores the configured starting life count and clears score while retaining the
+round, checkpoint selection, equipment, coins, keys, antidotes, earned maximum health and world
+persistence. Ending/title Start remains a separate new-game reset. Source witnesses cover the
+life restore and eight-digit score clear; cartridge life-loss tests check retained chest/wall
+state and inventory through Continue, then verify a separate fresh-game reset. Holding Start
+through either transition does not pause. The native port currently offers free Continue; the
+original credit handling, countdown presentation and continue DIP option remain unimplemented.

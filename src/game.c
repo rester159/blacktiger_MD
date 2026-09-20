@@ -568,7 +568,15 @@ void game_tick(u16 input) {
             game.mode = ENDING;
         return;
     }
-    if (game.mode == GAMEOVER || game.mode == ENDING) {
+    if (game.mode == GAMEOVER) {
+        if (pressed & IN_START) {
+            game.score=0;p->lives=progress_initial_lives;
+            restart_pending=1;game_round(game.round);restart_pending=0;
+            game.previous_input=input;
+        }
+        return;
+    }
+    if (game.mode == ENDING) {
         if (pressed & IN_START) {
             game_new();game.previous_input=input;
         }

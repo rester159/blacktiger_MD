@@ -11,5 +11,7 @@ def extract(s):
  s.expect(None,0x209d,'21a0f335c2e221')
  s.expect(None,0x21e5,'21a0f3dde5d1012000edb0')
  s.expect(None,0x2213,'06c07ef601ee011223137e1223137e1223137e12231310ea')
+ s.expect(None,0x2118,'3a25e032a0f3')
+ s.expect(None,0x2124,'21e8e111e9e10107003600edb0')
  thresholds=[int(''.join(map(str,s.read(None,0x13be+8*i,8)))) for i in range(4)]
  return dict(thresholds=thresholds,initial_health=s.read(None,0x1215,1)[0],initial_coins=s.word(None,0x22f3),initial_armor=s.read(None,0x22fa,1)[0],source_set=s.lock['aggregate_sha256'],witnesses=list(s.witnesses.values()))
