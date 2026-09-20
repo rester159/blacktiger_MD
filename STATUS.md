@@ -219,3 +219,13 @@ consumed, per-part kill counts, persistence and preservation of the death presen
 A shared hit-handler audit corrected boulder scoring: lethal weapon/POW damage queues 300
 points immediately, while natural breakage awards zero. The boulder oracle now captures the
 original score task as well as body state; source and cartridge checks cover both outcomes.
+
+Constructor bank 2 ACAC was incorrectly labeled a chest. It now creates two small flying actors
+using shared native aiming/animation logic, the source spawn gate, initial immunity, random
+directional movement, sixteen decision cycles and final escape movement. Each weapon defeat
+awards 10 points with no guessed 50-coin chest reward. Constructor extraction now recognizes
+this 64-byte pair and its dummy actor persistence pointer, providing correct one-HP, one-damage,
+small-pool contact and POW eligibility. Movement/death/render frames match 58,000 source ticks
+across both parts and all random selections. A real round-one spawn passes cartridge checks for
+both actors, immunity, rewards and retirement. Generic player weapon rectangles and shared
+small-pool contention remain unported; controlled tests do not establish natural full-game play.

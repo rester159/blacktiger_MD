@@ -99,6 +99,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (pair_hit(a-game.actors,damage)) return;
     if (boulder_hit(a-game.actors,damage)) return;
     if (boss_hit(a-game.actors,damage)) return;
     if (zombie_hit(a-game.actors,damage)) return;
@@ -153,6 +154,7 @@ static void spawn_actors(void) {
         if (zombie_kinds[s->def] && !zombie_prepare_variant(i,zombie_kinds[s->def]-1,&sx,&sy)) continue;
         if (!emerge_spawn_ready(i))
             continue;
+        if (pair_kinds[s->def] && !pair_ready(sx,sy))continue;
         if (!npc_spawn_ready(i))
             continue;
         if(layered_boss_kinds[s->def]) {
@@ -172,6 +174,7 @@ static void spawn_actors(void) {
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
                 boss_spawn(j);
+                if(pair_kinds[a->def])pair_spawn(j);
                 if(boulder_kinds[a->def])boulder_spawn(j);
                 npc_spawn(j);
                 if (zombie_kinds[a->def]) zombie_spawn(j);
@@ -183,7 +186,7 @@ static void spawn_actors(void) {
                     skeleton_spawn(j);
                 if (actor_defs[s->def].kind == HIDDEN_WALL)
                     hidden_spawn(j);
-                game.spawned[i] = 1;
+                game.spawned[i] = pair_kinds[s->def]?2:1;
                 if(layered_boss_kinds[s->def])return;
                 break;
             }
@@ -284,7 +287,7 @@ static void screen_attack(void) {
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
-        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def])) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def] || pair_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
         a->life = 1;
@@ -303,6 +306,11 @@ static void actor_step(u16 i, u16 pressed) {
     if (layered_boss_kinds[a->def]) {
         boss_step(i);
         if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt(boss_contact_damage(i));
+        return;
+    }
+    if (pair_kinds[a->def]) {
+        pair_step(i);
+        if(a->active && pair_vulnerable(i) && !(game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
         return;
     }
     if (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300) {
@@ -479,6 +487,7 @@ static void shots_step(void) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
+                    if (pair_kinds[a->def] && !pair_vulnerable(j))continue;
                     if ((layered_boss_kinds[a->def] || stone_kinds[a->def]) && !boss_vulnerable(j)) continue;
                     if (zombie_kinds[a->def] && !zombie_vulnerable(j)) continue;
                     if (emerge_kinds[a->def] && !emerge_vulnerable(j))

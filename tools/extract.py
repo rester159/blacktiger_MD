@@ -8,6 +8,7 @@ from collections import Counter
 import numpy as np
 from PIL import Image, ImageDraw
 from arcade_source import Source
+from extract_pair import extract as extract_pair
 from extract_boulder import extract as extract_boulder
 from extract_boss_motion import extract as extract_boss_motion
 from extract_boss import extract as extract_boss
@@ -153,6 +154,13 @@ def main():
         clip=seg['clip'];native_clip('skeleton_'+str(i),clip['frames'],clip['loop'])
     body.append('const SkeletonSegment skeleton_segments[]={'+','.join('{&skeleton_%d,%d,%d}'%(i,seg['next'],seg['event']) for i,seg in enumerate(skeleton['segments']))+'};')
     body.append('const SkeletonProfile skeleton_profiles[]={'+','.join('{{'+','.join(map(str,p['roots']))+'},'+','.join(map(str,[p['durability'],p['guard'],p['variant'],p['score'],p['weapon_damage'],p['weapon_width'],p['weapon_height'],p['weapon_contact']]))+'}' for p in skeleton['profiles'])+'};')
+    pair=extract_pair(Source(args.source))
+    (ROOT/'reference/pair.json').write_text(json.dumps(pair,indent=2)+'\n')
+    for i,seg in enumerate(pair['segments']):native_clip('pair_'+str(i),seg['clip']['frames'],seg['clip']['loop'])
+    body.append('const PairSegment pair_segments[]={'+','.join('{&pair_%d,%d,%d}'%(i,seg['next'],seg['event']) for i,seg in enumerate(pair['segments']))+'};')
+    body.append('const u16 pair_roots[]={'+','.join(map(str,pair['roots']))+'};')
+    body.append('const u8 pair_choices[]={'+','.join(map(str,pair['choices']))+'};')
+    body.append('const u16 pair_score=%d;'%pair['score'])
     boulder=extract_boulder(Source(args.source))
     body.append('const u16 boulder_weapon_score=%d;'%boulder['weapon_score'])
     (ROOT/'reference/boulder.json').write_text(json.dumps(boulder,indent=2)+'\n')
@@ -233,7 +241,7 @@ def main():
     # Families: walker, flyer, turret, falling rock, hazard, chest, captive, pickup, boss.
     family={(0,0x93ed):0,(0,0x8000):0,(0,0x8389):0,(0,0x89c6):1,(0,0x9b85):1,(0,0xa35c):0,
       (0,0xab33):0,(0,0xab4a):0,(0,0xb84f):2,(1,0xb2a9):4,(1,0xacbe):3,(1,0xacd3):3,
-      (2,0xacac):5,(2,0xb67f):2,(2,0x8000):0,(2,0x8344):0,(3,0xaab3):0,(4,0xb338):1,
+      (2,0xacac):1,(2,0xb67f):2,(2,0x8000):0,(2,0x8344):0,(3,0xaab3):0,(4,0xb338):1,
       (4,0xb4af):7,(4,0xb515):7,(2,0xa6f8):2,(1,0x8a03):1,(1,0x8a5d):1,(1,0x8d33):1}
     actor_contract=load_actor_contract(Source(args.source))
     defs={};spawns=[]
@@ -272,6 +280,7 @@ def main():
     ds=[]
     for d in defs.values():ds.append('{'+','.join(map(str,[d['code'],d['kind'],d['palette'],d['hp'],d['pieces'],d['frames'],d['npc_kind']]))+'}')
     body.append('const ActorDef actor_defs[]={'+','.join(ds)+'};');report['actor_definitions']=list(defs.values())
+    body.append('const u8 pair_kinds[]={'+','.join('1' if d['bank']==2 and d['address']==0xacac else '0' for d in defs.values())+'};')
     body.append('const u8 boulder_kinds[]={'+','.join('1' if d['bank']==4 and d['address']==0xb338 else '0' for d in defs.values())+'};')
     body.append('const u8 stone_kinds[]={'+','.join('1' if d['bank']==4 and d['address']==0x9a4c else '0' for d in defs.values())+'};')
     body.append('const u8 layered_boss_kinds[]={'+','.join(str((0x9eb1,0x9f16).index(d['address'])+1) if d['bank']==4 and d['address'] in (0x9eb1,0x9f16) else '0' for d in defs.values())+'};')
@@ -347,7 +356,7 @@ def main():
         report['rounds'].append({'round':r+1,'width':w*16,'height':h*16,'camera':[cx,cy],'layout':layout,'patterns':len(unique),'spawns':len(spawn),'collision_codes':dict(Counter(coll))})
     body.append('const Round rounds[8]={'+',\n'.join('{bg%d,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d,patches%d,open_tile%d,%d,%d}'%(r,r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera'],r,r,len(hidden['rounds'][r]),collision[0]) for r,d in enumerate(report['rounds']))+'};')
     (ROOT/'res/assets.res').write_text('\n'.join(resources)+'\n')
-    (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "animation.h"\n#include "boss.h"\n#include "boulder.h"\nextern const BoulderSegment boulder_segments[];\nextern const u16 boulder_roots[],boulder_weapon_score;\nextern const u8 boulder_kinds[],boulder_initial_damage,boulder_bounce_damage;\nextern const u8 boss_component_counts[],boss_upper_health[],boss_upper_layers,boss_upper_damage,boss_upper_reset_health,boss_upper_score;\nextern const BossSegment boss_segments[],boss_upper_segments[];\nextern const u16 boss_roots[],boss_upper_roots[];\nextern const u8 boss_choices[],boss_upper_choices[];\n#include "skeleton.h"\n#include "emerge.h"\n#include "wisp.h"\nextern const SkeletonSegment thrower_segments[];\nextern const u16 thrower_roots[],thrower_score;\nextern const u8 thrower_spawn_x[],thrower_health,thrower_lifetime,thrower_shot_damage,thrower_shot_width,thrower_shot_height;\nextern const SkeletonSegment zombie_segments[];\nextern const u16 zombie_roots[],zombie_score;\nextern const u8 zombie_kinds[],zombie_lifetime,zombie_spawn_x[];\nextern const WispSegment wisp_segments[];\nextern const u16 wisp_roots[7];\nextern const u8 wisp_kinds[];\nextern const EmergeProfile emerge_profiles[2];\nextern const u8 emerge_kinds[];\nextern const AnimClip npc_idle, npc_released, npc_rescue;\nextern const AnimClip *const hidden_clips[12];\nextern const AnimClip hidden_life_collected, hidden_explosion;\nextern const u8 hidden_kinds[];\nextern const u8 skeleton_kinds[];\nextern const AnimClip *const sentry_clips[7];\nextern const u8 pickup_kinds[],screen_attack_targets[],pickup_width,pickup_height,pickup_seconds;\nextern const u8 stone_kinds[],layered_boss_kinds[],layered_boss_layers[],layered_boss_reset_health;\nextern const u16 layered_boss_score;\nextern const u8 actor_damage[],player_weapon_damage[5],dagger_width,dagger_height;\nextern const u8 actor_contact_pool[],actor_contact_half_width[],actor_contact_half_height[];\nextern const u8 hazard_kinds[],hazard_width,hazard_height,contact_player_width,contact_player_height;\nextern const u8 sentry_kinds[], aim_table[64], sentry_health;\nextern const u16 sentry_score;\nextern const AnimClip *const loot_clips[7];\nextern const u16 loot_values[7];\nextern const u8 drop_table[28][32], drop_categories[];\nextern const SkeletonSegment skeleton_segments[];\nextern const SkeletonProfile skeleton_profiles[3];\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[10][16];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
+    (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "animation.h"\n#include "boss.h"\n#include "boulder.h"\n#include "pair.h"\nextern const PairSegment pair_segments[];\nextern const u16 pair_roots[],pair_score;\nextern const u8 pair_kinds[],pair_choices[];\nextern const BoulderSegment boulder_segments[];\nextern const u16 boulder_roots[],boulder_weapon_score;\nextern const u8 boulder_kinds[],boulder_initial_damage,boulder_bounce_damage;\nextern const u8 boss_component_counts[],boss_upper_health[],boss_upper_layers,boss_upper_damage,boss_upper_reset_health,boss_upper_score;\nextern const BossSegment boss_segments[],boss_upper_segments[];\nextern const u16 boss_roots[],boss_upper_roots[];\nextern const u8 boss_choices[],boss_upper_choices[];\n#include "skeleton.h"\n#include "emerge.h"\n#include "wisp.h"\nextern const SkeletonSegment thrower_segments[];\nextern const u16 thrower_roots[],thrower_score;\nextern const u8 thrower_spawn_x[],thrower_health,thrower_lifetime,thrower_shot_damage,thrower_shot_width,thrower_shot_height;\nextern const SkeletonSegment zombie_segments[];\nextern const u16 zombie_roots[],zombie_score;\nextern const u8 zombie_kinds[],zombie_lifetime,zombie_spawn_x[];\nextern const WispSegment wisp_segments[];\nextern const u16 wisp_roots[7];\nextern const u8 wisp_kinds[];\nextern const EmergeProfile emerge_profiles[2];\nextern const u8 emerge_kinds[];\nextern const AnimClip npc_idle, npc_released, npc_rescue;\nextern const AnimClip *const hidden_clips[12];\nextern const AnimClip hidden_life_collected, hidden_explosion;\nextern const u8 hidden_kinds[];\nextern const u8 skeleton_kinds[];\nextern const AnimClip *const sentry_clips[7];\nextern const u8 pickup_kinds[],screen_attack_targets[],pickup_width,pickup_height,pickup_seconds;\nextern const u8 stone_kinds[],layered_boss_kinds[],layered_boss_layers[],layered_boss_reset_health;\nextern const u16 layered_boss_score;\nextern const u8 actor_damage[],player_weapon_damage[5],dagger_width,dagger_height;\nextern const u8 actor_contact_pool[],actor_contact_half_width[],actor_contact_half_height[];\nextern const u8 hazard_kinds[],hazard_width,hazard_height,contact_player_width,contact_player_height;\nextern const u8 sentry_kinds[], aim_table[64], sentry_health;\nextern const u16 sentry_score;\nextern const AnimClip *const loot_clips[7];\nextern const u16 loot_values[7];\nextern const u8 drop_table[28][32], drop_categories[];\nextern const SkeletonSegment skeleton_segments[];\nextern const SkeletonProfile skeleton_profiles[3];\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[10][16];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
     (ROOT/'src/data.c').write_text('/* Generated by tools/extract.py. */\n#include <genesis.h>\n#include "assets.h"\n'+'\n'.join(body)+'\n')
     report['outputs']={p.name:{'bytes':p.stat().st_size,'sha256':sha(p.read_bytes())} for p in OUT.glob('*.bin')}
     (ROOT/'reports/assets.json').write_text(json.dumps(report,indent=2)+'\n')

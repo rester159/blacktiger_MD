@@ -18,13 +18,14 @@ def load(source):
    assert source.read(r['bank'],copy['template_address'],len(raw))==raw
    source.expect(r['bank'],copy['copy_pc'],'edb0')
    templates[copy['template_address']]=raw
+  paired=r['bank']==2 and r['constructor']==0xacac
   states=[];screen_targets=set();contacts=set()
   for result in r['results']:
    for entry in filter(None,result['actors'].split(',')):
     addr,raw=entry.split(':');raw=bytes.fromhex(raw)
-    pieces=[raw] if len(raw)<96 else [raw[i:i+48] for i in range(0,len(raw),48)]
+    pieces=[raw[:32],raw[32:]] if paired and len(raw)==64 else [raw] if len(raw)<96 else [raw[i:i+48] for i in range(0,len(raw),48)]
     for a in pieces:
-     if a[24:26]==bytes.fromhex('58ec'):
+     if a[24:26]==bytes.fromhex('58ec') or (paired and a[24:26]==bytes.fromhex('a0ea')):
       states.append(a)
       address=int(addr,16)
       pool=32 if 0xf520<=address<0xf940 else 48 if 0xf940<=address<0xfc10 else 0
@@ -45,6 +46,12 @@ def load(source):
    assert code==f['code']+(int(f['flip']) if len(display)==16 else 0)
    assert display[1]&7==f['palette']
    initial.append((f['code'],f['palette'],len(display)//4))
+  if paired:
+   # This constructor consumes its source row immediately; its two actors use a dummy persistence byte.
+   for raw in templates.values():
+    for at in (0,32):
+     clip=compile_clip(source,2,int.from_bytes(raw[at+30:at+32],'little')+5)
+     f=clip['frames'][0];initial.append((f['code'],f['palette'],1))
   first=set(initial)
   categories={a[11] for a in states};damages={a[15] for a in states}
   c={'damage':next(iter(damages)) if len(damages)==1 else None,'contact':dict(zip(('pool','half_width','half_height'),next(iter(contacts)))) if len(contacts)==1 else None,'screen_attack_target':next(iter(screen_targets)) if len(screen_targets)==1 else None,'category':next(iter(categories)) if len(categories)==1 else None,'templates':[{'address':pc,'size':len(raw)} for pc,raw in templates.items()],
