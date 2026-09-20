@@ -8,6 +8,7 @@ from collections import Counter
 import numpy as np
 from PIL import Image, ImageDraw
 from arcade_source import Source
+from actor_contract import load as load_actor_contract
 from extract_animation import extract as extract_animation
 ROOT=Path(__file__).resolve().parents[1]
 OLD=ROOT.parent/'_capcom/black tiger'
@@ -132,6 +133,7 @@ def main():
       (0,0xab33):0,(0,0xab4a):0,(0,0xb84f):2,(1,0xb2a9):4,(1,0xacbe):3,(1,0xacd3):3,
       (2,0xacac):5,(2,0xb67f):2,(2,0x8000):0,(2,0x8344):0,(3,0xaab3):0,(4,0xb338):1,
       (4,0xb4af):7,(4,0xb515):7,(2,0xa6f8):2,(1,0x8a03):1,(1,0x8a5d):1,(1,0x8d33):1}
+    actor_contract=load_actor_contract(Source(args.source))
     defs={};spawns=[]
     for r in range(8):
         root=u16(read(0,0x1e07+2*r,2));ptrs=struct.unpack('<33H',read(5,root,66));rows={}
@@ -146,33 +148,9 @@ def main():
                 if pc in (0x7138,0x6f71):continue # scanner control / hidden item: separate semantics not guessed
                 key=(b if pc>=0x8000 else 0,pc)
                 if key not in defs:
-                    block=read(key[0],pc,min(180,0xc000-pc))
-                    template=None
-                    for j in range(len(block)-9):
-                        if block[j]==0x21 and block[j+3:j+4]==b'\x01' and block[j+4] in (32,48,64) and block[j+5:j+8]==b'\x00\xed\xb0':
-                            a=u16(block,j+1)
-                            if 0x100<=a<0xbfd0:template=read(key[0],a,32);break
+                    # No adjacent-code template scan or guessed 5/8-byte animation stride.
                     kind=family.get(key,0);code=0x280;attr=0x45;frames=1;hp=3
-                    if template:
-                        hp=max(1,min(32,template[0x10]));aptr=u16(template,30)
-                        if 0x100<=aptr<0xbff0:
-                            anim=read(key[0],aptr,32)
-                            # Animation cursors point BEFORE the first record. Tables
-                            # use 5 or 8-byte rows, independently of object size.
-                            candidates=[]
-                            for off in (5,8):
-                                if 1<=anim[off]<=200 and anim[off+2]&7<8:
-                                    score=0
-                                    stride=8 if anim[off+5:off+6]==b'\x00' and 0x100<=u16(anim,off+6)<0xc000 else 5
-                                    if anim[off+stride] in (0,255) or 1<=anim[off+stride]<=200:score+=1
-                                    if template[12]==11 and off==5:score+=2
-                                    if template[12]==9 and off==5:score+=2
-                                    # First duration is most often 4/8/16/40/200.
-                                    if anim[off] in (1,2,4,6,8,16,24,32,40,64,200):score+=2
-                                    if anim[off+2]&0x10:score-=4
-                                    candidates.append((score,-off,off))
-                            if candidates:
-                                off=max(candidates)[2];code=anim[off+1]|((anim[off+2]&0xe0)<<3);attr=anim[off+2]
+                    observed=actor_contract[key]
                     npc_kind=0
                     if 0x5e32<=pc<=0x5eb0 and (pc-0x5e32)%18==0:
                         npc_kind=1+(pc-0x5e32)//18;kind=6;code=0x300;attr=0x64;hp=0
@@ -181,7 +159,11 @@ def main():
                     if key==(0,0x8000):code=0x240;attr=0x42;frames=3
                     if key==(2,0x8000):code=0x3c0;attr=0x63;frames=3
                     size=1 if kind in (4,7) else 4
-                    defs[key]={'id':len(defs),'bank':key[0],'address':pc,'kind':kind,'code':code,'palette':attr&7,'hp':hp,'pieces':size,'frames':frames,'npc_kind':npc_kind,'behavior_verified':False}
+                    if observed['health'] is not None:hp=observed['health']
+                    if observed['initial_frame'] is not None:
+                        first=observed['initial_frame'];code=first['code'];attr=first['palette'];size=first['pieces'];frames=1
+                    defs[key]={'id':len(defs),'bank':key[0],'address':pc,'kind':kind,'code':code,'palette':attr&7,'hp':hp,'pieces':size,'frames':frames,'npc_kind':npc_kind,'behavior_verified':False,'constructor_evidence':observed}
+
                 rows[(x,y,k)]=(x,y,defs[key]['id'],k)
         spawns.append(sorted(rows.values()))
     ds=[]

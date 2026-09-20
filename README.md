@@ -69,9 +69,10 @@ Files:
 
 ## Known gaps — required before calling this a finished port
 
-- Enemy families, health, attacks, and boss mappings are provisional approximations. Many constructors
-  still use fallback graphics or heuristically selected animation records. They need proper
-  source-derived state machines and multi-piece boss composition.
+- Enemy families, attacks, and boss mappings remain provisional. Initial health is now checked
+  against witnessed constructor states for 65 definitions; initial graphics are checked for 51.
+  Remaining graphics use explicit fallbacks. Later animation, difficulty-dependent state, and
+  multi-piece boss composition still need source-derived implementations.
 - Spawn parsing is not complete. Scanner control records, hidden-item semantics, and one irregular
   round-one stream are unresolved. The converter reports rather than silently repairs that row.
 - Player movement/combat is reimplemented, but its detailed timing, weapon reach, equipment states,
@@ -109,3 +110,9 @@ source witnesses in `reference/animation.json`. `tools/run_npc_oracle.py` execut
 constructors and animation loaders in development-only MAME; its trace is checked against the
 native C animator (235 observations). Cartridge tests cover all eight NPC variants, rewards, and
 persistence. Hint text, complete rescue timing, and arcade maximum-health progression remain gaps.
+
+`tools/run_constructor_oracle.py` records real template copies for all 66 known spawn constructors
+under four controlled RAM profiles. `reference/constructors.json` and its raw trace retain the
+observations. This replaces the adjacent-code template scan and fixes the collision-width-as-health
+bug. `tests/test_actor_contract.py` checks the compiled cartridge values and a wrong-offset negative
+control. Constructor coverage does not imply complete behavior coverage or complete spawn parsing.
