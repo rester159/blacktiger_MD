@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "skeleton.h"
 #include "assets.h"
 #include "loot.h"
@@ -145,7 +146,7 @@ static u16 event(u16 slot, u8 action, u16 next) {
         game.spawned[a->source] = 2;
         game.kills++;
         loot_spawn(drop_categories[a->def], loot_random >> 8, x, y);
-        game.score += p->score;
+        progress_score(p->score);
         game.sound = SND_KILL;
         return p->roots[px >= x ? DEATH_R : DEATH_L];
     }

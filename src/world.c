@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "world.h"
 #include "assets.h"
 u8 world_opened, world_rows[256];
@@ -115,7 +116,7 @@ u8 hidden_step(u16 slot, u8 contact) {
         animation_reset(anim);
         break;
     case 2:
-        game.p.hp = 4; /* Current native maximum; progression is a separate system. */
+        game.p.hp = progress_max_hp;
     case 6:
         game.p.armor = game.p.armor > 6 ? 8 : game.p.armor + 2;
         break;
@@ -134,13 +135,13 @@ u8 hidden_step(u16 slot, u8 contact) {
         game.coins += 500;
         break;
     case 8:
-        game.score += 1000;
+        progress_score(1000);
         break;
     case 9:
-        game.score += 5000;
+        progress_score(5000);
         break;
     case 11:
-        game.score += 7000;
+        progress_score(7000);
         break;
     default:
         break;

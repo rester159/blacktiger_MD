@@ -20,7 +20,7 @@ with tempfile.TemporaryDirectory() as folder:
  int v[]={a->active,PX(a->x),PX(a->y),s->animation.vx,s->animation.vy,s->animation.remaining,s->cycles,pair_vulnerable(0),f?f->code:-1,f?f->palette:-1,f?f->flip:-1,a->hp,game.score};
  for(int i=0;i<13;i++)out[i]=v[i];}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','sentry.c','loot.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','sentry.c','loot.c','data.c')],str(ROOT/'src/progress.c'),str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
  lib=C.CDLL(str(tmp/'b.dylib'));out=(C.c_int*13)();current=-1;count=0;maxcycles=0
  for line in (ROOT/'reference/pair_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break

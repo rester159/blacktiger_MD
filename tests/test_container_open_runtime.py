@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);r.write('progress_max_hp',0,b'\x05');checks=[]
 rom=(ROOT/'out/release/rom.bin').read_bytes()
 def hold_contact(slot,ticks,near=True):
  start=state(r).frame
@@ -34,7 +34,7 @@ for pc in (0xacbe,0xacd3):
    s=hold_contact(slot,4)
    assert r.read('container_collected',8)[persistent]==1
    assert s.coins==123+([0,50,100,500,1000,0][content])
-   if content==5:assert s.p.hp==4 and s.p.invincible==0
+   if content==5:assert s.p.hp==5 and s.p.invincible==0
   assert r.read('container_keys',1)==b'\x01' and s.score==987
   before=s.coins;s=hold_contact(slot,6);assert s.coins==before
   # Force camera retirement, then let the actual row reconstruct its empty phase.

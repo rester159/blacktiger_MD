@@ -25,7 +25,7 @@ with tempfile.TemporaryDirectory() as folder:
  if upper:
   content=(tmp/'stub.c').read_text().replace('bosses[0].segment=boss_roots[root];','if(variant==2){for(int i=0;i<66;i++)if(stone_kinds[i])game.actors[0].def=i;}init(0,variant==2?4:1,0);bosses[0].segment=boss_upper_roots[root];')
   (tmp/'stub.c').write_text(content)
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/data.c'),str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/data.c'),str(ROOT/'src/progress.c'),str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
  lib=C.CDLL(str(tmp/'b.dylib'));out=(C.c_int*16)();current=-1;count=0;clear_ticks=[]
  for line in (ROOT/('reference/'+oracle_name+'_oracle_events.txt')).read_text().splitlines():
   if line=='COMPLETE':break

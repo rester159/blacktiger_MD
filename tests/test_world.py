@@ -23,7 +23,7 @@ with tempfile.TemporaryDirectory() as tmp:
  for(u16 i=0;i<8192;i++) collision[i]=world_collision(i,col[i]);
 }''')
  (tmp/'stubs.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/world.c'),str(ROOT/'src/animation.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'world.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/world.c'),str(ROOT/'src/progress.c'),str(ROOT/'src/animation.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'world.dylib')],check=True)
  lib=C.CDLL(str(tmp/'world.dylib'));cases=0
  for level,patches in enumerate(contract['rounds']):
   w=128 if level==2 else 256;h=256 if level==2 else 128

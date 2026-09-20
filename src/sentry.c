@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "sentry.h"
 #include "assets.h"
 #include "loot.h"
@@ -31,7 +32,7 @@ u8 sentry_hit(u16 slot, u8 damage) {
     if (!sentry_kinds[a->def]) return 0;
     if (!a->state && a->active) {
         if (a->hp > damage) a->hp -= damage;
-        else { a->state = 1; s->pending = 1; game.score += sentry_score; }
+        else { a->state = 1; s->pending = 1; progress_score(sentry_score); }
     }
     return 1;
 }

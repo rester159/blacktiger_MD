@@ -297,3 +297,13 @@ remain unfinished. The new two-column menu adapts the catalog to the Genesis scr
 16 LTO unaligned widened byte read was eliminated with a volatile difficulty byte. Renderer
 regressions now compare the playfield below the 16-pixel HUD, retaining the pinned old ROM
 reference for sprites; the new HUD/shop have linked cartridge captures and behavior tests.
+
+Starting resources now follow the source initialization slices: three default-DIP lives, one
+current/maximum HP, two armor points, 200 coins and zero keys. All native score awards use a
+shared progression routine. Maximum health increases at 2,000/12,000/22,000/32,000 points,
+one threshold per award, without healing damage; the HUD shows current/maximum HP. NPC,
+chest and hidden-item healing and round-entry restoration use the earned maximum, up to five.
+Twenty original score-task comparisons cover exact thresholds and neighboring values; linked
+boulder awards cross all four thresholds and verify no immediate healing and correct respawn
+restoration. Five-HP fixtures check each healing family. Full original death/continue inventory
+reset semantics, maximum-score saturation, loose keys and provisional magic remain unported.

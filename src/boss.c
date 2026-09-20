@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "boss.h"
 #include "assets.h"
 #include "loot.h"
@@ -79,10 +80,10 @@ void boss_step(u16 slot) {
      game.spawned[a->source]=2;
      loot_spawn(drop_categories[a->def],loot_random>>8,PX(a->x),PX(a->y));
     }
-    s->dying=2;game.score+=boss_upper_score;select_segment(s,roots(s)[13]);}
+    s->dying=2;progress_score(boss_upper_score);select_segment(s,roots(s)[13]);}
    else {
     u16 i;game.boss_dead=1;s->dying=1;s->animation.remaining=1;game.spawned[a->source]=2;
-    game.score+=layered_boss_score;
+    progress_score(layered_boss_score);
     for(i=0;i<MAX_ACTORS;i++)if(game.actors[i].active && layered_boss_kinds[game.actors[i].def] && bosses[i].part && bosses[i].owner==slot && !bosses[i].dying && !bosses[i].pending) {
      bosses[i].pending=0;bosses[i].dying=1;bosses[i].vulnerable=0;game.actors[i].state=2;
     }

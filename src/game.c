@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "game.h"
 #include "container.h"
 #include "shop.h"
@@ -71,7 +72,7 @@ void game_round(u8 round) {
     p->climb = p->grounded = p->attack = 0;
     p->invincible = 120;
     p->face = 0;
-    p->hp = 4;
+    p->hp = progress_max_hp;
 }
 void game_new(void) {
     zero(&game, sizeof game);
@@ -79,8 +80,10 @@ void game_new(void) {
     container_new();
     container_keys=0;
     shop_new();
-    game.p.lives = 3;
-    game.p.armor = 2;
+    progress_new();
+    game.coins=progress_initial_coins;
+    game.p.lives = progress_initial_lives;
+    game.p.armor = progress_initial_armor;
     game.p.weapon = 1;
     game.p.magic = 2;
     game_round(0);
@@ -133,7 +136,7 @@ static void actor_hit(Actor *a, u8 damage) {
     a->active = 0;
     game.spawned[a->source] = 2;
     game.kills++;
-    game.score += layered_boss_kinds[a->def] ? layered_boss_score : d->kind == BOSS ? 5000 : 100;
+    progress_score(layered_boss_kinds[a->def] ? layered_boss_score : d->kind == BOSS ? 5000 : 100);
     if (!layered_boss_kinds[a->def])
         loot_spawn(drop_categories[a->def], loot_random >> 8, PX(a->x), PX(a->y));
     game.sound = SND_KILL;

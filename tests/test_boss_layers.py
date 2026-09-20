@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory() as folder:
  int hit(int damage){Actor *a=&game.actors[0];if(a->hp>damage){a->hp-=damage;return 0;}return !boss_break_layer(a);}
  int hp(void){return game.actors[0].hp;} int layers(void){return game.actors[0].life;}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/boss.c'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/data.c'),str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/boss.c'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/data.c'),str(ROOT/'src/progress.c'),str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
  lib=C.CDLL(str(tmp/'b.dylib'));current=-1;count=0
  for line in (ROOT/'reference/boss_layers_oracle_events.txt').read_text().splitlines():
   if not line.startswith('HIT|'):continue

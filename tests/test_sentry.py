@@ -18,7 +18,7 @@ with tempfile.TemporaryDirectory() as temp:
  int persistent(void){return game.spawned[0];} int score(void){return game.score;}
  int graphic(void){const AnimFrame *f=sentry_frame(0);return f?f->code:-1;}
 '''%definition);(tmp/'stubs.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/s) for s in ('loot.c','animation.c','data.c')],str(tmp/'stubs.c'),'-o',str(tmp/'sentry.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/s) for s in ('loot.c','animation.c','data.c')],str(ROOT/'src/progress.c'),str(tmp/'stubs.c'),'-o',str(tmp/'sentry.dylib')],check=True)
  lib=C.CDLL(str(tmp/'sentry.dylib'));counts={}
  for line in (ROOT/'reference/sentry_oracle_events.txt').read_text().splitlines():
   v=line.split('|');counts[v[0]]=counts.get(v[0],0)+1

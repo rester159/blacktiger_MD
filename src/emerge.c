@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "emerge.h"
 #include "assets.h"
 #include "hazard.h"
@@ -35,7 +36,7 @@ u8 emerge_hit(u16 slot,u8 damage) {
     if (!emerge_kinds[a->def]) return 0;
     if (a->active && !a->state) {
         if (a->hp>damage) a->hp-=damage;
-        else {a->state=1;s->pending=1;s->vulnerable=0;game.score+=profile(slot)->score;}
+        else {a->state=1;s->pending=1;s->vulnerable=0;progress_score(profile(slot)->score);}
     }
     return 1;
 }

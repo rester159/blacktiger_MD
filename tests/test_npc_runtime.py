@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'tools'))
 from test_runtime import Runner,state,put
 
 def run_case(kind,defs):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30);r.write('progress_max_hp',0,b'\x05')
  rom=(ROOT/'out/release/rom.bin').read_bytes();metadata=json.loads((ROOT/'reports/assets.json').read_text())
  found=None
  for level,info in enumerate(metadata['rounds']):
@@ -41,7 +41,8 @@ def run_case(kind,defs):
  assert s.mode==expected_mode,(kind,s.mode)
  assert s.coins==(223 if kind==1 else 123),(kind,s.coins)
  assert s.time==before_time+(30 if kind==4 else 0),(kind,s.time,before_time)
- assert s.p.hp==(4 if kind==3 else before_hp),(kind,s.p.hp)
+ assert s.p.hp==(5 if kind==3 else before_hp),(kind,s.p.hp)
+ if kind==3:assert s.p.invincible==0
  # Other world actors and game clocks remained frozen through the cutscene.
  assert s.rescued==1
  if expected_mode==3:r.run(3,1);r.run(3)

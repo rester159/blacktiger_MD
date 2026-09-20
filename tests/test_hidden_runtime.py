@@ -51,7 +51,7 @@ def fire(r,slot):
   if not s.shots[0].active:return s
  raise AssertionError(('wall did not consume projectile',initial_frame,s.round,s.mode,s.frame,s.actors[slot].source,s.actors[slot].state,s.actors[slot].active,s.shots[0].x,s.shots[0].y,r.read('old_x').hex(),r.read('old_y').hex(),s.cam_x,s.cam_y))
 def run():
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);results=[];reward_kinds=set()
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);r.write('progress_max_hp',0,b'\x05');results=[];reward_kinds=set()
  for level,patches in enumerate(contract['rounds']):
   for patch_index,patch in enumerate(patches):
    enter(r,level)
@@ -82,7 +82,7 @@ def run():
     if s.spawned[row]==2:break
    assert s.spawned[row]==2,('reward not collected',level,row,kind)
    life,armor,hp,time,coins,score=baseline
-   expected=(life+(kind==1),min(8,armor+({2:2,6:2,7:3}.get(kind,0))),4 if kind==2 else hp,time+(30 if kind==4 else 0),coins+({5:1000,10:500}.get(kind,0)),score+({8:1000,9:5000,11:7000}.get(kind,0)))
+   expected=(life+(kind==1),min(8,armor+({2:2,6:2,7:3}.get(kind,0))),5 if kind==2 else hp,time+(30 if kind==4 else 0),coins+({5:1000,10:500}.get(kind,0)),score+({8:1000,9:5000,11:7000}.get(kind,0)))
    actual=(s.p.lives,s.p.armor,s.p.hp,s.time,s.coins,s.score);assert actual==expected,(kind,actual,expected)
    s=state(r);s.mode=2;put(r,s);r.run(50);vram_patch(r,level,patch);reward_kinds.add(kind);results.append({'round':level+1,'persistent':patch['persistent'],'kind':kind})
  r.close()

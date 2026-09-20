@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory() as temp:
  void gate_setup(int v,int seen,int dx){setup(v);for(int r=0;r<8;r++)for(int i=0;i<rounds[r].spawn_count;i++)if(rounds[r].spawns[i].def==definitions[v]){game.round=r;gate_row=i;game.p.x=(rounds[r].spawns[i].x+dx)*256;emerge_seen[i]=seen;emerge_delay[i]=0;return;}}
  int gate(void){return emerge_spawn_ready(gate_row);}
 '''%tuple(defs));(tmp/'stubs.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/s) for s in ('loot.c','hazard.c','animation.c','data.c')],str(tmp/'stubs.c'),'-o',str(tmp/'emerge.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/s) for s in ('loot.c','hazard.c','animation.c','data.c')],str(ROOT/'src/progress.c'),str(tmp/'stubs.c'),'-o',str(tmp/'emerge.dylib')],check=True)
  lib=C.CDLL(str(tmp/'emerge.dylib'));ticks=gates=0
  for line in (ROOT/'reference/emerge_oracle_events.txt').read_text().splitlines():
   v=line.split('|')

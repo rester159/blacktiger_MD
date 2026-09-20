@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "zombie.h"
 #include "assets.h"
 #include "loot.h"
@@ -38,7 +39,7 @@ u8 zombie_vulnerable(u16 slot) {return zombies[slot].vulnerable && !game.actors[
 u8 zombie_hit(u16 slot,u8 damage) {
  Actor *a=&game.actors[slot];
  if (!zombie_kinds[a->def]) return 0;
- if (!a->state && damage>=a->hp) {a->state=1;zombies[slot].pending=1;zombies[slot].vulnerable=0;game.score+=variant(slot)==2?spitter_score:variant(slot)?thrower_score:zombie_score;}
+ if (!a->state && damage>=a->hp) {a->state=1;zombies[slot].pending=1;zombies[slot].vulnerable=0;progress_score(variant(slot)==2?spitter_score:variant(slot)?thrower_score:zombie_score);}
  else if(!a->state && a->hp>damage)a->hp-=damage;
  return 1;
 }

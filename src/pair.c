@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "pair.h"
 #include "assets.h"
 #include "loot.h"
@@ -29,7 +30,7 @@ u8 pair_hit(u16 slot,u8 damage) {
  Actor *a=&game.actors[slot];if(!pair_kinds[a->def])return 0;
  if(!a->state) {
   if(a->hp>damage)a->hp-=damage;
-  else {a->state=1;pairs[slot].pending=1;game.score+=pair_score;game.kills++;}
+  else {a->state=1;pairs[slot].pending=1;progress_score(pair_score);game.kills++;}
  }
  return 1;
 }

@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "npc.h"
 #include "assets.h"
 /* Native state is separate from the old machine's actor records. */
@@ -71,7 +72,8 @@ void npc_rescue_tick(void) {
         game.shop_item = 0;
         break;
     case 3:
-        game.p.hp = 4;
+        game.p.hp = progress_max_hp;
+        game.p.invincible = 0;
         game.sound = SND_RESCUE;
         break;
     case 4:

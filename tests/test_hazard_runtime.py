@@ -23,6 +23,6 @@ s.mode_timer=0;put(r,s)
 for _ in range(100):
  r.run(1);s=state(r)
  if s.mode==1:break
-assert s.p.lives==2 and s.p.hp==4 and s.mode==1
+assert s.p.lives==2 and s.p.hp==r.read('progress_max_hp',1)[0] and s.mode==1
 r.close();report={'passed':True,'source_round':level+1,'source_row':row,'stationary_weapon_immune':True,'armor_invulnerability_bypassed':True,'single_life_respawn':True,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),'scope':'Actual source spawn with injected projectile/contact; production death/respawn path. Full route and source death animation timing are not covered.'}
 (ROOT/'reports/hazard-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

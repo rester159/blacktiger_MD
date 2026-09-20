@@ -1,3 +1,4 @@
+#include "progress.h"
 #include "container.h"
 #include "assets.h"
 #include "hazard.h"
@@ -56,7 +57,7 @@ void container_step(u16 slot,u8 contact) {
  if(contact && (game.frame&1) && (s->phase==0 || s->phase==2)) {
   ContainerContact c;u8 effect;
   c.coins=game.coins;c.invincible=game.p.invincible;c.keys=container_keys;c.hp=game.p.hp;
-  c.max_hp=4; /* Native player maximum remains provisional until equipment is ported. */
+  c.max_hp=progress_max_hp;
   c.opened=container_opened[s->id];c.collected=container_collected[s->id];
   effect=container_contact(a->life,&c);if(!effect)return;
   container_keys=c.keys;game.coins=c.coins;game.p.hp=c.hp;game.p.invincible=c.invincible;

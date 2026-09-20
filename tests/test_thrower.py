@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory() as folder:
  for(int i=0;i<16;i++)out[i]=v[i];}
 ''')
  (tmp/'stub.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/sentry.c'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/missile.c'),str(ROOT/'src/data.c'),str(tmp/'stub.c'),'-o',str(tmp/'z.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/sentry.c'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/missile.c'),str(ROOT/'src/data.c'),str(ROOT/'src/progress.c'),str(tmp/'stub.c'),'-o',str(tmp/'z.dylib')],check=True)
  lib=C.CDLL(str(tmp/'z.dylib'));out=(C.c_int*32)();current=-1;count=0
  for line in (ROOT/'reference/thrower_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE' or line.startswith('SPAWN|'):break

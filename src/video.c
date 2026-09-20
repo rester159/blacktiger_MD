@@ -1,6 +1,7 @@
 #include "assets.h"
 #include "container.h"
 #include "shop.h"
+#include "progress.h"
 #include "loot.h"
 #include "sentry.h"
 #include "emerge.h"
@@ -423,7 +424,7 @@ static void text(u16 x, u16 y, const char *s) {
 }
 static u32 last_score = 0xffffffff;
 static u16 last_coins = 65535, last_time = 65535, last_stats = 65535;
-static u8 last_shop = 255,last_keys=255;
+static u8 last_shop = 255,last_keys=255,last_max_hp=255;
 static void digits(char *p, u16 v, u16 count) {
     while (count) {
         p[--count] = '0' + v % 10;
@@ -439,11 +440,12 @@ static void overlay(void) {
         last_mode = m;
     }
     VDP_setTextPlane(WINDOW);
-    if (stats != last_stats || last_keys!=container_keys) {
-        strcpy(b, "HP 0 ARM 0 W0 LIFE 0");
+    if (stats != last_stats || last_keys!=container_keys || last_max_hp!=progress_max_hp) {
+        strcpy(b, "HP 0/0 ARM0 W0 LIFE0");
         b[3] = '0' + game.p.hp;
-        b[9] = '0' + game.p.armor;
-        b[12] = '0' + game.p.weapon;
+        b[5] = '0' + progress_max_hp;last_max_hp=progress_max_hp;
+        b[10] = '0' + game.p.armor;
+        b[13] = '0' + game.p.weapon;
         b[19] = '0' + game.p.lives;
         text(1, 0, b);
         digits(b,container_keys,2);b[2]=0;text(27,0,b);text(24,0,"KEY");last_keys=container_keys;
