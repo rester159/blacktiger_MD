@@ -3,6 +3,11 @@
 u8 status_reverse,status_gate;
 void status_new(void) {status_reverse=status_gate=0;}
 void status_tick(void) {if(status_gate)status_gate--;}
+void status_poison_contact(void) {
+ if(status_gate)return;
+ if(shop_antidotes){shop_antidotes--;status_gate=30;}
+ else {shop_poison=0x26;status_gate=60;}
+}
 void status_reverse_contact(void) {
  if(status_gate)return;
  if(shop_antidotes){shop_antidotes--;status_gate=30;}

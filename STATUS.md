@@ -379,17 +379,27 @@ antidote consumption, shop cure, recurring construction and POW defeat.
 
 The attack's special contact 43 reverses horizontal controls; it is separate from poison.
 E919 provides a shared 60-tick contact gate, or 30 ticks after consuming a stored antidote.
-The native status routine matches 85 source contact/timer cases and 128 control masks;
+The native status routine matches 253 source contact/timer cases and 128 control masks;
 health and armor are unchanged. Shop cures clear both statuses, while unrelated purchases
 preserve the distinction. The source diagonal posture dispatch for input 5, status palette
-flashing, poison timer and exact constructor scan scheduling remain unported. Shared source
+flashing, full poison lifecycle and exact constructor scan scheduling remain unverified. Shared source
 small-pool contention and natural full-game routes also remain unverified.
 
-Bank 1 8A5D now uses a native recurring ground-flame routine. Source comparisons cover
-256 body ticks and 10,332 constructor attempts, including screen bounds and byte-wrapped
+Bank 1 8A5D, 8A03, 8B9B and 8BF5 now share a native recurring ground-flame routine.
+Source comparisons cover 1,024 body ticks and 41,328 constructor attempts, including screen bounds and byte-wrapped
 proximity boundaries. The flame starts harmless for six ticks, damages for 36 ticks, then
 recovers for six ticks before retirement. Every twentieth eligible constructor call can
 spawn another flame; the primary row flag does not suppress recurrence. POW retires it
-without awarding points or a kill. A linked cartridge fixture covers the actual round-one
-row, natural retirement/respawn, both contact phases, armor damage and POW removal.
+without awarding points or a kill. Linked cartridge fixtures cover actual rows in rounds one, two, four and five, natural
+retirement/respawn, both contact phases, armor damage and POW removal.
 Exact global constructor scheduling, source pool contention and audio remain provisional.
+
+The two special ground flames apply poison (contact 38) and ordinary contact damage.
+They share the status gate with reversed controls. An antidote prevents poison for that
+contact and starts a 30-tick gate; without one, poison is set and the gate becomes 60 ticks.
+The status oracle stops at the ordinary damage dispatch, while cartridge tests confirm
+armor damage with and without an antidote. The medium contact dispatcher applies poison
+even during ordinary hurt invulnerability; a cartridge case verifies poison without armor loss. Poison suppresses native dagger creation but
+leaves the primary weapon available, matching the source dagger-entry guard. Round entry
+clears poison, and the existing shop cure removes it. Source poison lifecycle outside these
+paths and palette presentation remain unverified; no damage-over-time behavior is assumed.

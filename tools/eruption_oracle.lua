@@ -20,7 +20,7 @@ assert(dbg and cpu.state.PC.value==0);dbg.visible_cpu=cpu
 local data=dofile('cases.lua')
 for id,c in ipairs(data.body) do
  reset()
- for i=0,47 do p:write_u8(0xf940+i,p:read_u8(0x8adc+i)) end
+ for i=0,47 do p:write_u8(0xf940+i,p:read_u8(c.template+i)) end
  be(0xf941,128);be(0xf943,96);le(0xf958,0xec58);be(0xf95a,0xfeac)
  for tick=1,64 do
   if tick==c.clear then cpu.state.IX.value=0xf940;call(0x322a) end
@@ -31,7 +31,7 @@ end
 for id,c in ipairs(data.spawns) do
  reset();le(0xe923,c.x);le(0xe925,c.y);le(0xe927,0xec58);be(0xf401,c.px);be(0xf403,c.py)
  for attempt=1,41 do
-  p:write_u8(0xf940,0);call(0x8a5d)
+  p:write_u8(0xf940,0);call(c.constructor)
   emit(string.format('SPAWN|%d|%d|%d|%d|%d',id-1,attempt,p:read_u8(0xf940),p:read_u8(0xec58),p:read_u8(0xec59)))
  end
 end

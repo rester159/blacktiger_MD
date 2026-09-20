@@ -52,7 +52,7 @@ void game_round(u8 round) {
     u8 preserve=restart_pending && loaded_round==round;
     u16 restart_x=r->start_x,restart_y=r->start_y;
     if(preserve)checkpoint_lookup(round,game.cam_x,game.cam_y,&restart_x,&restart_y);
-    status_reverse=0;loaded_round=round;game.round = round;
+    status_reverse=shop_poison=0;loaded_round=round;game.round = round;
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
     if(preserve){u16 i;for(i=0;i<160;i++)game.spawned[i]&=254;world_restart();}
@@ -298,8 +298,10 @@ static void player_step(u16 in, u16 pressed) {
         p->attack = 20;
         game.sound = SND_ATTACK;
         shot(x + 16 + dir * 16, y + 14, dir * 1280, 0, 0, 0);
-        shot(x + 16, y + 12, dir * 1024, -128, 0, 1);
-        shot(x + 16, y + 20, dir * 1024, 128, 0, 1);
+        if(!shop_poison){
+            shot(x + 16, y + 12, dir * 1024, -128, 0, 1);
+            shot(x + 16, y + 20, dir * 1024, 128, 0, 1);
+        }
     }
     if ((pressed & IN_MAGIC) && p->magic) {
         u16 i;
@@ -361,7 +363,10 @@ static void actor_step(u16 i, u16 pressed) {
     }
     if (eruption_kinds[a->def]) {
         eruption_step(i);
-        if(a->active && eruption_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && eruption_contact(i) && (game.frame&1) && actor_contact(i)){
+            if(eruption_kinds[a->def]>=3)status_poison_contact();
+            player_hurt(actor_damage[a->def]);
+        }
         return;
     }
     if (teleporter_kinds[a->def]) {
