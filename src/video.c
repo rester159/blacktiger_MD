@@ -1,5 +1,6 @@
 #include "assets.h"
 #include "npc.h"
+#include "world.h"
 #include <genesis.h>
 #define BG_SLOTS 1056
 #define SPR_BASE 1088
@@ -10,14 +11,17 @@ static u16 visible[1700];
 static u8 line_count[28], sprite_slot_for_key[16384];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
-static u8 last_round = 255, last_mode = 255;
+static u8 last_round = 255, last_mode = 255, last_opened;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
 static u16 word_at(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
     u16 w = r->width >> 3, h = r->height >> 3;
     if (x < 0 || y < 0 || x >= w || y >= h)
         return 0;
-    return r->map[((u16)y << (r->width == 2048 ? 8 : 7)) + x];
+    {
+        u16 word = r->map[((u16)y << (r->width == 2048 ? 8 : 7)) + x];
+        return (world_opened & world_rows[y]) ? world_word(x, y, word) : word;
+    }
 }
 static u16 cached(u16 word) {
     u16 logical = (word & 2047), slot, old;
@@ -57,7 +61,9 @@ static void row(s16 x, s16 y) {
     u16 b[33], i, w = r->width >> 3;
     const u16 *p = r->map + ((u16)y << (r->width == 2048 ? 8 : 7)) + x;
     for (i = 0; i < 33; i++)
-        b[i] = (y >= r->height / 8 || x + i >= w) ? 0 : cached(p[i]);
+        b[i] = (y >= r->height / 8 || x + i >= w)
+                   ? 0
+                   : cached((world_opened & world_rows[y]) ? world_word(x + i, y, p[i]) : p[i]);
     VDP_setTileMapDataRow(BG_B, b, y & 31, x & 63, 33, DMA_QUEUE_COPY);
     video_dma_bytes += 66;
 }
@@ -66,7 +72,9 @@ static void column(s16 x, s16 y) {
     u16 b[29], i, w = r->width >> 3, h = r->height >> 3;
     const u16 *p = r->map + ((u16)y << (r->width == 2048 ? 8 : 7)) + x;
     for (i = 0; i < 29; i++, p += w)
-        b[i] = (x >= w || y + i >= h) ? 0 : cached(*p);
+        b[i] = (x >= w || y + i >= h)
+                   ? 0
+                   : cached((world_opened & world_rows[y + i]) ? world_word(x, y + i, *p) : *p);
     VDP_setTileMapDataColumn(BG_B, b, x & 63, y & 31, 29, 1, DMA_QUEUE_COPY);
     video_dma_bytes += 58;
 }
@@ -82,7 +90,7 @@ static void pin_column(s16 x, s16 y, s16 delta) {
     if (x >= w)
         return;
     for (i = 0; i < 29 && y + i < h; i++, p += w) {
-        u16 v = *p & 2047;
+        u16 v = ((world_opened & world_rows[y + i]) ? world_word(x, y + i, *p) : *p) & 2047;
         if (v >= 16)
             visible[v - 16] += delta;
     }
@@ -94,10 +102,49 @@ static void pin_row(s16 x, s16 y, s16 delta) {
     if (y >= r->height / 8)
         return;
     for (i = 0; i < 33 && x + i < w; i++) {
-        u16 v = p[i] & 2047;
+        u16 v = ((world_opened & world_rows[y]) ? world_word(x + i, y, p[i]) : p[i]) & 2047;
         if (v >= 16)
             visible[v - 16] += delta;
     }
+}
+static void terrain_updates(void) {
+    const Round *r = &rounds[game.round];
+    u16 i, dx, dy, shift = r->width == 2048 ? 7 : 6;
+    u8 changed = world_opened ^ last_opened;
+    if (!changed)
+        return;
+    /* Update residency counts before allocating any replacement patterns. */
+    for (i = 0; i < r->patch_count; i++)
+        if (changed & (1 << i)) {
+            u16 cell = r->patches[i].cell, px = (cell & ((1 << shift) - 1)) * 2,
+                py = (cell >> shift) * 2;
+            for (dy = 0; dy < 4; dy++)
+                for (dx = 0; dx < 2; dx++) {
+                    u16 x = px + dx, y = py + dy, old;
+                    if (x < old_x || x >= old_x + 33 || y < old_y || y >= old_y + 29)
+                        continue;
+                    old = r->map[(y << (shift + 1)) + x] & 2047;
+                    if (old >= 16)
+                        visible[old - 16]--;
+                    pin(x, y, 1);
+                }
+        }
+    for (i = 0; i < r->patch_count; i++)
+        if (changed & (1 << i)) {
+            u16 cell = r->patches[i].cell, px = (cell & ((1 << shift) - 1)) * 2,
+                py = (cell >> shift) * 2;
+            for (dy = 0; dy < 4; dy++)
+                for (dx = 0; dx < 2; dx++) {
+                    u16 x = px + dx, y = py + dy, word;
+                    if (x < old_x || x >= old_x + 33 || y < old_y || y >= old_y + 29)
+                        continue;
+                    word = cached(word_at(x, y));
+                    VDP_setTileMapData(VDP_getBGBAddress(), &word, ((y & 31) << 6) | (x & 63), 1, 2,
+                                       DMA_QUEUE_COPY);
+                    video_dma_bytes += 2;
+                }
+        }
+    last_opened = world_opened;
 }
 static void scene(u8 full) {
     s16 x = game.cam_x >> 3, y = game.cam_y >> 3, xx, yy;
@@ -223,6 +270,12 @@ static void sprites(void) {
         code = d->code + (d->frames > 1 ? ((a->timer / 8) % d->frames) * 2 : 0);
         x = PX(a->x) - game.cam_x;
         y = PX(a->y) - game.cam_y;
+        if (d->kind == HIDDEN_WALL) {
+            const AnimFrame *f = hidden_frame(i);
+            if (f)
+                piece(f->code, f->palette, x, y, f->flip);
+            continue;
+        }
         if (d->npc_kind) {
             const AnimFrame *f = npc_frame(i);
             if (f)
@@ -233,6 +286,13 @@ static void sprites(void) {
             body(code, d->palette, x, y, a->face > 0);
         else
             piece(code, d->palette, x, y, 0);
+    }
+    for (i = 0; i < rounds[game.round].patch_count; i++) {
+        const AnimFrame *f = world_effect(i);
+        if (f) {
+            const Spawn *sp = &rounds[game.round].spawns[rounds[game.round].patches[i].source];
+            body(f->code, f->palette, sp->x - 8 - game.cam_x, sp->y - 8 - game.cam_y, f->flip);
+        }
     }
     if (sprite_count)
         VDP_setSpriteLink(sprite_count - 1, 0);
@@ -341,6 +401,7 @@ void video_init(void) {
     VDP_setBackgroundColor(0);
 }
 void video_round(void) {
+    last_opened = world_opened;
     u16 i;
     SYS_disableInts();
     VDP_setEnable(FALSE);
@@ -376,6 +437,7 @@ void video_frame(void) {
         old_x - (game.cam_x >> 3) > 1 || (game.cam_y >> 3) - old_y > 1 ||
         old_y - (game.cam_y >> 3) > 1)
         video_round();
+    terrain_updates();
     scene(0);
     video_cost[0] = getSubTick() - t;
     t = getSubTick();

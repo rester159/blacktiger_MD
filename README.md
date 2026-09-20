@@ -61,6 +61,7 @@ Files:
 - `src/game.c`: native game systems, independent of SGDK rendering.
 - `src/animation.c`, `src/npc.c`: shared source-derived animation and eight NPC variants.
 - `src/video.c`: scrolling, tile/sprite caches, hardware sprite limits, HUD.
+- `src/world.c`: sparse terrain changes, hidden walls, reveal effects, and rewards.
 - `src/audio.c`: native PSG effects.
 - `tools/extract.py`: source verification and asset conversion.
 - `tests/test_assets.py`: complete map decoding and corruption negative control.
@@ -73,7 +74,7 @@ Files:
   against witnessed constructor states for 65 definitions; initial graphics are checked for 51.
   Remaining graphics use explicit fallbacks. Later animation, difficulty-dependent state, and
   multi-piece boss composition still need source-derived implementations.
-- Spawn parsing is not complete. Scanner control records, hidden-item semantics, and one irregular
+- Spawn parsing is not complete. Scanner control records, hidden-container semantics outside the verified wall family, and one irregular
   round-one stream are unresolved. The converter reports rather than silently repairs that row.
 - Player movement/combat is reimplemented, but its detailed timing, weapon reach, equipment states,
   animation selection, and collisions have not been matched against the arcade.
@@ -116,3 +117,10 @@ under four controlled RAM profiles. `reference/constructors.json` and its raw tr
 observations. This replaces the adjacent-code template scan and fixes the collision-width-as-health
 bug. `tests/test_actor_contract.py` checks the compiled cartridge values and a wrong-offset negative
 control. Constructor coverage does not imply complete behavior coverage or complete spawn parsing.
+
+The hidden-wall family now uses one native implementation across all 39 source locations. Five-hit
+walls update both collision and cached Genesis tile pixels, expose one of 12 reward types, and keep
+their open state across camera despawns. The converter compiles original reveal/explosion clips.
+Original-ROM oracle checks cover all 39 patch writes and 12 reward handlers; actual cartridge tests
+cover every source row. Exact weapon/contact bounds, screen-attack target selection, and maximum-HP
+progression remain part of the unfinished combat/player systems.

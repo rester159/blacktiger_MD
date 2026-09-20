@@ -1,6 +1,7 @@
 #include "game.h"
 #include "assets.h"
 #include "npc.h"
+#include "world.h"
 Game game;
 static s16 absolute(s16 x) {
     return x < 0 ? -x : x;
@@ -19,7 +20,10 @@ u8 terrain(s16 x, s16 y) {
         return 3;
     if (y >= r->height)
         return 0;
-    return r->collision[((y >> 4) << (r->width == 2048 ? 7 : 6)) + (x >> 4)];
+    {
+        u16 cell = ((y >> 4) << (r->width == 2048 ? 7 : 6)) + (x >> 4);
+        return world_opened ? world_collision(cell, r->collision[cell]) : r->collision[cell];
+    }
 }
 static u8 support(s16 x, s16 y) {
     return terrain(x, y) >= 2;
@@ -32,6 +36,7 @@ void game_round(u8 round) {
     zero(game.shots, sizeof game.shots);
     zero(game.spawned, sizeof game.spawned);
     npc_reset();
+    world_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
     game.boss_dead = 0;
@@ -97,10 +102,16 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (d->kind == HIDDEN_WALL && a->state)
+        return;
     a->hit = 10;
     if (a->hp > damage) {
         a->hp -= damage;
         game.sound = SND_HIT;
+        return;
+    }
+    if (d->kind == HIDDEN_WALL) {
+        hidden_break(a - game.actors);
         return;
     }
     a->active = 0;
@@ -141,6 +152,8 @@ static void spawn_actors(void) {
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
                 npc_spawn(j);
+                if (actor_defs[s->def].kind == HIDDEN_WALL)
+                    hidden_spawn(j);
                 game.spawned[i] = 1;
                 break;
             }
@@ -225,7 +238,8 @@ static void player_step(u16 in, u16 pressed) {
         p->magic--;
         game.sound = SND_KILL;
         for (i = 0; i < MAX_ACTORS; i++)
-            actor_hit(&game.actors[i], 8);
+            if (actor_defs[game.actors[i].def].kind != HIDDEN_WALL)
+                actor_hit(&game.actors[i], 8);
     }
     if (PX(p->y) > rounds[game.round].height + 32) {
         p->invincible = 0;
@@ -244,8 +258,18 @@ static void actor_step(u16 i, u16 pressed) {
         --a->hit;
     a->timer++;
     if (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300) {
-        game.spawned[a->source] = 0;
+        if (game.spawned[a->source] != 2)
+            game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (d->kind == HIDDEN_WALL) {
+        if (hidden_step(i, close)) {
+            u16 j;
+            for (j = 0; j < MAX_ACTORS; j++)
+                if (actor_defs[game.actors[j].def].kind != HIDDEN_WALL)
+                    actor_hit(&game.actors[j], 200);
+        }
         return;
     }
     if (d->kind == PICKUP) {
@@ -326,7 +350,8 @@ static void actor_step(u16 i, u16 pressed) {
         hurt();
 }
 static void shots_step(void) {
-    u16 i, j;
+    u16 i, j, wall_count = 65535;
+    u8 wall_slots[MAX_ACTORS];
     for (i = 0; i < MAX_SHOTS; i++) {
         Shot *s = &game.shots[i];
         s16 x, y;
@@ -336,6 +361,28 @@ static void shots_step(void) {
         s->y += s->vy;
         x = PX(s->x);
         y = PX(s->y);
+        if (!s->enemy) {
+            u16 k;
+            if (wall_count == 65535) {
+                wall_count = 0;
+                for (j = 0; j < MAX_ACTORS; j++) {
+                    Actor *a = &game.actors[j];
+                    if (a->active && actor_defs[a->def].kind == HIDDEN_WALL && !a->state)
+                        wall_slots[wall_count++] = j;
+                }
+            }
+            for (k = 0; k < wall_count; k++) {
+                Actor *a = &game.actors[wall_slots[k]];
+                if (!a->state && absolute(x - PX(a->x) - 8) < 12 &&
+                    absolute(y - PX(a->y) - 8) < 20) {
+                    actor_hit(a, s->damage);
+                    s->active = 0;
+                    break;
+                }
+            }
+            if (!s->active)
+                continue;
+        }
         if (!--s->life || absolute(x - (s16)game.cam_x - 128) > 176 ||
             absolute(y - (s16)game.cam_y - 112) > 152 || terrain(x, y) == 3) {
             s->active = 0;
@@ -352,7 +399,7 @@ static void shots_step(void) {
                 if (a->active && absolute(x - PX(a->x) - 16) < 20 &&
                     absolute(y - PX(a->y) - 16) < 20) {
                     u8 k = actor_defs[a->def].kind;
-                    if (k == CAPTIVE || k == PICKUP || k == HAZARD)
+                    if (k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
                     actor_hit(a, s->damage);
                     s->active = 0;
@@ -434,6 +481,7 @@ void game_tick(u16 input) {
         game.mode = PAUSED;
         return;
     }
+    world_tick();
     player_step(input, pressed);
     spawn_actors();
     {

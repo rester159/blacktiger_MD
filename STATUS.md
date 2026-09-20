@@ -32,7 +32,14 @@ Remaining work order (shared systems, not sequential levels):
 Constructor census now witnesses copies for all 66 known definitions under four RAM profiles.
 The adjacent-code template scan and 5/8-byte frame heuristic have been removed. Linked-ROM checks
 verify initial health for 65 definitions and initial graphics for 51. The other values are explicit
-fallbacks, and none of this proves later AI behavior. Newly identified problem families include
-12 invisible background breakables currently treated as walkers and two data-selected objects
-currently labeled rocks; these need native terrain mutation/reward/state handling. Compound boss
-constructors copy 96/192 bytes, confirming that one generic actor body is insufficient.
+fallbacks, and none of this proves later AI behavior. Two data-selected objects remain incorrectly
+labeled rocks and need their own state handling. Compound boss constructors copy 96/192 bytes,
+confirming that one generic actor body is insufficient.
+
+The twelve invisible background-breakable definitions are now a distinct stationary native family.
+All 39 source locations share sparse collision/map patches, source reveal and explosion clips,
+five-hit opening, persistent open/collected state across camera despawns, and the twelve reward
+handlers. The host tests check all cells under 55 patch combinations; cartridge tests check all 39
+rows, live VDP pixels, hits and rewards. Original MAME checks independently exercise 39 patch writes
+and 12 reward dispatches. Weapon/contact bounds, maximum-HP progression, screen-attack enemy
+selection and persistence across death still need broader arcade matching.

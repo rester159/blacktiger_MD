@@ -8,6 +8,7 @@ from collections import Counter
 import numpy as np
 from PIL import Image, ImageDraw
 from arcade_source import Source
+from extract_hidden import extract as extract_hidden
 from actor_contract import load as load_actor_contract
 from extract_animation import extract as extract_animation
 ROOT=Path(__file__).resolve().parents[1]
@@ -127,6 +128,13 @@ def main():
     for name in ('idle','released'):
         clip=animation['npc'][name];native_clip('npc_'+name,clip['frames'],clip['loop'])
     native_clip('npc_rescue',[{'code':f['code'],'duration':f['ticks'],'palette':4,'flip':False,'vx':0,'vy':0} for f in animation['npc']['rescue_cutscene'] if 'code' in f])
+    hidden=extract_hidden(Source(args.source))
+    (ROOT/'reference/hidden.json').write_text(json.dumps(hidden,indent=2)+'\n')
+    for k in hidden['kinds']:
+        native_clip('hidden_'+str(k['kind']),k['clip']['frames'],k['clip']['loop'])
+    for key in ('life_collected','explosion'):
+        native_clip('hidden_'+key,hidden[key]['frames'],hidden[key]['loop'])
+    body.append('const AnimClip *const hidden_clips[]={'+','.join('&hidden_'+str(i) for i in range(12))+'};')
     # Constructors identified by bank/address. Keep identity only in conversion report.
     # Families: walker, flyer, turret, falling rock, hazard, chest, captive, pickup, boss.
     family={(0,0x93ed):0,(0,0x8000):0,(0,0x8389):0,(0,0x89c6):1,(0,0x9b85):1,(0,0xa35c):0,
@@ -158,6 +166,7 @@ def main():
                     if key==(0,0x93ed):code=0x280;attr=0x45;frames=3
                     if key==(0,0x8000):code=0x240;attr=0x42;frames=3
                     if key==(2,0x8000):code=0x3c0;attr=0x63;frames=3
+                    if key[0]==2 and 0xb7da<=pc<=0xb8d7 and (pc-0xb7da)%23==0:kind=9
                     size=1 if kind in (4,7) else 4
                     if observed['health'] is not None:hp=observed['health']
                     if observed['initial_frame'] is not None:
@@ -169,6 +178,7 @@ def main():
     ds=[]
     for d in defs.values():ds.append('{'+','.join(map(str,[d['code'],d['kind'],d['palette'],d['hp'],d['pieces'],d['frames'],d['npc_kind']]))+'}')
     body.append('const ActorDef actor_defs[]={'+','.join(ds)+'};');report['actor_definitions']=list(defs.values())
+    body.append('const u8 hidden_kinds[]={'+','.join(str((d['address']-0xb7da)//23) if d['kind']==9 else '255' for d in defs.values())+'};')
     collision=files['bdu-03a.8e'][0x363a:0x3e3a]
     for r in range(8):
         cfg=read(6,0xb19c+r*6,6);cx,cy,layout,_=struct.unpack('<HHBB',cfg);w,h=(128,64) if layout else (64,128)
@@ -202,6 +212,21 @@ def main():
                     if b not in unique:unique[b]=len(unique);pats.extend(b)
                     ws.append((unique[b]+16)|(int(groups[p])<<13)|flags)
                 world.append(ws)
+        # Hidden terrain uses the source's tile 0 / palette 6 replacement.
+        opened=np.array(pm[6],dtype=np.uint8)[tiles[0]];open_words=[]
+        for oy,ox in ((0,0),(0,8),(8,0),(8,8)):
+            cell=opened[oy:oy+8,ox:ox+8]
+            b,flags=min((pack(cell),0),(pack(cell[:,::-1]),0x800),(pack(cell[::-1,:]),0x1000),(pack(cell[::-1,::-1]),0x1800))
+            if b not in unique:unique[b]=len(unique);pats.extend(b)
+            open_words.append((unique[b]+16)|(int(groups[6])<<13)|flags)
+        body.append(f'const u16 open_tile{r}[]={{'+','.join(map(str,open_words))+'};')
+        patch_rows=[]
+        for patch in hidden['rounds'][r]:
+            matches=[i for i,row in enumerate(spawns[r]) if row[3]==patch['persistent'] and list(defs.values())[row[2]]['kind']==9]
+            assert len(matches)==1,(r,patch,matches)
+            i=matches[0];assert spawns[r][i][:2]==(patch['x'],patch['y']+8)
+            patch_rows.append('{%d,%d}'%(patch['cell'],i))
+        body.append(f'const WorldPatch patches{r}[]={{'+','.join(patch_rows)+'};')
         # Row-major 8x8 map enables contiguous strip uploads; only the entering edges stream.
         wm=[]
         for y in range(h*2):
@@ -211,9 +236,9 @@ def main():
         spawn=spawns[r];body.append(f'const Spawn spawn{r}[]={{'+','.join('{'+','.join(map(str,s))+'}' for s in spawn)+'};')
         preview.resize((w*8,h*8)).save(ROOT/f'reports/round{r+1}.png')
         report['rounds'].append({'round':r+1,'width':w*16,'height':h*16,'camera':[cx,cy],'layout':layout,'patterns':len(unique),'spawns':len(spawn),'collision_codes':dict(Counter(coll))})
-    body.append('const Round rounds[8]={'+',\n'.join('{bg%d,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d}'%(r,r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera']) for r,d in enumerate(report['rounds']))+'};')
+    body.append('const Round rounds[8]={'+',\n'.join('{bg%d,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d,patches%d,open_tile%d,%d,%d}'%(r,r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera'],r,r,len(hidden['rounds'][r]),collision[0]) for r,d in enumerate(report['rounds']))+'};')
     (ROOT/'res/assets.res').write_text('\n'.join(resources)+'\n')
-    (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "animation.h"\nextern const AnimClip npc_idle, npc_released, npc_rescue;\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[10][16];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
+    (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "animation.h"\nextern const AnimClip npc_idle, npc_released, npc_rescue;\nextern const AnimClip *const hidden_clips[12];\nextern const AnimClip hidden_life_collected, hidden_explosion;\nextern const u8 hidden_kinds[];\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[10][16];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
     (ROOT/'src/data.c').write_text('/* Generated by tools/extract.py. */\n#include <genesis.h>\n#include "assets.h"\n'+'\n'.join(body)+'\n')
     report['outputs']={p.name:{'bytes':p.stat().st_size,'sha256':sha(p.read_bytes())} for p in OUT.glob('*.bin')}
     (ROOT/'reports/assets.json').write_text(json.dumps(report,indent=2)+'\n')

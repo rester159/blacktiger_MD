@@ -23,7 +23,7 @@ typedef int32_t s32;
 #define IN_MAGIC 128
 #define FX 256
 #define PX(v) ((v) / FX)
-enum { WALKER, FLYER, TURRET, ROCK, HAZARD, CHEST, CAPTIVE, PICKUP, BOSS };
+enum { WALKER, FLYER, TURRET, ROCK, HAZARD, CHEST, CAPTIVE, PICKUP, BOSS, HIDDEN_WALL };
 enum { TITLE, PLAY, PAUSED, SHOP, DEAD, CLEAR, ENDING, GAMEOVER, RESCUE };
 enum {
     SND_NONE,
@@ -50,11 +50,18 @@ typedef struct {
     u16 x, y, def, persistent;
 } Spawn;
 typedef struct {
+    u16 cell;
+    u8 source;
+} WorldPatch;
+typedef struct {
     const u32 *patterns;
     const u16 *map, *palette;
     const u8 *collision;
     const Spawn *spawns;
     u16 pattern_count, spawn_count, width, height, start_x, start_y;
+    const WorldPatch *patches;
+    const u16 *open_tile;
+    u8 patch_count, open_collision;
 } Round;
 typedef struct {
     s32 x, y;
