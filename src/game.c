@@ -56,7 +56,7 @@ void game_round(u8 round) {
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
     if(preserve){u16 i;for(i=0;i<160;i++)game.spawned[i]&=254;world_restart();}
-    else {zero(game.spawned,sizeof game.spawned);world_reset();teleporter_reset();}
+    else {zero(game.spawned,sizeof game.spawned);world_reset();teleporter_reset();eruption_reset();}
     npc_reset();
     skeleton_reset();
     emerge_reset();
@@ -122,6 +122,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CHEST || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (eruption_kinds[a->def])return;
     if (teleporter_kinds[a->def]){teleporter_hit(a-game.actors,damage);return;}
     if (hunter_kinds[a->def]){hunter_hit(a-game.actors,damage);return;}
     if (crawler_kinds[a->def]){crawler_hit(a-game.actors,damage);return;}
@@ -171,7 +172,7 @@ static void spawn_actors(void) {
     for (i = game.frame & 3; i < r->spawn_count; i += 4) {
         const Spawn *s = &r->spawns[i];
         s16 sx=s->x,sy=s->y;
-        if (game.spawned[i] && !(game.spawned[i]==1 && zombie_kinds[s->def]))
+        if (game.spawned[i] && !eruption_kinds[s->def] && !(game.spawned[i]==1 && zombie_kinds[s->def]))
             continue;
         if (absolute((s16)s->x - (s16)game.cam_x - 128) > 176 ||
             absolute((s16)s->y - (s16)game.cam_y - 112) > 152)
@@ -179,6 +180,7 @@ static void spawn_actors(void) {
         if (zombie_kinds[s->def] && !zombie_prepare_variant(i,zombie_kinds[s->def]-1,&sx,&sy)) continue;
         if (!emerge_spawn_ready(i))
             continue;
+        if (eruption_kinds[s->def] && !eruption_prepare(i,sx,sy))continue;
         if (teleporter_kinds[s->def] && !teleporter_prepare(i,&sx,&sy))continue;
         if (pair_kinds[s->def] && !pair_ready(sx,sy))continue;
         if (!npc_spawn_ready(i))
@@ -201,6 +203,7 @@ static void spawn_actors(void) {
                 a->timer = i * 7;
                 if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);
+                if(eruption_kinds[a->def])eruption_spawn(j);
                 if(teleporter_kinds[a->def])teleporter_spawn(j);
                 if(hunter_kinds[a->def])hunter_spawn(j,hunter_kinds[a->def]-1);
                 if(crawler_kinds[a->def])crawler_spawn(j,0);
@@ -217,7 +220,7 @@ static void spawn_actors(void) {
                     skeleton_spawn(j);
                 if (actor_defs[s->def].kind == HIDDEN_WALL)
                     hidden_spawn(j);
-                game.spawned[i] = pair_kinds[s->def]?2:1;
+                game.spawned[i] = eruption_kinds[s->def]?game.spawned[i]:pair_kinds[s->def]?2:1;
                 if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2)return;
                 break;
             }
@@ -323,7 +326,8 @@ static void screen_attack(void) {
         a->hit = 0;
         a->hp = 1;
         a->life = 1;
-        if(teleporter_kinds[a->def])teleporter_screen_attack(j);
+        if(eruption_kinds[a->def]){a->active=0;game.spawned[a->source]^=1;}
+        else if(teleporter_kinds[a->def])teleporter_screen_attack(j);
         else if(hunter_kinds[a->def])hunter_screen_attack(j);
         else if(crawler_kinds[a->def])crawler_screen_attack(j);
         else if(statue_kinds[a->def])statue_screen_attack(j);
@@ -353,6 +357,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (eruption_kinds[a->def]) {
+        eruption_step(i);
+        if(a->active && eruption_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
         return;
     }
     if (teleporter_kinds[a->def]) {
@@ -544,6 +553,7 @@ static void shots_step(void) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CHEST || k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
+                    if (eruption_kinds[a->def])continue;
                     if (teleporter_kinds[a->def] && !teleporter_vulnerable(j))continue;
                     if (hunter_kinds[a->def] && !hunter_vulnerable(j))continue;
                     if (crawler_kinds[a->def] && !crawler_vulnerable(j))continue;

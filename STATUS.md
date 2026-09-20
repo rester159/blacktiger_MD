@@ -384,3 +384,12 @@ health and armor are unchanged. Shop cures clear both statuses, while unrelated 
 preserve the distinction. The source diagonal posture dispatch for input 5, status palette
 flashing, poison timer and exact constructor scan scheduling remain unported. Shared source
 small-pool contention and natural full-game routes also remain unverified.
+
+Bank 1 8A5D now uses a native recurring ground-flame routine. Source comparisons cover
+256 body ticks and 10,332 constructor attempts, including screen bounds and byte-wrapped
+proximity boundaries. The flame starts harmless for six ticks, damages for 36 ticks, then
+recovers for six ticks before retirement. Every twentieth eligible constructor call can
+spawn another flame; the primary row flag does not suppress recurrence. POW retires it
+without awarding points or a kill. A linked cartridge fixture covers the actual round-one
+row, natural retirement/respawn, both contact phases, armor damage and POW removal.
+Exact global constructor scheduling, source pool contention and audio remain provisional.
