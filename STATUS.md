@@ -367,3 +367,15 @@ death-animation completion before clearing actors/effects and entering round cle
 boss health display, exact global pool contention and full round-clear presentation remain.
 The source screen-attack filter also establishes that special-contact caster shells (36)
 and hunter shells (40) are excluded; caster shells now survive POW, with a linked-cartridge regression check. These body checks do not establish full-family fidelity.
+
+Bank 1 92E6 has a native teleporter body kernel matching 30,000 source ticks in 30 cases.
+It preserves byte-facing comparisons, eight relocation positions, five attack cycles,
+18 internal durability, phase-dependent damage halving (including zero damage), 100-point
+fatal reward, source loot and retirement. **Not yet connected to gameplay**: its recurring
+constructor (first immediate attempt, later 45-attempt delay) and six-part status attack
+must be completed. Source helper 816A constructs templates at 868E, sharing callbacks
+82D4/82F9/8309 with container traps. Origins are parent X+48 or X-32, second triplet ±24;
+ground search uses first-part X+8, screen Y112..192, fallback player Y+16. The damaging
+middle parts use special contact 43 (4872), not ordinary trap contact: E919 gates it,
+stored antidotes F3B0 are consumed with a 30-tick gate, otherwise E028 toggles and the gate
+becomes 60 before palette/status task 26FB. Its full player effect needs source tracing.
