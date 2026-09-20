@@ -2,7 +2,7 @@ import json
 from arcade_source import Source,ROOT
 from oracle_runner import run_oracle
 s=Source();cases=[]
-for profile,(template,root,score) in enumerate(((0x8899,0x8a49,0x20),(0xa07d,0xa22d,0x38))):
+for profile,(template,root,score) in enumerate(((0x8899,0x8a49,0x20),(0xa07d,0xa22d,0x38),(0x947b,0x962b,0x28))):
  for px in (48,112,144,240):
   for random in range(0,32,2):
    for wall,damage,low in ((0,0,0),(96,255,0),(64,1,1)):

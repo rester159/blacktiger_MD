@@ -3,7 +3,7 @@ import ctypes as C,json,subprocess,tempfile,re,hashlib
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];ref=json.loads((ROOT/'reference/reinforcement_shot_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/reinforcement_shot_oracle_events.txt'),('lua_sha256','tools/reinforcement_shot_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
-meta=json.loads((ROOT/'reports/assets.json').read_text());definitions=[next(d['id'] for d in meta['actor_definitions'] if (d['bank'],d['address'])==(2,pc)) for pc in (0x8344,0x9af6)]
+meta=json.loads((ROOT/'reports/assets.json').read_text());definitions=[next(d['id'] for d in meta['actor_definitions'] if (d['bank'],d['address'])==(2,pc)) for pc in (0x8344,0x9af6,0x8ef4)]
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text()
  stubs=['#include "assets.h"','Game game;','#include "'+str(ROOT/'src/reinforcement_body.c')+'"']
@@ -25,5 +25,5 @@ with tempfile.TemporaryDirectory() as folder:
    expected=[1,int.from_bytes(a[1:3],'big',signed=True),int.from_bytes(a[3:5],'big',signed=True),C.c_int8(a[6]).value,C.c_int8(a[7]).value,a[10],int(display)|((a[5]&224)<<3),a[5]&7,(a[5]>>3)&1]
    assert list(out)==expected,(case,tick,list(out),expected)
   count+=1
- report=dict(passed=True,source_projectile_ticks=count,cases=len(ref['cases']),scope='Both source profiles, all six parts, both directions, staged motion and animation, offscreen retirement. Shared native animation data verified identical for the two profiles.')
+ report=dict(passed=True,source_projectile_ticks=count,cases=len(ref['cases']),scope='All three source profiles, all six parts, both directions, staged motion and animation, offscreen retirement. Shared native animation data verified identical for all three profiles.')
  (ROOT/'reports/reinforcement-shot-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

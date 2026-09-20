@@ -23,5 +23,5 @@ with tempfile.TemporaryDirectory() as folder:
   lib.tick(c['x'],c['y'],c['full'],out);expected=list(map(int,values));expected[0]=bool(expected[0])
   assert list(out)==expected,(case,tick,list(out),expected)
   count+=1
-report=dict(passed=True,cases=len(ref['cases']),constructor_attempts=count,scope='Both two-attempt reinforcement constructors: screen bounds, byte-wrapped proximity, forty eligible-call delay, row consumption before allocation, full-pool failure and byte overflow. Actor behavior and global scanner cadence remain separate.')
+report=dict(passed=True,cases=len(ref['cases']),constructor_attempts=count,scope='All three two-attempt reinforcement constructors: screen bounds, byte-wrapped proximity, forty eligible-call delay, row consumption before allocation, full-pool failure and byte overflow. Actor behavior and global scanner cadence remain separate.')
 (ROOT/'reports/reinforcement-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

@@ -4,7 +4,7 @@ from oracle_runner import run_oracle
 s=Source();cases=[]
 # Both constructors have the same complete pre-allocation byte sequence.
 assert s.read(2,0x8344,0x44)==s.read(2,0x9af6,0x44).replace(bytes.fromhex('279b'),bytes.fromhex('7583')).replace(bytes.fromhex('379b'),bytes.fromhex('8583'))
-for pc in (0x8344,0x9af6):
+for pc in (0x8344,0x9af6,0x8ef4):
  for x,y in ((128,96),(0,0),(255,255),(256,96),(-1,96),(128,256),(128,-1)):
   for dx in (-49,-48,-47,0,47,48):
    for dy in (-33,-32,-31,0,31,32):

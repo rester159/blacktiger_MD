@@ -209,12 +209,13 @@ def main():
     (ROOT/'reference/reinforcement_body.json').write_text(json.dumps(fighter,indent=2)+'\n')
     for i,seg in enumerate(fighter['segments']):native_clip('fighter_'+str(i),seg['clip']['frames'],seg['clip']['loop'])
     body.append('const AnimSegment reinforcement_segments[]={'+','.join('{&fighter_%d,%d,%d}'%(i,seg['next'],seg['event']) for i,seg in enumerate(fighter['segments']))+'};')
-    body.append('const u16 reinforcement_roots[2][25]={'+','.join('{'+','.join(map(str,r))+'}' for r in fighter['roots'])+'};')
-    body.append('const u8 reinforcement_choices[2][8][16]={'+','.join('{'+','.join('{'+','.join(map(str,r))+'}' for r in p)+'}' for p in fighter['choices'])+'};')
-    body.append('const u8 reinforcement_health[2]={'+','.join(map(str,fighter['health']))+'},reinforcement_layers[2]={'+','.join(map(str,fighter['layers']))+'};const u16 reinforcement_scores[2]={'+','.join(map(str,fighter['scores']))+'};')
+    body.append('const u16 reinforcement_roots[3][25]={'+','.join('{'+','.join(map(str,r))+'}' for r in fighter['roots'])+'};')
+    body.append('const u8 reinforcement_choices[3][8][16]={'+','.join('{'+','.join('{'+','.join(map(str,r))+'}' for r in p)+'}' for p in fighter['choices'])+'};')
+    body.append('const u8 reinforcement_health[3]={'+','.join(map(str,fighter['health']))+'},reinforcement_layers[3]={'+','.join(map(str,fighter['layers']))+'};const u16 reinforcement_scores[3]={'+','.join(map(str,fighter['scores']))+'};')
     for i,shot in enumerate(fighter['shots'][0]):
-        other=fighter['shots'][1][i]
-        assert [{k:v for k,v in f.items() if k!='source_address'} for f in shot['clip']['frames']]==[{k:v for k,v in f.items() if k!='source_address'} for f in other['clip']['frames']]
+        for group in fighter['shots'][1:]:
+            other=group[i]
+            assert [{k:v for k,v in f.items() if k!='source_address'} for f in shot['clip']['frames']]==[{k:v for k,v in f.items() if k!='source_address'} for f in other['clip']['frames']]
         native_clip('fighter_shot_'+str(i),shot['clip']['frames'],None)
     body.append('const AnimClip *const reinforcement_clips[12]={'+','.join('&fighter_shot_'+str(i) for i in range(12))+'};')
     crawler=extract_crawler(Source(args.source))
@@ -377,7 +378,7 @@ def main():
                     npc_kind=0
                     if 0x5e32<=pc<=0x5eb0 and (pc-0x5e32)%18==0:
                         npc_kind=1+(pc-0x5e32)//18;kind=6;code=0x300;attr=0x64;hp=0
-                    if key in ((2,0x8ef4),(3,0x8000),(3,0x991d),(3,0x9b24),(4,0x9eb1),(4,0x9f16)):kind=8;hp=48+r*8
+                    if key in ((3,0x8000),(3,0x991d),(3,0x9b24),(4,0x9eb1),(4,0x9f16)):kind=8;hp=48+r*8
                     if key==(0,0x93ed):code=0x280;attr=0x45;frames=3
                     if key==(0,0x8000):code=0x240;attr=0x42;frames=3
                     if key==(2,0x8000):code=0x3c0;attr=0x63;frames=3
@@ -400,7 +401,7 @@ def main():
     body.append('const u8 teleporter_kinds[]={'+','.join(str({0x92e6:1,0x8d33:2}.get(d['address'],0)) if d['bank']==1 else '0' for d in defs.values())+'};')
     body.append('const u8 hunter_kinds[]={'+','.join(str(1+(d['address']==0x9fc4)) if d['bank']==1 and d['address'] in (0x9f83,0x9fc4) else '0' for d in defs.values())+'};')
     body.append('const u8 edge_spawn_kinds[]={'+','.join('1' if (d['bank'],d['address'])==(4,0xa4d0) else '0' for d in defs.values())+'};')
-    body.append('const u8 reinforcement_kinds[]={'+','.join(str({(2,0x8344):1,(2,0x9af6):2}.get((d['bank'],d['address']),0)) for d in defs.values())+'};')
+    body.append('const u8 reinforcement_kinds[]={'+','.join(str({(2,0x8344):1,(2,0x9af6):2,(2,0x8ef4):3}.get((d['bank'],d['address']),0)) for d in defs.values())+'};')
     body.append('const u8 crawler_kinds[]={'+','.join(str({(3,0xaab3):1,(3,0xb153):2,(7,0xa3b6):3,(3,0xb7f3):4}.get((d['bank'],d['address']),0)) for d in defs.values())+'};')
     body.append('const u8 statue_kinds[]={'+','.join('1' if d['bank']==0 and d['address']==0xb84f else '0' for d in defs.values())+'};')
     body.append('const u8 pair_kinds[]={'+','.join('1' if d['bank']==2 and d['address']==0xacac else '0' for d in defs.values())+'};')

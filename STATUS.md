@@ -521,5 +521,16 @@ oracle checks 411,360 ticks in 1,722 cases and 342 three-body splits, including 
 random-table inputs. Cartridge tests cover the actual round-five row 51, initial immunity,
 splitting, weak/fatal hits, rewards and no round clear. The earlier bank-zero B1C1 flail
 fighter's stale boss classification was removed as well; its ordinary-enemy behavior was
-already independently verified. Four unported definitions remain in the provisional boss
-list (bank-two 8EF4; bank-three 8000, 991D, 9B24), and their labels still require source audit.
+already independently verified. The remaining bank-two definition was subsequently identified and ported below.
+
+Bank-two 8EF4 is the third reinforcement fighter, sharing the same native constructor,
+body controller and six-part projectile routines. Its extracted graph adds 47 segments,
+12 HP per layer, two layers and a 30-point reward. Its stale boss classification is removed.
+All three profiles now compare against 299,520 original body ticks in 624 cases, including
+1,999 six-part launches, 6,912 projectile ticks and 36,636 constructor attempts. The actual
+round-four row 51 cartridge fixture verifies attacks, damage, both health layers, reward,
+retirement, two appearances and persistence. All projectile frame data are asserted equal
+across the three source profiles, so the cartridge retains one shared set of shot clips.
+Three unported definitions remain: bank-three 8000, 991D and 9B24, all large dragon bosses.
+Their 128-by-64 sprite loader and shared decision family have been identified, but their
+native behavior, weak-point collision, attacks and presentation are still outstanding.

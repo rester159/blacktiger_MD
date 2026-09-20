@@ -2,8 +2,8 @@
 #define REINFORCEMENT_BODY_H
 #include "animation.h"
 extern const AnimSegment reinforcement_segments[];
-extern const u16 reinforcement_roots[2][25],reinforcement_scores[2];
-extern const u8 reinforcement_choices[2][8][16],reinforcement_health[2],reinforcement_layers[2];
+extern const u16 reinforcement_roots[3][25],reinforcement_scores[3];
+extern const u8 reinforcement_choices[3][8][16],reinforcement_health[3],reinforcement_layers[3];
 extern const AnimClip *const reinforcement_clips[12];
 typedef struct {AnimState animation;s16 x,y;u8 active,part;} ReinforcementShot;
 extern ReinforcementShot reinforcement_shots[24];

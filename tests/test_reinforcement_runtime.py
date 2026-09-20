@@ -12,7 +12,7 @@ def defeat(r,slot):
   s=fire(r,slot,255,0)
  raise AssertionError('fighter did not lose its layers')
 cases=[]
-for pc in (0x8344,0x9af6):
+for pc in (0x8344,0x9af6,0x8ef4):
  r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
  slot,row,level=fixture(r,0,2,pc,approach=0,vertical=0,hold_position=True)
  raw=r.read('reinforcement_rows',480);assert raw[row*3+1:row*3+3]==bytes([1,1])
@@ -44,5 +44,5 @@ for pc in (0x8344,0x9af6):
  s=state(r);s.round=0;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(80)
  assert r.read('reinforcement_rows',480)[row*3:row*3+3]==bytes(3)
  cases.append(dict(restart_preserves=True,new_round_resets=True,constructor=pc,round=level+1,row=row,two_appearances=True,proximity_pauses_delay=True,no_third_appearance=True));r.close()
-report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Actual source rows use the two-attempt constructor schedule. Both native fighter profiles integrated; complete routes remain unverified.')
+report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Actual source rows use the two-attempt constructor schedule. All three native fighter profiles integrated; complete routes remain unverified.')
 (ROOT/'reports/reinforcement-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

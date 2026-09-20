@@ -3,7 +3,7 @@ import ctypes as C,json,subprocess,tempfile,re,hashlib
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];ref=json.loads((ROOT/'reference/reinforcement_body_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/reinforcement_body_oracle_events.txt'),('lua_sha256','tools/reinforcement_body_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
-meta=json.loads((ROOT/'reports/assets.json').read_text());definitions=[next(d['id'] for d in meta['actor_definitions'] if (d['bank'],d['address'])==(2,pc)) for pc in (0x8344,0x9af6)]
+meta=json.loads((ROOT/'reports/assets.json').read_text());definitions=[next(d['id'] for d in meta['actor_definitions'] if (d['bank'],d['address'])==(2,pc)) for pc in (0x8344,0x9af6,0x8ef4)]
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text()
  stubs=['#include "assets.h"','Game game;','#include "'+str(ROOT/'src/reinforcement_body.c')+'"']
@@ -42,9 +42,9 @@ with tempfile.TemporaryDirectory() as folder:
    flip=(a[5]>>3)&1;code=(display[0]-flip)|((a[5]&224)<<3)
    expected=[1,int.from_bytes(a[1:3],'big',signed=True),int.from_bytes(a[3:5],'big',signed=True),a[14],a[21],a[12],a[20],a[10],code,a[5]&7,flip]
    assert list(out)[:11]==expected,(case,tick,list(out),expected)
-  assert out[11]==((20 if c['score']==0x20 else 80) if task=='REWARD' else 0),(case,tick,'score',task)
+  assert out[11]==({0x20:20,0x38:80,0x28:30}[c['score']] if task=='REWARD' else 0),(case,tick,'score',task)
   if out[0]:assert list(out)[13:15]==[a[18],a[32]],(case,tick,'fraction/low-shot',list(out),a.hex())
   if clear=='0':assert out[12]==int(persist,16),(case,tick,'persistence')
   count+=1
- report={'passed':True,'source_body_ticks':count,'cases':len(ref['cases']),'six_part_launches':launches,'scope':'Both reinforcement fighter profiles: distance-weighted decisions, walking, jumps, gravity, attack phases, layered damage, recoil and rewards. Checks both available and full small-actor pools, plus all six projectile launch positions.'}
+ report={'passed':True,'source_body_ticks':count,'cases':len(ref['cases']),'six_part_launches':launches,'scope':'All three reinforcement fighter profiles: distance-weighted decisions, walking, jumps, gravity, attack phases, layered damage, recoil and rewards. Checks both available and full small-actor pools, plus all six projectile launch positions.'}
  (ROOT/'reports/reinforcement-body-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

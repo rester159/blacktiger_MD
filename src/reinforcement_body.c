@@ -50,7 +50,7 @@ void reinforcement_body_step(u16 slot){
  Actor *a=&game.actors[slot];ReinforcementState *s=&fighters[slot];u16 tries;
  if(s->pending){u8 damage=s->pending;s->pending=0;game.sound=SND_HIT;
   if(a->hp>damage){a->hp-=damage;a->state=0;s->mode=8;select_segment(s,choose(a,s));}
-  else if(--a->life){a->hp=s->profile?18:3;a->state=0;select_segment(s,root(s,19+(game.p.face?1:0)));}
+  else if(--a->life){a->hp=s->profile?reinforcement_health[s->profile]:3;a->state=0;select_segment(s,root(s,19+(game.p.face?1:0)));}
   else{a->state=2;progress_score(reinforcement_scores[s->profile]);game.kills++;loot_spawn(drop_categories[a->def],loot_random>>8,PX(a->x),PX(a->y));game.sound=SND_KILL;select_segment(s,root(s,(u8)(PX(game.p.x)-game.cam_x)<(u8)(PX(a->x)-game.cam_x)?21:22));}
  }
  for(tries=0;tries<8;tries++){
