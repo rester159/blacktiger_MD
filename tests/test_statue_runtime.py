@@ -18,6 +18,8 @@ for layer in (3,2,1,0):
   if raw[slot*14+12]:break
   s=state(r);s.mode=1;s.p.invincible=10000;put(r,s);r.run(1)
  else:raise AssertionError('Caster stayed immune')
+ # Isolate body damage from the caster's independently hittable shells.
+ r.write("statue_shells",0,bytes(18*12))
  s=fire(r,slot,255,0)
  for _ in range(10):
   if s.actors[slot].life==layer:break

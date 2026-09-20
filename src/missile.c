@@ -27,10 +27,10 @@ u8 missile_hit(u16 slot,u8 damage) {
  m->dying=1;m->clip=m->death;animation_reset(&m->animation);return 1;
 }
 u8 missile_hit_at(s16 x,s16 y,u8 damage,u8 kind) {
- u16 i;u8 width=kind?dagger_width:4,height=kind?dagger_height:4;
+ u16 i;u8 width=kind?dagger_width:8,height=kind?dagger_height:4;
  if(kind && (game.frame&1))return 0;for(i=0;i<MAX_MISSILES;i++) {
   Missile *m=&missiles[i];s16 dx=x-m->x,dy=y-m->y;
-  /* The native chain projectile still has provisional geometry. */
+  /* Chain links use half-width 8; daggers use the source 4/2 box. */
   if(m->active && !m->dying && dx>=-(m->width+width) && dx<=m->width+width && dy>=-(m->height+height) && dy<=m->height+height)
    return missile_hit(i,kind?(damage>1?damage>>1:1):damage);
  }

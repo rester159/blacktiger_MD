@@ -3,14 +3,14 @@
 Deliverable: an SGDK development cartridge and a reproducible new repository.
 User's requested complete native Black Tiger port: **not achieved**.
 
-The main remaining shared systems are the source attack/chain weapon, attacking
-jump variants, player hurt/death, complete collision postures, global camera/scanner
+The main remaining shared systems are player hurt/death, complete collision
+postures and compound-boss contact geometry, global camera/scanner
 cadence, presentation and audio. All eight maps use one renderer and game loop;
 normal locomotion and the known major enemy/boss families now have native routines.
 Injected actor/ending tests do not establish natural full-game completion.
 
 Known native issues: frame overruns on denser routes; unverified PAL timing;
-placeholder audio; provisional attacks, death and parts of presentation. Exact
+placeholder audio; incomplete combat integration, death and parts of presentation. Exact
 cadence, cartridge hash, and test counts live in JSON reports and `dist/build.json`.
 
 Resolved during this build: wrong-CPU libgcc, sprite-cache lookup cost, full-view cache pinning cost,
@@ -585,3 +585,18 @@ player's low-posture state. Global camera clamps, attack/jump-attack timing and 
 other alternate collision postures, movement sounds, hurt/death and presentation
 remain unfinished. `reference/player_audit.md` records the implemented scope and
 already-audited attack/chain source to avoid repeating that work.
+
+
+Source-derived chain attacks and three-dagger volleys now replace the provisional
+player shots in production. The common controller includes all five reaches,
+six-update windup, per-update chain extension, hold/release, collision shortening,
+button-history retriggering and distinct jump-attack branches. Motion/attack checks
+match 56,720 original updates in 719 cases. The dedicated nine-dagger pool matches
+28,800 slot updates, including terrain/hit explosions and full-volley allocation.
+Source chain geometry matches 1,306 small/medium boundary cases. Real Genesis input
+matches 300 attack updates, renders five weapon tiers and verifies crouched-chain
+hits, hit shortening and suppression of subsequent targets. Existing family tests
+pass with body-damage fixtures isolated from independently hittable projectiles.
+Player death, alternate contact postures, some compound-boss geometry, global scan
+ordering, impact presentation and audio remain unfinished; these checks do not
+prove a natural full-game route. See `reference/player_audit.md` for exact scope.

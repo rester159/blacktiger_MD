@@ -1,4 +1,5 @@
 #include "player_motion.h"
+#include "player_dagger.h"
 #include "assets.h"
 #include "container.h"
 #include "shop.h"
@@ -304,8 +305,6 @@ static void sprites(void) {
     u16 i;
     u8 pose=player_motion.pose/2;
     u8 f=player_motion.frame&7;
-    /* Attack timing is still provisional; locomotion uses the source selector. */
-    if(p->attack) {pose=p->climb?7:player_motion.jumping?4:1;f=(20-p->attack)/3;}
     const HeroFrame *h=&hero_frames[p->armor!=0][pose][player_motion.selector*8+(f&7)];
     s16 x = PX(p->x) - game.cam_x, y = PX(p->y) - game.cam_y;
     sprite_count = sprite_uploads = 0;
@@ -318,6 +317,16 @@ static void sprites(void) {
     if (!p->invincible || (game.frame & 4)) {
         body(h->code[0] - (h->flip ? 1 : 0), 0, x, y, h->flip);
         piece(h->code[4]+p->weapon-1, 0, x + h->dx, y + h->dy, h->weapon_flip);
+    }
+    for(i=0;i<player_attack.count;i++) {
+        u8 left=((player_attack.selector+1)&4)!=0;
+        s16 cy=y+(player_motion.jumping || player_motion.ladder || !(player_motion.selector&3)?6:14);
+        piece(i+1==player_attack.count?0x6f+p->weapon-1:1,p->weapon==5?6:0,
+              x+(left?-16-16*i:32+16*i),cy,!left);
+    }
+    for(i=0;i<PLAYER_DAGGERS;i++) {
+        const AnimFrame *f=player_dagger_frame(i);PlayerDagger *d=&player_daggers[i];
+        if(f)piece(f->code,f->palette,d->x-game.cam_x,d->y-game.cam_y,f->flip);
     }
     for (i = 0; i < MAX_SHOTS; i++) {
         Shot *s = &game.shots[i];

@@ -10,6 +10,13 @@ typedef struct {
     u8 camera_return, below_origin, falling, ladder, low, frame;
     u8 selector, previous, idle, jump_history, screen_motion;
 } PlayerMotion;
+typedef struct {
+    u8 active, request, history, launch, selector, reach, damage;
+    u8 counter, holding, hit, links, count;
+} PlayerAttack;
 extern PlayerMotion player_motion;
+extern PlayerAttack player_attack;
+void player_control_step(PlayerMotion *p, PlayerAttack *attack, u8 input, u8 reversed, u8 tier);
+void player_attack_hit(PlayerAttack *attack);
 void player_motion_step(PlayerMotion *p, u8 input, u8 reversed);
 #endif

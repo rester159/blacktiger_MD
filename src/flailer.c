@@ -80,7 +80,7 @@ void flailer_weapons_tick(void){
   }
  }
 }
-u8 flailer_weapon_hit(s16 x,s16 y,u8 kind){u16 i;u8 width=8+(kind?dagger_width:4),height=4+(kind?dagger_height:4);for(i=0;i<MAX_ACTORS;i++){FlailerWeapon *p=&flailer_weapons[i];s16 dx=x-p->x,dy=y-p->y;if(p->active && !p->pending && !p->dying && (!kind || !(game.frame&1)) && dx>=-width && dx<=width && dy>=-height && dy<=height){p->pending=1;return 1;}}return 0;}
+u8 flailer_weapon_hit(s16 x,s16 y,u8 kind){u16 i;u8 width=8+(kind?dagger_width:8),height=4+(kind?dagger_height:4);for(i=0;i<MAX_ACTORS;i++){FlailerWeapon *p=&flailer_weapons[i];s16 dx=x-p->x,dy=y-p->y;if(p->active && !p->pending && !p->dying && (!kind || !(game.frame&1)) && dx>=-width && dx<=width && dy>=-height && dy<=height){p->pending=1;return 1;}}return 0;}
 u8 flailer_weapon_contact(u16 slot){FlailerWeapon *p=&flailer_weapons[slot];if(!p->active || p->pending || p->dying || (game.frame&1))return 0;return player_contact(p->x,p->y,8,4)?(p->profile?1:2):0;}
 void flailer_weapons_clear_attack(void){u16 i;for(i=0;i<MAX_ACTORS;i++)if(flailer_weapons[i].active)flailer_weapons[i].pending=1;}
 const AnimFrame *flailer_weapon_frame(u16 slot){FlailerWeapon *p=&flailer_weapons[slot];return p->active && p->animation.remaining?animation_current(&p->animation,flailer_segments[p->segment].clip):0;}

@@ -25,7 +25,7 @@ for armored,root in enumerate((0x9698,0x9120)):
 s=state(r);s.mode=2;s.cam_x=0;s.cam_y=800;s.p.x=128*256;s.p.y=896*256;s.p.invincible=s.p.attack=0
 for a in s.actors:a.active=0
 for q in s.shots:q.active=0
-put(r,s);r.run(20)
+r.write("player_attack",0,bytes(12));r.write("player_daggers",0,bytes(18*9));put(r,s);r.run(20)
 checks=0
 for armor in (0,2):
  for selector in range(6):
@@ -51,5 +51,5 @@ assert r.read('reinforcement_player_low',1)==b'\x01'
 r.run(12,1<<7);m=Motion.from_buffer_copy(r.read('player_motion',30));assert not m.low and m.vx==2
 r.run(4);start=state(r).p.y;r.run(6,1);s=state(r);assert s.p.y<start and s.p.vy<0
 r.capture('player-native-jump.png');r.close()
-report=dict(passed=True,source_frame_records=len(frames),hardware_sprite_cases=checks,native_input_checks=3,rom_sha256=hashlib.sha256(rom).hexdigest(),scope='All armor/pose/selector/frame records and paused hardware body composition; real crouch, walk and jump input. Attack timing and full-game routes remain unverified.')
+report=dict(passed=True,source_frame_records=len(frames),hardware_sprite_cases=checks,native_input_checks=3,rom_sha256=hashlib.sha256(rom).hexdigest(),scope='All armor/pose/selector/frame records and paused hardware body composition; real crouch, walk and jump input. Attack timing is checked separately; full-game routes remain unverified.')
 (ROOT/'reports/player-motion-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

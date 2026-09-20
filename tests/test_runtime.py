@@ -36,12 +36,13 @@ def test():
  s.p.invincible=0;put(r,s);save(r,'tested-start')
  before=s.p.x;r.run(24,1<<7);s=state(r);check('right movement',s.p.x>before);r.run(4);before=s.p.y;r.run(5,1<<0);s=state(r);check('jump rises',s.p.y<before and s.p.vy<0);save(r,'tested-jump')
  r.run(40);r.run(3,8);r.run(5);s=state(r);check('pause',s.mode==2);xy=(s.p.x,s.p.y);r.run(30,(1<<7)|(1<<1));s=state(r);check('pause freezes world',xy==(s.p.x,s.p.y));r.run(3,8);r.run(1);check('resume',state(r).mode==1)
- r.run(3,1<<1);s=state(r);check('attack creates projectiles',sum(v.active for v in s.shots)>=1)
+ r.run(3,1<<1);s=state(r);check('attack creates projectiles',any(r.read('player_daggers',18*9)[i*18+14] for i in range(9)))
  # Climbing a continuous source-map ladder must move upward.
  initial=bytes(s)
  coll=(ROOT/'res/generated/collision0.bin').read_bytes();width=128
  at=next(i for i in range(width,len(coll)-width) if coll[i]==coll[i-width]==coll[i+width]==1)
  s.p.x=((at%width)*16-8)*256;s.p.y=((at//width)*16-16)*256;s.p.vx=s.p.vy=0;s.p.invincible=1000;s.previous_input=0;put(r,s)
+ r.write('player_attack',0,bytes(12));r.write('player_daggers',0,bytes(18*9))
  y=s.p.y;r.run(8,1<<4);s=state(r);check('ladder climb',s.p.climb==1 and s.p.y<y)
  put(r,Game.from_buffer_copy(initial));r.run(2)
  # Independent injected combat fixture, actual projectile/actor update path.
@@ -53,7 +54,8 @@ def test():
  roots=json.loads((ROOT/'reference/crawler.json').read_text())['roots']
  crawler_state=bytes(8)+roots[10].to_bytes(2,'big')+bytes((0,0,8,0))
  r.write('crawlers',0,crawler_state)
- kills=s.kills;put(r,s);r.run(90,1<<1);s=state(r);check('projectile defeats enemy',s.kills>kills)
+ r.write('player_attack',0,bytes(12));r.write('player_daggers',0,bytes(18*9))
+ kills=s.kills;put(r,s);r.run(90,(1<<1)|(1<<5));s=state(r);check('projectile defeats enemy',s.kills>kills)
  s.p.invincible=0;s.p.armor=2;a=s.actors[0];a.active=1;a.hp=12;a.state=0;a.life=2;a.hit=0;a.x=s.p.x;a.y=s.p.y;a.vy=0;r.write('crawlers',0,crawler_state);put(r,s);r.run(8);s=state(r);check('armor absorbs contact',s.p.armor==1 and s.p.hp==1)
   # Shop purchase uses the same public input path after state injection.
  s.mode=3;s.coins=300;s.shop_item=0;s.previous_input=0;s.p.weapon=1;put(r,s);r.run(2);r.run(3,1<<1);s=state(r);check('shop weapon purchase',s.coins==100 and s.p.weapon==2);r.run(2);r.run(3,1<<0);r.run(2);check('shop exits',state(r).mode==1)

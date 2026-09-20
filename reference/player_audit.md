@@ -39,8 +39,9 @@ and periodic 1A climb. The cartridge currently emits its native jump cue only.
 The cartridge resets this state on round/restart and externally changed positions,
 exports ordinary Player velocity/grounded/climb/face, and supplies F426's low state
 to reinforcement aiming. Other collision posture variants remain to be connected.
-Attack still uses the older provisional shots/timer, so attacking locomotion is
-not source-identical yet.
+Attack and jump-attack now share the controller described below. Their source-specific
+branch differences are preserved; only sound dispatch and the broader game-loop
+scheduling/pool model remain separate.
 
 ## Graphics
 
@@ -53,9 +54,9 @@ normal input verifies crouch, walk, jump, and reinforcement low-aim state.
 Old renderer equivalence fixtures now keep the hero offscreen in both cartridges;
 the changed player graphics are tested directly against source tables instead.
 Weapon tier-five palette, invulnerability/armor-break graphics and death poses
-remain presentation work. Current attack pose timing is provisional.
+remain presentation work. Attack poses now follow the source controller.
 
-## Next: attack and chain, already audited source leads
+## Implemented attack and chain
 
 Entry 8111 dispatches on F41B*2+F413: walk 8625, jump 8800, attack 8AEA,
 jump+attack 8D0E. Three-bit history edges E904 set F41B and F421; holding fire
@@ -90,12 +91,10 @@ without checking ladder state; it has no screen-Y<16 ceiling guard; vertical-jum
 redirect checks raw input exactly 1/2 (no masking/reversal); descending at or below
 origin clears E054 and sets F417 without forcing screenY=144. Gravity 8F21 then
 routes to attack 8AEA. Collision/ladder/landing branches share 8A9A/8AAA/8A6C and
-can bypass the attack update. These differences need preserved in a shared native
-jump helper rather than duplicating two controllers.
+can bypass the attack update. These differences are preserved by the shared native jump helper.
 
-Still audit: fixed chain contact/shortcut E906, held-head Y/X collision scheduling,
-source dagger spawning and update at bank7 A0B9 onward; hurt/death 8446–85BB;
-source camera/main-loop limits. Existing reference/player_weapon.json witnesses
+Remaining integration work: per-pool global ordering and scanner cadence, full player
+collision postures, hurt/death, source camera/main-loop limits and impact presentation. Existing reference/player_weapon.json witnesses
 three dagger templates at A290, source attack tiers and constructor A0FD.
 
 Dagger routine A0B9 has nine dedicated 32-byte slots, grouped into three volleys of
@@ -122,3 +121,49 @@ initializes second body at the first body's location, emits sounds1F/02, then ch
 root9C11 if F41E/F41F both zero, 9D3B if only F41F nonzero, otherwise 9E65 right or
 9F8F left by selector. FF retires player and jumps fixed2013. Still audit the damage
 entry that seeds this death sequence and the fixed2013 continuation.
+
+
+## Integrated weapon verification and remaining differences
+
+The combined controller oracle now covers 56,720 updates in 719 cases, including
+five reaches, windup/extension/hold/release, early collision shortening, crouched
+attacks, ladder/jump attacks, direction changes and repeated button presses. Native
+`PlayerAttack` is 12 bytes: active/request/history/launch/selector/reach/damage,
+counter/holding/hit/links/count. A rising edge after two released updates starts
+an attack; holding does not repeat. Another press during an attack can request a
+new dagger volley without restarting the current chain sequence.
+
+`src/player_dagger.c` compiles eight roots and terrain continuation segments from
+bank7 into native AnimClips. Three groups of three slots support three concurrent
+volleys. 28,800 source slot updates in 32 cases verify both facings, low launch,
+all trajectories, impacts, camera displacement, retirement and full-pool refusal.
+Terrain impacts preserve source active80; weapon hits become active40 and use a
+pending explosion transition. World positions replace the source screen position
+plus camera correction. Native spawn X=playerWorldX+8 adapts source fixed screen
+X120, which assumes its centered player X112. Poison retains the launch request;
+a successful shop antidote cure clears it like fixed67CC.
+
+`actor_chain_contact` matches 1,306 small/medium source boundary cases over twelve
+constructor shapes. Every extended link has an 8/4 half box, inclusive edges and
+source screen-byte behavior. Small/medium chain collision has no frame-parity gate;
+daggers retain their even/odd pool gate. Large/wide weapon checks are gated on odd
+frames. Chain impact sets holding/hit and counter10; later actors and subsequent
+frames cannot receive chain/dagger hits until the attack clears. As in source30DC,
+the actor receiving the chain hit still checks its daggers on that same update.
+Medium categories16/29 and blocked large weak-point hits select the palette1 dagger
+explosion; other hits select palette6. The weapon tier's current cached attack
+strength supplies dagger half damage, rather than storing damage at dagger launch.
+
+Cartridge checks compare 300 real-input controller updates directly with source
+attack traces, inspect all five chain-head renderings and tier damage/reach values,
+check three-shot volleys and no held-fire repeat, poison suppression, and crouched
+chain damage with one-hit shortening. Chain and dagger graphics were inspected in
+Genesis Plus GX. The production path no longer emits the provisional free-flying
+chain or two generic daggers. Generic Shot slots remain for unported fallback
+enemy shots and deliberately injected legacy regression fixtures.
+
+Remaining combat/presentation gaps: global source actor/pool scan order, some
+compound-boss contact/weak-point geometry, full low-posture player collision,
+chain-hit spark and sounds, fifth-tier held-weapon palette/flip, source attack-state
+cleanup across every rescue/death/status task, and natural full-game balance/routes.
+The source death record format audited above remains to be implemented.

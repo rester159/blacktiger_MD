@@ -46,4 +46,4 @@ u8 dragon_shot_contact(u16 slot){
  p->pending=2;return 0;
 }
 const AnimFrame *dragon_shot_frame(u16 slot){DragonShot *p=&dragon_shots[slot];return p->active && p->animation.remaining?animation_current(&p->animation,dragon_shot_segments[p->segment].clip):0;}
-u8 dragon_shot_hit(s16 x,s16 y,u8 damage,u8 dagger){u16 i;if(dagger && (game.frame&1))return 0;for(i=0;i<16;i++){DragonShot *p=&dragon_shots[i];s16 dx=x-p->x,dy=y-p->y;u8 w=6+(dagger?dagger_width:4),h=6+(dagger?dagger_height:4);if(p->active && !(p->mode&1) && dx>=-(s16)w && dx<=w && dy>=-(s16)h && dy<=h)return dragon_shot_hit_slot(i,damage);}return 0;}
+u8 dragon_shot_hit(s16 x,s16 y,u8 damage,u8 dagger){u16 i;if(dagger && (game.frame&1))return 0;for(i=0;i<16;i++){DragonShot *p=&dragon_shots[i];s16 dx=x-p->x,dy=y-p->y;u8 w=6+(dagger?dagger_width:8),h=6+(dagger?dagger_height:4);if(p->active && !(p->mode&1) && dx>=-(s16)w && dx<=w && dy>=-(s16)h && dy<=h)return dragon_shot_hit_slot(i,damage);}return 0;}

@@ -18,6 +18,8 @@ for variant,constructor in enumerate((0xab33,0xab4a,0xb1c1,0xb1d8)):
   if raw[slot*18+15] and weapon<24 and r.read('flailer_weapons',18*24)[weapon*18+14]:break
  else:raise AssertionError(('flail attack missing',variant))
  s=state(r);s.mode=2;put(r,s);r.run(20);r.capture('flailer-%d.png'%variant)
+ # Isolate body recoil: the wider source chain must not hit the linked weapon first.
+ r.write('flailer_weapons',weapon*18+10,struct.pack('>h',s.cam_x+240))
  s=fire(r,slot,1,0);assert s.actors[slot].life==life-1 and s.score==score
  assert not r.read('flailer_weapons',18*24)[weapon*18+14],'Parent recoil did not cancel linked weapon'
  s=fire(r,slot,200,0);reward=20 if variant<2 else 50

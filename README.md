@@ -11,7 +11,7 @@ background maps are converted, but having their data does not establish a comple
 Open `dist/blacktiger_astra.bin` in a Genesis emulator.
 
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
-- A: attack; B: jump; C: limited screen attack.
+- A: chain attack and dagger volley (release to attack again); B: jump; C: limited screen attack.
 - Start: begin, pause, resume.
 - Contact a petrified NPC to rescue it. Merchant rescues open the shop; A buys, B/Start exits.
 
@@ -60,7 +60,8 @@ with a fallback to individual pieces when needed. DMA queue capacity is 192; ful
 Files:
 
 - `src/game.c`: native game systems, independent of SGDK rendering.
-- `src/player_motion.c`: source-derived walking, crouching, climbing, jumps and falls.
+- `src/player_motion.c`: source-derived locomotion, chain attacks and jumping attacks.
+- `src/player_dagger.c`: three-way dagger volleys, terrain impacts and hit explosions.
 - `src/animation.c`, `src/npc.c`: shared source-derived animation and eight NPC variants.
 - `src/video.c`: scrolling, tile/sprite caches, hardware sprite limits, HUD.
 - `src/loot.c`: common source drop tables, coin pickup animation/rewards, and random recurrence.
@@ -78,8 +79,9 @@ Files:
   global scanner timing, pool contention, difficulty interactions and full-game routes
   remain unverified. Actor-specific evidence is in `STATUS.md` and `reports/`.
 - Walking, crouching, ladders, jumps and falls now match controlled arcade traces.
-  Attack/chain behavior, attacking jump variants, player hurt/death, alternate collision
-  postures and global camera limits remain unfinished. See `reference/player_audit.md`.
+  Chain and dagger attacks now also have source comparisons. Player hurt/death,
+  alternate collision postures, some compound-boss geometry and global camera limits
+  remain unfinished. See `reference/player_audit.md`.
 - Shops, rewards, progression and restarts have subsystem checks; complete rescue,
   round-clear and ending presentation and natural progression still need validation.
 - Background priority groups, palette changes during play, arcade title presentation, original

@@ -1,5 +1,6 @@
 #include "progress.h"
 #include "player_motion.h"
+#include "player_dagger.h"
 #include "reinforcement.h"
 #include "edge_spawn.h"
 #include "checkpoint.h"
@@ -24,6 +25,7 @@
 #include "world.h"
 Game game;
 PlayerMotion player_motion;
+PlayerAttack player_attack;
 static void motion_reset(void) {
     Player *p=&game.p;
     player_motion=(PlayerMotion){.scroll_x=PX(p->x)-128,.scroll_y=PX(p->y)-144,
@@ -90,6 +92,7 @@ void game_round(u8 round) {
     p->face = 0;
     p->hp = progress_max_hp;
     motion_reset();
+    player_attack=(PlayerAttack){0};player_daggers_reset();
 }
 void game_new(void) {
     restart_pending=0;loaded_round=255;
@@ -107,6 +110,7 @@ void game_new(void) {
     game_round(0);
 }
 void game_boss_clear(void) {
+ player_attack=(PlayerAttack){0};player_daggers_reset();
  zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
  missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();
  game.boss_dead=1;game.mode=CLEAR;game.mode_timer=180;game.sound=SND_CLEAR;
@@ -251,7 +255,7 @@ static void spawn_actors(void) {
 static void player_step(u16 in, u16 pressed) {
     Player *p = &game.p;
     u8 raw=0,was_jumping=player_motion.jumping;
-    s16 x,y;
+    u8 old_attack=player_attack.active;
     status_tick();
     /* A restart/teleport establishes a fresh logical camera origin. */
     if ((s16)(player_motion.scroll_x+player_motion.screen_x)!=PX(p->x) ||
@@ -261,7 +265,8 @@ static void player_step(u16 in, u16 pressed) {
     if(in&IN_DOWN)raw|=4;
     if(in&IN_UP)raw|=8;
     if(in&IN_JUMP)raw|=32;
-    player_motion_step(&player_motion,raw,status_reverse);
+    if(in&IN_ATTACK)raw|=16;
+    player_control_step(&player_motion,&player_attack,raw,status_reverse,p->weapon-1);
     p->x=(s32)(s16)(player_motion.scroll_x+player_motion.screen_x)*FX;
     p->y=(s32)(s16)(player_motion.scroll_y+player_motion.screen_y)*FX;
     p->vx=player_motion.vx*FX;p->vy=player_motion.vy*FX+player_motion.fraction;
@@ -271,19 +276,14 @@ static void player_step(u16 in, u16 pressed) {
     reinforcement_player_low=player_motion.low;
     if(!was_jumping && player_motion.jumping)game.sound=SND_JUMP;
     if(p->invincible)--p->invincible;
-    if(p->attack)--p->attack;
+    p->attack=player_attack.active;
+    if(!old_attack && player_attack.active)game.sound=SND_ATTACK;
     p->x=bound_axis(PX(p->x),0,rounds[game.round].width-32)*FX;
-    x=PX(p->x);y=PX(p->y);
-    if ((in & IN_ATTACK) && !p->attack) {
-        s16 dir = p->face ? -1 : 1;
-        p->attack = 20;
-        game.sound = SND_ATTACK;
-        shot(x + 16 + dir * 16, y + 14, dir * 1280, 0, 0, 0);
-        if(!shop_poison){
-            shot(x + 16, y + 12, dir * 1024, -128, 0, 1);
-            shot(x + 16, y + 20, dir * 1024, 128, 0, 1);
-        }
+    if(player_attack.launch && !shop_poison) {
+        player_daggers_launch(PX(p->x),PX(p->y),(player_attack.selector+1)&4,player_motion.low);
+        player_attack.launch=0;
     }
+    player_daggers_step();
     if ((pressed & IN_MAGIC) && p->magic) {
         u16 i;
         p->magic--;
@@ -514,6 +514,73 @@ static void actor_step(u16 i, u16 pressed) {
     if (close)
         player_hurt(actor_damage[a->def]);
 }
+static u8 weapon_target(u16 j) {
+    Actor *a=&game.actors[j];u8 k=actor_defs[a->def].kind;
+    if(!a->active || k==CHEST || k==CAPTIVE || k==PICKUP || k==HAZARD)return 0;
+    if(k==HIDDEN_WALL)return !a->state;
+    if(waveboss_kinds[a->def])return waveboss_vulnerable(j);
+    if(flailer_kinds[a->def])return flailer_vulnerable(j);
+    if(reinforcement_kinds[a->def])return reinforcement_body_vulnerable(j);
+    if(edge_spawn_kinds[a->def])return edge_actor_vulnerable(j);
+    if(eruption_kinds[a->def])return 0;
+    if(teleporter_kinds[a->def])return teleporter_vulnerable(j);
+    if(hunter_kinds[a->def])return hunter_vulnerable(j);
+    if(crawler_kinds[a->def])return crawler_vulnerable(j);
+    if(statue_kinds[a->def])return statue_vulnerable(j);
+    if(pair_kinds[a->def])return pair_vulnerable(j);
+    if(layered_boss_kinds[a->def] || stone_kinds[a->def])return boss_vulnerable(j);
+    if(zombie_kinds[a->def])return zombie_vulnerable(j);
+    if(emerge_kinds[a->def])return emerge_vulnerable(j);
+    return 1;
+}
+static u8 weapon_contact(u16 j,s16 x,s16 y,u8 dagger) {
+    Actor *a=&game.actors[j];
+    if(actor_contact_pool[a->def]!=32 && actor_contact_pool[a->def]!=48 && !(game.frame&1))return 0;
+    if(dragon_kinds[a->def])return dragon_weapon_contact(j,x,y,dagger);
+    if(waveboss_kinds[a->def])return waveboss_weapon_contact(j,x,y,dagger);
+    return (dagger?actor_dagger_contact(j,x,y):actor_chain_contact(j,x,y))?2:0;
+}
+static u8 weapon_projectile(s16 x,s16 y,u8 damage,u8 dagger) {
+    return dragon_shot_hit(x,y,damage,dagger) || edge_shot_hit(x,y,damage,dagger) ||
+        flailer_weapon_hit(x,y,dagger) || hunter_shell_hit_at(x,y,dagger) ||
+        statue_shell_hit_at(x,y,dagger) || missile_hit_at(x,y,damage,dagger);
+}
+static void player_weapons_contact(void) {
+    u16 i,j;u8 damage=player_attack.damage;
+    s16 y=PX(game.p.y)+(player_motion.jumping || player_motion.ladder || !(player_motion.selector&3)?6:14);
+    if(player_attack.hit)return;
+    /* Each source actor checks every extended link, then the nine daggers. */
+    for(j=0;j<MAX_ACTORS;j++) {
+        u8 chain_hit=0;
+        if(!weapon_target(j))continue;
+        for(i=0;i<player_attack.count;i++) {
+            s16 x=PX(game.p.x)+(((player_attack.selector+1)&4)?-16-16*i:32+16*i);
+            u8 contact=weapon_contact(j,x,y,0);
+            if(contact) {
+                if(contact==2)actor_hit(&game.actors[j],damage);
+                player_attack_hit(&player_attack);chain_hit=1;break;
+            }
+        }
+        for(i=0;i<PLAYER_DAGGERS;i++) {
+            PlayerDagger *p=&player_daggers[i];u8 contact;
+            if(p->active!=1)continue;
+            contact=weapon_contact(j,p->x,p->y,1);
+            if(contact) {
+                if(contact==2)actor_hit(&game.actors[j],damage>1?damage>>1:1);
+                player_dagger_hit(i,contact==1 || actor_dagger_effect[game.actors[j].def]);
+            }
+        }
+        if(chain_hit)return;
+    }
+    for(i=0;i<player_attack.count;i++) {
+        s16 x=PX(game.p.x)+(((player_attack.selector+1)&4)?-16-16*i:32+16*i);
+        if(weapon_projectile(x,y,damage,0)){player_attack_hit(&player_attack);return;}
+    }
+    for(i=0;i<PLAYER_DAGGERS;i++) {
+        PlayerDagger *p=&player_daggers[i];
+        if(p->active==1 && weapon_projectile(p->x,p->y,damage,1))player_dagger_hit(i,0);
+    }
+}
 static void shots_step(void) {
     u16 i, j, wall_count = 65535;
     u8 wall_slots[MAX_ACTORS];
@@ -625,7 +692,8 @@ void game_tick(u16 input) {
         if (pressed & IN_ATTACK) {
             u8 item=shop_grid[game.shop_item];
             if(item==11)game.mode=PLAY;
-            else shop_buy(item);
+            else {u8 status=shop_poison || status_reverse;
+                if(shop_buy(item) && item==10 && status)player_attack.launch=0;}
         }
         if (pressed & (IN_START | IN_JUMP))
             game.mode = PLAY;
@@ -715,6 +783,7 @@ void game_tick(u16 input) {
                 return;
         }
     }
+    player_weapons_contact();
     shots_step();
     if (++game.clock == 60) {
         game.clock = 0;

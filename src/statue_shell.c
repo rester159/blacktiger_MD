@@ -86,7 +86,7 @@ static const AnimFrame *frame(const StatueShell *s,u8 hunter) {
 const AnimFrame *statue_shell_frame(const StatueShell *s) {return frame(s,0);}
 const AnimFrame *hunter_shell_frame(const StatueShell *s) {return frame(s,1);}
 static u8 hit_at(StatueShell *pool,s16 x,s16 y,u8 kind,u8 hunter) {
- u16 i;u8 w=(kind?dagger_width:4)+(hunter?2:4),h=(kind?dagger_height:4)+(hunter?2:4);
+ u16 i;u8 w=(kind?dagger_width:8)+(hunter?2:4),h=(kind?dagger_height:4)+(hunter?2:4);
  if(kind && (game.frame&1))return 0;
  for(i=0;i<MAX_STATUE_SHELLS;i++) {
   StatueShell *s=&pool[i];s16 dx=x-s->x,dy=y-s->y;

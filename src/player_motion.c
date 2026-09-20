@@ -94,14 +94,16 @@ static void walk(PlayerMotion *p) {
         p->selector=facing(p->previous);p->vy=0;p->frame=0;return;
     }
 }
-static void jump(PlayerMotion *p,u8 input,u8 reversed) {
+static u8 jump(PlayerMotion *p,u8 input,u8 reversed,u8 attacking) {
     static const s8 horizontal[7]={0,2,-2,2,-2,2,-2};
     static const s16 vertical[7]={-1344,-1104,-1104,-1280,-1280,-912,-912};
+    if (!attacking || !p->jumping) {
     if (p->idle) p->selector=p->previous;
     else {
         u8 b=p->selector;
         if (b==2 || b==5) b=p->previous;
         p->selector=p->previous=facing(b);
+    }
     }
     if (!p->jumping) {
         if (p->ladder) {
@@ -121,46 +123,84 @@ static void jump(PlayerMotion *p,u8 input,u8 reversed) {
         p->fraction=(u8)vertical[p->direction];
     }
     if (p->vy<0) {
-        if (probe(p,12,8)>=2 || probe(p,22,8)>=2 || (u8)p->screen_y<16) {
-            obstruction(p);return;
+        if (probe(p,12,8)>=2 || probe(p,22,8)>=2 || (!attacking && (u8)p->screen_y<16)) {
+            obstruction(p);return 0;
         }
         if (p->direction) {
             if (p->selector==2 || p->selector==5) p->selector=p->previous;
-            if ((p->ladder || p->direction<5) && probe(p,p->direction&1?24:8,16)>=2) {
-                obstruction(p);return;
+            if (((!attacking && p->ladder) || p->direction<5) && probe(p,p->direction&1?24:8,16)>=2) {
+                obstruction(p);return 0;
             }
         } else if (!p->redirected && (u8)(p->jump_origin-p->screen_y)>=48) {
             p->redirected=1;
-            if (!p->idle && (input&15)!=8 && (input&15)!=4) {
-                p->direction=((input&2)!=0)^!!reversed?2:1;
+            if (!p->idle && (attacking ? input==1 || input==2 : (input&15)!=8 && (input&15)!=4)) {
+                p->direction=attacking?input:(((input&2)!=0)^!!reversed?2:1);
                 p->vx=p->direction==1?2:-2;
             }
         }
         if (!p->ladder && probe(p,16,16)==1) goto caught;
     } else {
         p->ladder=0;
-        if (p->screen_y>=p->jump_origin) screen_floor(p);
+        if (p->screen_y>=p->jump_origin) {
+            if (attacking) {p->screen_motion=0;p->below_origin=1;}
+            else screen_floor(p);
+        }
         if (p->direction && probe(p,p->direction&1?24:8,16)>=2) {
-            obstruction(p);return;
+            obstruction(p);return 0;
         }
         if (probe(p,16,16)==1) goto caught;
         if (probe(p,20,32)>=2 || probe(p,12,32)>=2) {
             p->pose=0;p->vx=p->vy=p->jumping=p->jump_request=0;
             p->frame=p->redirected=p->direction=0;
             if (!p->below_origin) p->camera_return=1;
-            p->below_origin=0;detach(p);return;
+            p->below_origin=0;detach(p);return 0;
         }
     }
-    gravity(p);return;
+    gravity(p);return 1;
 caught:
     attach(p);p->pose=12;p->jumping=p->jump_request=p->redirected=0;
     p->frame=p->vx=p->vy=p->fraction=p->screen_motion=0;
     if (!p->below_origin) p->camera_return=1;
-    p->below_origin=0;return;
+    p->below_origin=0;return 0;
 cancel:
-    p->jump_request=p->jumping=0;
+    p->jump_request=p->jumping=0;return 0;
 }
-void player_motion_step(PlayerMotion *p,u8 input,u8 reversed) {
+/* Bank 7 8AEA: windup, one link per update, hold, then release. */
+static void attack_step(PlayerMotion *p,PlayerAttack *a,u8 tier) {
+    static const u8 reaches[5]={4,5,5,6,6};
+    if (!a->active) {
+        if (!p->jumping) {p->vx=0;if (!p->falling)p->vy=0;}
+        if(tier>4)tier=4;
+        a->reach=reaches[tier];a->damage=1<<tier;
+        a->counter=a->links=0;
+        if (p->idle) p->selector=p->previous=(p->previous+1)&4;
+        else if (p->selector==2) {
+            if (!(p->previous&3)) p->selector=(p->previous>>1)+1;
+            else p->selector=p->previous;
+        } else if (p->selector==5) p->selector=p->previous;
+        else if (!(p->selector&3))p->previous=p->selector;
+        a->selector=p->selector;a->active=1;
+    }
+    p->selector=a->selector;
+    if (!a->count && a->counter<6) {
+        p->pose=p->jumping?8:p->ladder?14:2;
+    } else {
+        if (!a->count)a->counter=0;
+        p->pose=p->jumping?10:p->ladder?16:4;
+        if (!a->holding) {
+            if (a->counter==a->reach) {a->counter=0;a->holding=1;}
+            else {if(a->counter)++a->links;a->count=a->counter+1;}
+        }
+        if (a->holding && a->counter>=13) {
+            a->hit=a->active=a->request=a->holding=a->count=0;
+            p->pose=p->jumping?6:p->ladder?12:0;return;
+        }
+    }
+    ++a->counter;
+    if (p->falling) fall(p);
+}
+void player_attack_hit(PlayerAttack *a) {a->holding=a->hit=1;a->counter=10;}
+void player_control_step(PlayerMotion *p,PlayerAttack *attack,u8 input,u8 reversed,u8 tier) {
     static const u8 direction[2][16]={{0,1,2,0,0,0,0,0,0,3,4,0,0,0,0,0},
                                     {0,2,1,0,0,0,0,0,0,4,3,0,0,0,0,0}};
     static const u8 selector[2][16]={{0,0,4,0,2,1,3,0,5,0,4,0,0,0,0,0},
@@ -173,8 +213,14 @@ void player_motion_step(PlayerMotion *p,u8 input,u8 reversed) {
     }
     p->jump_history=(p->jump_history<<1)|((input>>5)&1);
     if ((p->jump_history&7)==1) p->jump_request=1;
-    if (p->falling) fall(p);
-    else if (p->jump_request) jump(p,input,reversed);
+    if(attack) {
+        attack->history=(attack->history<<1)|((input>>4)&1);
+        if((attack->history&7)==1)attack->request=attack->launch=1;
+    }
+    if(attack && attack->request) {
+        if(p->falling || !p->jump_request || jump(p,input,reversed,1)) attack_step(p,attack,tier);
+    } else if (p->falling) fall(p);
+    else if (p->jump_request) jump(p,input,reversed,0);
     else walk(p);
     if (!p->jumping && p->camera_return) {
         u8 y=(u8)p->screen_y;
@@ -186,4 +232,8 @@ void player_motion_step(PlayerMotion *p,u8 input,u8 reversed) {
     p->scroll_x+=p->vx;
     if (p->screen_motion) p->screen_y+=p->vy;
     else p->scroll_y+=p->vy;
+}
+
+void player_motion_step(PlayerMotion *p,u8 input,u8 reversed) {
+    player_control_step(p,0,input,reversed,0);
 }

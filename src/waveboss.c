@@ -82,5 +82,5 @@ u8 waveboss_player_contact(u16 slot){
 }
 u8 waveboss_weapon_contact(u16 slot,s16 x,s16 y,u8 dagger){
  Actor *a=&game.actors[slot];if(!waveboss_vulnerable(slot))return 0;
- return large_weapon_contact(&waveboss_shapes[wavebosses[slot].profile],PX(a->x)-game.cam_x,PX(a->y)-game.cam_y,x-game.cam_x,y-game.cam_y,dagger_width,dagger_height,dagger);
+ return large_weapon_contact(&waveboss_shapes[wavebosses[slot].profile],PX(a->x)-game.cam_x,PX(a->y)-game.cam_y,x-game.cam_x,y-game.cam_y,dagger?dagger_width:8,dagger?dagger_height:4,dagger);
 }

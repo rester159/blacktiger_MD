@@ -18,6 +18,16 @@ for geometry in (0,1,5,6):
   cases.append(dict(geometry=geometry,reversed=0,x=392,y=352,ladder=1,falling=0,pattern=pattern,ticks=80))
 for y in (351,352,399,400,401):
  cases.append(dict(geometry=0,reversed=0,x=384,y=y,ladder=0,falling=1,pattern=[0],ticks=60))
+for geometry in (0,2,5):
+ for tier in range(5):
+  for reversed in (0,1):
+   for pattern in ([16],[17],[18],[20],[21],[22],[24],[48],[49],[50],
+                   [32]*10+[17]*20+[0]*50,[8]*10+[49]*20+[0]*50,
+                   [17]*12+[0]*2+[18]*12+[0]*54):
+    cases.append(dict(geometry=geometry,reversed=reversed,x=384,y=400,ladder=0,falling=0,pattern=pattern,ticks=80,attack=1,tier=tier,hit=0))
+for tier in range(5):
+ for tick in (7,10,15,24):
+  cases.append(dict(geometry=0,reversed=0,x=384,y=400,ladder=0,falling=0,pattern=[17],ticks=45,attack=1,tier=tier,hit=tick))
 def lua(v):
  if isinstance(v,dict):return '{'+','.join(k+'='+lua(x) for k,x in v.items())+'}'
  if isinstance(v,list):return '{'+','.join(map(lua,v))+'}'
