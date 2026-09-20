@@ -1,5 +1,6 @@
 #include "game.h"
 #include "damage.h"
+#include "boss.h"
 #include "assets.h"
 #include "loot.h"
 #include "sentry.h"
@@ -109,6 +110,10 @@ static void actor_hit(Actor *a, u8 damage) {
         return;
     if (d->kind == HIDDEN_WALL && a->state)
         return;
+    if (layered_boss_kinds[a->def]) {
+        if (a->hp > damage) {a->hp -= damage;return;}
+        if (boss_break_layer(a)) return;
+    }
     a->hit = 10;
     if (a->hp > damage) {
         a->hp -= damage;
@@ -122,10 +127,10 @@ static void actor_hit(Actor *a, u8 damage) {
     a->active = 0;
     game.spawned[a->source] = 2;
     game.kills++;
-    game.score += d->kind == BOSS ? 5000 : d->kind == CHEST ? 200 : 100;
+    game.score += layered_boss_kinds[a->def] ? layered_boss_score : d->kind == BOSS ? 5000 : d->kind == CHEST ? 200 : 100;
     if (d->kind == CHEST)
         game.coins += 50;
-    else
+    else if (!layered_boss_kinds[a->def])
         loot_spawn(drop_categories[a->def], loot_random >> 8, PX(a->x), PX(a->y));
     game.sound = SND_KILL;
     if (d->kind == BOSS) {
@@ -163,6 +168,7 @@ static void spawn_actors(void) {
                 a->y = sy * FX;
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
+                boss_spawn(j);
                 npc_spawn(j);
                 if (zombie_kinds[a->def]) zombie_spawn(j);
                 if (wisp_kinds[a->def]) wisp_spawn(j);

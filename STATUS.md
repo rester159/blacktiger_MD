@@ -164,3 +164,12 @@ hits on these projectiles use source half sizes 4/2 and the same gate, replacing
 one-contact-tick cases, including inclusive edges and odd/even damage differences. Chain geometry,
 the source chain-hit shortcut through E906, alternate player posture, and complete weapon update
 scheduling still require porting; these checks do not establish full combat fidelity.
+
+The two stacked boss constructors (bank 4 9EB1/9F16) now preserve their two damage layers:
+16 or 24 initial health, followed by 16 health after the first break. Excess damage does not carry
+into the next layer. The first break neither awards a kill nor clears the round, ordinary hits
+have no generic ten-tick cooldown, and final defeat awards the source 500 points without a generic
+random drop. Twenty original hit-callback observations and cartridge cases for both real rows
+cover nonfatal hits, exact/overkill breaks and the no-premature-clear invariant. This is a damage
+progression correction, not a complete boss port: two/four-part construction, movement, vulnerable
+windows, phase graphics and source death/clear timing remain unimplemented or provisional.
