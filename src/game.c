@@ -303,7 +303,6 @@ static void player_step(u16 in, u16 pressed) {
 }
 static void screen_attack(void) {
     u16 j;
-    for(j=0;j<MAX_STATUE_SHELLS;j++)statue_shell_hit(j);
     for(j=0;j<MAX_MISSILES;j++)missile_hit(j,255);
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];

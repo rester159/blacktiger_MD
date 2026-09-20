@@ -354,3 +354,12 @@ loader ticks; 18 split observations check child positions. The linked cartridge 
 real placement, dormant immunity, the three-body split and both damage paths. Screen-attack
 pickups bypass weapon immunity for seeds and casters, matching source forced-death handling. Shared source
 small-pool contention, exact scheduling and full natural routes remain unverified.
+
+The bank 1 flying hunter (9F83) and boss variant (9FC4) now have a native shared body
+kernel. It matches 57,600 original-loader ticks across 192 cases: all weighted steering
+choices, 16-direction aiming, screen-edge recovery, attack/immunity phases, three damage
+layers (20 HP normal, 46 HP boss), recoil and the 500-point final award. Eighty-one compiled
+animation segments include the pending projectile/explosion phases. **Not yet connected to
+gameplay**: projectile terrain/contact phases and original boss presentation hooks remain.
+The source screen-attack filter also establishes that special-contact caster shells (36)
+and hunter shells (40) are excluded; caster shells now survive POW, with a linked-cartridge regression check. These body checks do not establish full-family fidelity.
