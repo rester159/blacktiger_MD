@@ -16,6 +16,9 @@ health=graphics=0
 for d in definitions:
  c=contract[(d['bank'],d['address'])];a=rom[base+8*d['id']:base+8*d['id']+8]
  assert len(a)==8
+ if c['contact']:
+  for field in ('pool','half_width','half_height'):
+   assert rom[symbols['actor_contact_'+field]+d['id']]==c['contact'][field]
  if c['health'] is not None:
   assert a[4]==c['health'],(d['id'],'health',a.hex(),c);health+=1
  if c['initial_frame']:

@@ -294,7 +294,7 @@ static void actor_step(u16 i, u16 pressed) {
     const ActorDef *d = &actor_defs[a->def];
     Player *p = &game.p;
     s16 x = PX(a->x), y = PX(a->y), dx = PX(p->x) - x, dy = PX(p->y) - y;
-    u8 close = absolute(dx) < 24 && absolute(dy) < 30;
+    u8 close = actor_contact(i);
     if (a->hit)
         --a->hit;
     a->timer++;
@@ -329,7 +329,7 @@ static void actor_step(u16 i, u16 pressed) {
         return;
     }
     if (d->kind == HIDDEN_WALL) {
-        if (hidden_step(i, close))
+        if (hidden_step(i, absolute(dx) < 24 && absolute(dy) < 30))
             screen_attack();
         return;
     }

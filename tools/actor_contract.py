@@ -18,7 +18,7 @@ def load(source):
    assert source.read(r['bank'],copy['template_address'],len(raw))==raw
    source.expect(r['bank'],copy['copy_pc'],'edb0')
    templates[copy['template_address']]=raw
-  states=[];screen_targets=set()
+  states=[];screen_targets=set();contacts=set()
   for result in r['results']:
    for entry in filter(None,result['actors'].split(',')):
     addr,raw=entry.split(':');raw=bytes.fromhex(raw)
@@ -28,6 +28,7 @@ def load(source):
       states.append(a)
       address=int(addr,16)
       pool=32 if 0xf520<=address<0xf940 else 48 if 0xf940<=address<0xfc10 else 0
+      contacts.add((pool,a[16],a[17]))
       screen_targets.add(pool in (32,48) and (a[13]&127) in ({0,42,52} if pool==32 else {0,35,38}))
   # Refuse a value if constructor profiles disagree. Dynamic templates stay explicit.
   hp={a[14] for a in states};sizes={len(a) for a in states}
@@ -46,7 +47,7 @@ def load(source):
    initial.append((f['code'],f['palette'],len(display)//4))
   first=set(initial)
   categories={a[11] for a in states}
-  c={'screen_attack_target':next(iter(screen_targets)) if len(screen_targets)==1 else None,'category':next(iter(categories)) if len(categories)==1 else None,'templates':[{'address':pc,'size':len(raw)} for pc,raw in templates.items()],
+  c={'contact':dict(zip(('pool','half_width','half_height'),next(iter(contacts)))) if len(contacts)==1 else None,'screen_attack_target':next(iter(screen_targets)) if len(screen_targets)==1 else None,'category':next(iter(categories)) if len(categories)==1 else None,'templates':[{'address':pc,'size':len(raw)} for pc,raw in templates.items()],
      'health':next(iter(hp)) if len(hp)==1 else None,
      'initial_frame':dict(zip(('code','palette','pieces'),next(iter(first)))) if len(first)==1 else None,
      'profile_dependent_graphics':len(first)>1,

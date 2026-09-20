@@ -50,7 +50,7 @@ routine and source-compiled animation segments. Durability is 12/36/48 rather th
 callback trigger; shield variants block directionally. Walking, approach/swing, separate weapon
 actors, obstacle jumps, falling, damage, persistence and death match 2,190 original-ROM ticks across
 30 controlled scenarios, plus 822 weapon frame comparisons. Cartridge tests cover each actual
-source constructor, nonfatal/fatal projectiles, shields, score, and retirement. Body/weapon/player hitboxes still use provisional native geometry.
+source constructor, nonfatal/fatal projectiles, shields, score, and retirement. Normal body contact now uses source dimensions; weapon hitboxes, alternate posture, and player damage rules remain provisional.
 
 The common death-drop system now uses all 28 source selection tables, seven coin values, the source
 random recurrence, and pickup animations. Original-ROM comparisons cover 896 selections, 1,687
@@ -104,3 +104,11 @@ and restore its one-point trigger without killing it or awarding score. Eight sc
 1,920 original ticks for graphics, motion, repeated hits and proximity changes. A cartridge test
 covers an actual spawn, motion, absent placeholder shots and repeated nonlethal hit callbacks.
 Player damage details and common viewport retirement still need broader source matching.
+
+Small and medium actors now share source-derived normal contact geometry compiled from witnessed
+constructor dimensions and pool identity. The two pools use different player origins, with inclusive
+edges and player half sizes 3/8. Host-native C matches 588 original-ROM boundary observations across
+12 shapes; linked-cartridge checks verify the compiled tables. All existing cartridge regressions
+pass, including NPC rescue contact. Hidden-wall rewards retain their separate provisional box;
+large/profile-dependent actors, alternate posture, dynamic bounds and contact scheduling still need
+source matching. This does not establish complete combat fidelity.
