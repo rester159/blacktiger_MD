@@ -7,6 +7,7 @@ static ContainerState containers[MAX_ACTORS];
 static u8 container_opened[8],container_collected[8];
 ContainerTrap container_traps[MAX_CONTAINER_TRAPS];
 u8 container_keys;
+void container_actor_restart(void) {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++)container_traps[i].active=0;}
 void container_actor_reset(void) {
  u16 i;for(i=0;i<8;i++)container_opened[i]=container_collected[i]=0;
  for(i=0;i<MAX_CONTAINER_TRAPS;i++)container_traps[i].active=0;

@@ -7,6 +7,7 @@ typedef struct {AnimState animation;u16 segment;s16 x,y;u8 active,left,contact,p
 extern ContainerTrap container_traps[MAX_CONTAINER_TRAPS];
 extern u8 container_keys;
 void container_actor_reset(void);
+void container_actor_restart(void);
 void container_spawn(u16 slot);
 void container_step(u16 slot,u8 contact);
 const AnimFrame *container_frame(u16 slot);

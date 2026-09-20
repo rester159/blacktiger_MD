@@ -13,6 +13,8 @@ def hold_contact(slot,ticks,near=True):
  raise AssertionError('logic stalled')
 for pc in (0xacbe,0xacd3):
  for content in range(6):
+  # Each content case starts with independently unopened persistence.
+  r.write('container_opened',0,bytes(8));r.write('container_collected',0,bytes(8))
   r.write('container_keys',0,b'\0')
   slot,row,level=fixture(r,0,1,pc);s=state(r);a=s.actors[slot];a.life=content;s.coins=123;s.score=987;s.p.hp=1;s.p.invincible=10000;put(r,s)
   persistent=struct.unpack_from('>4H',rom,r.symbols['spawn'+str(level)]+8*row)[3]-33

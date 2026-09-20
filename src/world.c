@@ -26,6 +26,10 @@ void world_reset(void) {
             world_rows[y + j] |= 1 << i;
     }
 }
+void world_restart(void) {
+    u8 opened=world_opened,collected=taken;
+    world_reset();world_opened=opened;taken=collected;
+}
 u16 world_word(u16 x, u16 y, u16 original) {
     const Round *r = &rounds[game.round];
     u8 mask = world_rows[y] & world_opened, i;

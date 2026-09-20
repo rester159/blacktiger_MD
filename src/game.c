@@ -42,22 +42,24 @@ u8 terrain(s16 x, s16 y) {
 static u8 support(s16 x, s16 y) {
     return terrain(x, y) >= 2;
 }
+static u8 restart_pending,loaded_round=255;
 void game_round(u8 round) {
     Player *p = &game.p;
     const Round *r = &rounds[round];
-    game.round = round;
+    u8 preserve=restart_pending && loaded_round==round;
+    loaded_round=round;game.round = round;
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
-    zero(game.spawned, sizeof game.spawned);
+    if(preserve){u16 i;for(i=0;i<160;i++)game.spawned[i]&=254;world_restart();}
+    else {zero(game.spawned,sizeof game.spawned);world_reset();}
     npc_reset();
-    world_reset();
     skeleton_reset();
     emerge_reset();
     zombie_reset();
     missile_reset();
     loot_reset();
     container_round(round);
-    container_actor_reset();
+    if(preserve)container_actor_restart();else container_actor_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
     game.boss_dead = 0;
@@ -75,6 +77,7 @@ void game_round(u8 round) {
     p->hp = progress_max_hp;
 }
 void game_new(void) {
+    restart_pending=0;loaded_round=255;
     zero(&game, sizeof game);
     loot_new();
     container_new();
@@ -517,8 +520,9 @@ void game_tick(u16 input) {
     game.frame++;
     loot_random_tick();
     if (game.mode == TITLE) {
-        if (pressed & IN_START)
-            game_new();
+        if (pressed & IN_START) {
+            game_new();game.previous_input=input;
+        }
         return;
     }
     if (game.mode == PAUSED) {
@@ -544,11 +548,12 @@ void game_tick(u16 input) {
     if (game.mode == DEAD) {
         if (game.mode_timer)
             --game.mode_timer;
-        else if (p->lives > 1) {
-            p->lives--;
-            game_round(game.round);
-        } else
-            game.mode = GAMEOVER;
+        else {
+            p->armor=progress_initial_armor;shop_poison=0;
+            if(p->lives)p->lives--;
+            if(p->lives) {restart_pending=1;game_round(game.round);restart_pending=0;}
+            else game.mode=GAMEOVER;
+        }
         return;
     }
     if (game.mode == CLEAR) {
@@ -561,8 +566,9 @@ void game_tick(u16 input) {
         return;
     }
     if (game.mode == GAMEOVER || game.mode == ENDING) {
-        if (pressed & IN_START)
-            game_new();
+        if (pressed & IN_START) {
+            game_new();game.previous_input=input;
+        }
         return;
     }
     if (pressed & IN_START) {

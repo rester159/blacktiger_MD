@@ -50,6 +50,7 @@ test: all
 	.venv/bin/python tests/test_emerge_runtime.py
 	.venv/bin/python tests/test_progress.py
 	.venv/bin/python tests/test_progress_runtime.py
+	.venv/bin/python tests/test_restart_runtime.py
 	.venv/bin/python tests/test_shop.py
 	.venv/bin/python tests/test_shop_runtime.py
 	.venv/bin/python tests/test_container_trap.py

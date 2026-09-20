@@ -307,3 +307,13 @@ Twenty original score-task comparisons cover exact thresholds and neighboring va
 boulder awards cross all four thresholds and verify no immediate healing and correct respawn
 restoration. Five-HP fixtures check each healing family. Full original death/continue inventory
 reset semantics, maximum-score saturation, loose keys and provisional magic remain unported.
+
+Life loss now restores two armor points, clears poison and consumes the final life before
+game over. Weapon tier, coins, keys, antidotes, score and earned maximum health survive a
+restart. Consumed placement rows remain consumed while active rows become eligible again;
+opened/collected chest flags and broken/collected wall state survive the same-round restart.
+Fresh rounds and new games clear those world flags. Source witnesses cover the death writes
+and four-byte persistence-copy loop (clear bit zero only); linked tests use actual chest and
+hidden-wall collection, life loss and a fresh game. Original checkpoint camera/position,
+continue behavior and death presentation timing remain unfinished. New-game input preserves
+the held Start latch so the same press cannot immediately pause gameplay.
