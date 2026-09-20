@@ -147,3 +147,9 @@ The reusable 32-direction aiming routine matches 512 original-ROM observations; 
 actor scenarios match 1,440 ticks, including nonfatal/fatal damage and persistence. A linked-ROM
 check covers a real spawn, stationary behavior, absence of placeholder shots, score and retirement.
 Contact geometry remains provisional. These tests do not establish a natural full-game route.
+
+The 72 stationary lethal-zone placements (bank 1 B2A9) now use source normal-player contact
+dimensions and enter death directly, bypassing armor and hurt invulnerability. Boundary checks
+match 126 original-ROM cases; cartridge checks cover weapon immunity, fatal contact, interrupted
+post-death interactions and single-life respawn. Alternate player contact postures and the original
+death presentation/timing remain unfinished.

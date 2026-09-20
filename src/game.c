@@ -2,6 +2,7 @@
 #include "assets.h"
 #include "loot.h"
 #include "sentry.h"
+#include "hazard.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -280,6 +281,10 @@ static void actor_step(u16 i, u16 pressed) {
         a->active = 0;
         return;
     }
+    if (hazard_kinds[a->def]) {
+        hazard_step(i);
+        return;
+    }
     if (sentry_kinds[a->def]) {
         sentry_step(i);
         if (a->active && !a->state && close) hurt();
@@ -512,6 +517,8 @@ void game_tick(u16 input) {
     }
     world_tick();
     player_step(input, pressed);
+    if (game.mode != PLAY)
+        return;
     loot_tick();
     skeleton_weapons_tick();
     {
@@ -523,13 +530,15 @@ void game_tick(u16 input) {
                 hurt();
         }
     }
+    if (game.mode != PLAY)
+        return;
     spawn_actors();
     {
         u16 i;
         for (i = 0; i < MAX_ACTORS; i++) {
             if (game.actors[i].active)
                 actor_step(i, pressed);
-            if (game.mode == RESCUE)
+            if (game.mode != PLAY)
                 return;
         }
     }
