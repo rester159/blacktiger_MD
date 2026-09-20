@@ -20,7 +20,6 @@ typedef int32_t s32;
 #define IN_JUMP 16
 #define IN_ATTACK 32
 #define IN_START 64
-#define IN_MAGIC 128
 #define FX 256
 #define PX(v) ((v) / FX)
 enum { WALKER, FLYER, TURRET, ROCK, HAZARD, CHEST, CAPTIVE, PICKUP, BOSS, HIDDEN_WALL };
@@ -80,7 +79,7 @@ typedef struct {
     s32 x, y;
     s16 vx, vy;
     u16 invincible, attack;
-    u8 grounded, climb, face, hp, armor, weapon, lives, magic;
+    u8 grounded, climb, face, hp, armor, weapon, lives, reserved;
 } Player;
 typedef struct {
     Player p;

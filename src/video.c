@@ -502,7 +502,7 @@ static void overlay(void) {
         text(9, 7, "BLACK TIGER");
         text(7, 10, "SGDK DEVELOPMENT BUILD");
         text(10, 14, "PRESS START");
-        text(4, 18, "A ATTACK  B JUMP  C MAGIC");
+        text(8, 18, "A ATTACK  B JUMP");
         text(6, 20, "UP: CLIMB / ENTER SHOP");
     } else if (m == RESCUE) {
         text(9, 5, "THANK YOU!");

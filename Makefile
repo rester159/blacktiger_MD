@@ -13,6 +13,7 @@ res/generated/object_patterns.bin: tools/extract.py tools/extract_actor_dispatch
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
 test: all
+	.venv/bin/python tests/test_controls_runtime.py
 	.venv/bin/python tests/test_actor_dispatch.py
 	.venv/bin/python tests/test_background_runtime.py
 	.venv/bin/python tests/test_bonus.py

@@ -24,8 +24,6 @@ int main(bool hardReset) {
             in |= IN_JUMP;
         if (joy & BUTTON_A)
             in |= IN_ATTACK;
-        if (joy & BUTTON_C)
-            in |= IN_MAGIC;
         if (joy & BUTTON_START)
             in |= IN_START;
         u32 t0 = getSubTick();

@@ -795,3 +795,22 @@ host tests cover exact durations and the last poll, and cartridge tests cover
 real last-life entry, both outcomes, music and inventory. Arcade coin handling
 is replaced by free continues. Original artwork, fades, and high-score initials
 are still unfinished.
+
+## Route validation and original controls
+
+Added a bounded route search that compiles the production movement, contact and
+alternate-area routines for host execution. Found paths are replayed through
+those routines from their initial states. Current terrain plans reach boss areas
+in rounds 1, 6, 7 and 8; searches for rounds 2–5 remain inconclusive. Combat,
+breakable walls and other gameplay interactions are outside this model.
+
+A new cartridge replay tool starts from the title, uses only controller inputs,
+and saves a run-length-encoded video-frame input tape. A second fresh boot
+reproduces the final state from the tape. The current round-one attempt dies
+before the boss; it is evidence of a reproducible gameplay prefix, not completion.
+See `reference/routes_audit.md` and the route reports.
+
+Removed the prototype's C-button magic charges. The original player interface
+has two action buttons (attack and jump); source POW pickups retain their
+separate screen effect. An actual-cartridge comparison checks that repeated C
+presses leave movement, attacks, daggers and game state unchanged.

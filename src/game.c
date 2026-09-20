@@ -135,7 +135,6 @@ void game_new(void) {
     game.p.lives = progress_initial_lives;
     game.p.armor = progress_initial_armor;
     game.p.weapon = 1;
-    game.p.magic = 2;
     game_round(0);
 }
 void game_boss_clear(void) {
@@ -327,14 +326,6 @@ static void player_step(u16 in, u16 pressed) {
         player_attack.launch=0;
     }
     player_daggers_step();
-    if ((pressed & IN_MAGIC) && p->magic) {
-        u16 i;
-        p->magic--;
-        game.sound = SND_KILL;
-        for (i = 0; i < MAX_ACTORS; i++)
-            if (actor_defs[game.actors[i].def].kind != HIDDEN_WALL)
-                actor_hit(&game.actors[i], 8);
-    }
     if (PX(p->y) > rounds[game.round].height + 32) {
         p->invincible = 0;
         p->hp = 1;
