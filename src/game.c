@@ -1,5 +1,6 @@
 #include "progress.h"
 #include "reinforcement.h"
+#include "edge_spawn.h"
 #include "checkpoint.h"
 #include "game.h"
 #include "container.h"
@@ -186,6 +187,7 @@ static void spawn_actors(void) {
             continue;
         if (eruption_kinds[s->def] && !eruption_prepare(i,sx,sy))continue;
         if (reinforcement_kinds[s->def] && !reinforcement_prepare(i,sx,sy))continue;
+        if (edge_spawn_kinds[s->def] && !edge_spawn_prepare(i,&sx,&sy))continue;
         if (teleporter_kinds[s->def] && !teleporter_prepare(i,&sx,&sy))continue;
         if (pair_kinds[s->def] && !pair_ready(sx,sy))continue;
         if (!npc_spawn_ready(i))
@@ -204,7 +206,7 @@ static void spawn_actors(void) {
                 a->hp = actor_defs[s->def].hp;
                 a->x = sx * FX;
                 a->y = sy * FX;
-                a->face = PX(game.p.x) < s->x ? -1 : 1;
+                a->face = PX(game.p.x) < (edge_spawn_kinds[s->def]?sx:s->x) ? -1 : 1;
                 a->timer = i * 7;
                 if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);

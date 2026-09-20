@@ -72,6 +72,8 @@ test: all
 	.venv/bin/python tests/test_reinforcement_body.py
 	.venv/bin/python tests/test_reinforcement_shot.py
 	.venv/bin/python tests/test_reinforcement_body_runtime.py
+	.venv/bin/python tests/test_edge_spawn.py
+	.venv/bin/python tests/test_edge_spawn_runtime.py
 	.venv/bin/python tests/test_reinforcement.py
 	.venv/bin/python tests/test_reinforcement_runtime.py
 	.venv/bin/python tests/test_crawler.py

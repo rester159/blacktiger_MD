@@ -486,3 +486,15 @@ still do not reproduce global source allocation contention.
 The reinforcement body oracle compares 199,680 ticks in 416 cases, including full projectile
 pools, and 1,362 six-part launch snapshots. Reward-table extraction corrected the stronger
 fighter to 80 points. The two templates supply initial health 4/18 and layer counts 2/4.
+
+Bank-four A4D0 now uses its source trigger/entry constructor: player proximity within the
+byte-wrapped ±16 rectangle, no allocation when the pool is full, entry at screen X=224/0
+according to normal player facing, and six ground probes from screen Y=96 through 176.
+Failure to find ground preserves the original active row bit despite creating no actor.
+A 616-case source oracle covers boundaries, persistent flags, pool failure and floor-search
+limits. Cartridge fixtures exercise both directions at the actual round-seven row 29.
+This is constructor coverage only; its body, aimed projectiles and death behavior remain
+provisional. The source uses player direction/posture byte E901; native facing covers the
+normal 0/4 directions, with the wider player-posture port still outstanding. Body template
+AA0C and callbacks A564 onward are the next actor work; projectile templates AA3C/AA5C
+use direction tables AEEE/B0DA.

@@ -5,7 +5,7 @@ from pathlib import Path
 from test_runtime import Runner,state,put
 ROOT=Path(__file__).resolve().parents[1];rom=(ROOT/'out/release/rom.bin').read_bytes()
 meta=json.loads((ROOT/'reports/assets.json').read_text());contract=json.loads((ROOT/'reference/skeleton.json').read_text())
-def fixture(r,variant,bank=0,constructor=None,approach=96,wait_frames=100,vertical=80,hold_position=False):
+def fixture(r,variant,bank=0,constructor=None,approach=96,wait_frames=100,vertical=80,hold_position=False,player_face=None):
  target=contract['constructors'][variant] if constructor is None else constructor;d=next(d['id'] for d in meta['actor_definitions'] if d['bank']==bank and d['address']==target)
  found=None
  for level,info in enumerate(meta['rounds']):
@@ -16,6 +16,7 @@ def fixture(r,variant,bank=0,constructor=None,approach=96,wait_frames=100,vertic
  assert found
  level,row,x,y=found;s=state(r);s.round=level;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(80)
  s=state(r);s.mode=1;s.p.x=max(0,x-approach)*256;s.p.y=max(0,y-vertical)*256;s.p.vx=s.p.vy=0;s.p.invincible=10000
+ if player_face is not None:s.p.face=player_face
  for a in s.actors:a.active=0
  for q in s.shots:q.active=0
  for i in range(160):s.spawned[i]=2
