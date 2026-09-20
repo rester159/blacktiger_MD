@@ -8,7 +8,7 @@ all: res/generated/object_patterns.bin
 .venv/bin/python: requirements.txt
 	python3 -m venv .venv
 	.venv/bin/pip install -r requirements.txt
-res/generated/object_patterns.bin: tools/extract.py tools/arcade_source.py tools/extract_animation.py tools/actor_contract.py tools/extract_hidden.py tools/extract_skeleton.py tools/extract_loot.py tools/extract_sentry.py tools/extract_hazard.py tools/extract_pickup.py tools/extract_emerge.py tools/extract_wisp.py tools/extract_zombie.py tools/extract_thrower.py tools/extract_spitter.py tools/extract_boss.py tools/extract_boss_motion.py tools/extract_boulder.py tools/extract_pair.py reference/constructors.json assets/board.json | .venv/bin/python
+res/generated/object_patterns.bin: tools/extract.py tools/arcade_source.py tools/extract_animation.py tools/actor_contract.py tools/extract_hidden.py tools/extract_skeleton.py tools/extract_loot.py tools/extract_sentry.py tools/extract_hazard.py tools/extract_pickup.py tools/extract_emerge.py tools/extract_wisp.py tools/extract_zombie.py tools/extract_thrower.py tools/extract_spitter.py tools/extract_boss.py tools/extract_boss_motion.py tools/extract_boulder.py tools/extract_pair.py tools/extract_container.py reference/constructors.json assets/board.json | .venv/bin/python
 	.venv/bin/python tools/extract.py
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
@@ -48,6 +48,8 @@ test: all
 	.venv/bin/python tests/test_wisp_runtime.py
 	.venv/bin/python tests/test_emerge.py
 	.venv/bin/python tests/test_emerge_runtime.py
+	.venv/bin/python tests/test_container.py
+	.venv/bin/python tests/test_container_runtime.py
 	.venv/bin/python tests/test_pickup.py
 	.venv/bin/python tests/test_pickup_runtime.py
 	.venv/bin/python tests/test_screen_attack_runtime.py

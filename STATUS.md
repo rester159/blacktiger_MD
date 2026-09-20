@@ -254,3 +254,13 @@ before their animation would otherwise end. Paired flyers reuse the same axis ch
 horizontal/vertical one-pixel difference and x-before-y retirement order match 279 source
 loader cases and 837 translated world-coordinate checks. Eight cartridge cases verify removal
 outside all four sides and retention inside them; existing thrower/spitter/pair traces still pass.
+
+The 59 placements using bank 1 ACBE/ACD3 are locked containers, not falling rocks. Closed
+containers are now stationary and weapon-immune, and the fake break-for-200-points/50-coins
+path is removed. Native content selection uses the eight source round tables, eight swaps and
+two RNG updates per source task yield; 128 controlled source-shuffle comparisons cover it.
+The contents remain stable on a same-round restart. Cartridge checks cover both actual closed
+container variants and selection by persistence ID. The three constructor phases and six content
+types are extracted for the next implementation work. **Key inventory, opening, trap spawning,
+reward collection and opened/collected persistence are still missing**, so containers are not yet
+fully ported. Exact source global startup/RNG scheduling also remains unverified.

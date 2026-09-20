@@ -1,4 +1,5 @@
 #include "game.h"
+#include "container.h"
 #include "damage.h"
 #include "boss.h"
 #include "assets.h"
@@ -53,6 +54,7 @@ void game_round(u8 round) {
     zombie_reset();
     missile_reset();
     loot_reset();
+    container_round(round);
     game.mode = PLAY;
     game.mode_timer = 0;
     game.boss_dead = 0;
@@ -72,6 +74,7 @@ void game_round(u8 round) {
 void game_new(void) {
     zero(&game, sizeof game);
     loot_new();
+    container_new();
     game.p.lives = 3;
     game.p.armor = 2;
     game.p.weapon = 1;
@@ -97,7 +100,7 @@ static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
 }
 static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
-    if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
+    if (a->hit || !a->active || d->kind == CHEST || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
     if (pair_hit(a-game.actors,damage)) return;
     if (boulder_hit(a-game.actors,damage)) return;
@@ -126,10 +129,8 @@ static void actor_hit(Actor *a, u8 damage) {
     a->active = 0;
     game.spawned[a->source] = 2;
     game.kills++;
-    game.score += layered_boss_kinds[a->def] ? layered_boss_score : d->kind == BOSS ? 5000 : d->kind == CHEST ? 200 : 100;
-    if (d->kind == CHEST)
-        game.coins += 50;
-    else if (!layered_boss_kinds[a->def])
+    game.score += layered_boss_kinds[a->def] ? layered_boss_score : d->kind == BOSS ? 5000 : 100;
+    if (!layered_boss_kinds[a->def])
         loot_spawn(drop_categories[a->def], loot_random >> 8, PX(a->x), PX(a->y));
     game.sound = SND_KILL;
     if (d->kind == BOSS) {
@@ -173,6 +174,7 @@ static void spawn_actors(void) {
                 a->y = sy * FX;
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
+                if(actor_defs[a->def].kind==CHEST)a->life=container_content(s->persistent);
                 boss_spawn(j);
                 if(pair_kinds[a->def])pair_spawn(j);
                 if(boulder_kinds[a->def])boulder_spawn(j);
@@ -485,7 +487,7 @@ static void shots_step(void) {
                 if (a->active && (s->kind==1?actor_dagger_contact(j,x,y):
                     (absolute(x - PX(a->x) - 16) < 20 && absolute(y - PX(a->y) - 16) < 20))) {
                     u8 k = actor_defs[a->def].kind;
-                    if (k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
+                    if (k == CHEST || k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
                     if (pair_kinds[a->def] && !pair_vulnerable(j))continue;
                     if ((layered_boss_kinds[a->def] || stone_kinds[a->def]) && !boss_vulnerable(j)) continue;
