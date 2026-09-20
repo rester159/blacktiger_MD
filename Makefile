@@ -8,11 +8,13 @@ all: res/generated/object_patterns.bin
 .venv/bin/python: requirements.txt
 	python3 -m venv .venv
 	.venv/bin/pip install -r requirements.txt
-res/generated/object_patterns.bin: tools/extract.py tools/extract_music.py $(wildcard reference/music/*.txt) tools/extract_armor_break.py tools/extract_player_death.py tools/extract_player_dagger.py tools/arcade_source.py tools/extract_animation.py tools/actor_contract.py tools/extract_hidden.py tools/extract_skeleton.py tools/extract_loot.py tools/extract_sentry.py tools/extract_hazard.py tools/extract_pickup.py tools/extract_emerge.py tools/extract_wisp.py tools/extract_zombie.py tools/extract_thrower.py tools/extract_spitter.py tools/extract_boss.py tools/extract_boss_motion.py tools/extract_boulder.py tools/extract_pair.py tools/extract_container.py tools/extract_teleporter.py tools/extract_eruption.py tools/extract_waveboss.py tools/extract_flailer.py tools/extract_hunter.py tools/extract_crawler.py tools/extract_dragon_shot.py tools/extract_dragon.py tools/extract_reinforcement_body.py tools/extract_edge_actor.py tools/extract_statue.py tools/extract_checkpoint.py tools/extract_progress.py reference/progress_oracle.json tools/extract_shop.py reference/shop_oracle.json reference/constructors.json assets/board.json | .venv/bin/python
+res/generated/object_patterns.bin: tools/extract.py tools/extract_bonus.py tools/extract_music.py $(wildcard reference/music/*.txt) tools/extract_armor_break.py tools/extract_player_death.py tools/extract_player_dagger.py tools/arcade_source.py tools/extract_animation.py tools/actor_contract.py tools/extract_hidden.py tools/extract_skeleton.py tools/extract_loot.py tools/extract_sentry.py tools/extract_hazard.py tools/extract_pickup.py tools/extract_emerge.py tools/extract_wisp.py tools/extract_zombie.py tools/extract_thrower.py tools/extract_spitter.py tools/extract_boss.py tools/extract_boss_motion.py tools/extract_boulder.py tools/extract_pair.py tools/extract_container.py tools/extract_teleporter.py tools/extract_eruption.py tools/extract_waveboss.py tools/extract_flailer.py tools/extract_hunter.py tools/extract_crawler.py tools/extract_dragon_shot.py tools/extract_dragon.py tools/extract_reinforcement_body.py tools/extract_edge_actor.py tools/extract_statue.py tools/extract_checkpoint.py tools/extract_progress.py reference/progress_oracle.json tools/extract_shop.py reference/shop_oracle.json reference/constructors.json assets/board.json | .venv/bin/python
 	.venv/bin/python tools/extract.py
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
 test: all
+	.venv/bin/python tests/test_bonus.py
+	.venv/bin/python tests/test_bonus_runtime.py
 	.venv/bin/python tests/test_music_catalog_runtime.py
 	.venv/bin/python tests/test_music_events_runtime.py
 	.venv/bin/python tests/test_music.py

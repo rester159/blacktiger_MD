@@ -13,7 +13,7 @@ assert hashlib.sha256((ROOT/'tools/hidden_oracle.lua').read_bytes()).hexdigest()
 with tempfile.TemporaryDirectory() as tmp:
  tmp=Path(tmp);(tmp/'genesis.h').write_text('/* Host-only SGDK include stub; game.h supplies fixed-width types. */\n')
  resources=re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M)
- decl=(ROOT/'inc/assets.h').read_text();stubs=['#include "assets.h"','#include "world.h"','Game game;']
+ decl=(ROOT/'inc/assets.h').read_text();stubs=['#include "assets.h"','#include "world.h"','Game game;','u16 bonus_word(u16 x,u16 y,u16 original){return original;}']
  for name in resources:
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''void convert(u8 level,u8 mask,const u16 *map,const u8 *col,u16 *out,u8 *collision) {

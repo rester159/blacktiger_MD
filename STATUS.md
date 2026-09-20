@@ -719,3 +719,18 @@ latch persists after exit; return X adjustment wraps within its low byte. See
 The isolated original-ROM oracle passed 225 contact-gate and camera-policy cases.
 The cartridge is unchanged in this audit; these results do not prove native
 alternate-area gameplay.
+
+## Native alternate-area integration
+
+Implemented the shared alternate-area contacts and camera transition for all 12
+source triggers across rounds 1–6. Rewards and consumed objects survive the
+transient-pool reset. Doorway tile/collision changes use the existing Genesis
+palette mapping, with music and life-restart latch handling. Native camera/gate
+logic passes 225 source cases; cartridge fixtures cover all 12 contacts and VRAM.
+Background changes currently hold the first source animation phase. Animated
+phase timing, transition presentation and natural room routes remain unfinished.
+
+Validation completed for the current ROM, including normal grounded round-one
+entry and destination hidden-wall spawning. Existing injected-state tests now
+wait for mode/VDP completion where fixed short delays raced the running cartridge.
+Audio mode tracking uses the mode captured at the start of its update.

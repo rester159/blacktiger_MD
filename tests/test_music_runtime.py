@@ -6,7 +6,10 @@ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30);cases=[]
 for level in range(8):
  if level:
   s=state(r);s.mode=5;s.mode_timer=1;put(r,s);r.run(20)
- assert r.read('music_round',1)[0]==level and r.read('music_active',1)[0]==1
+ for _ in range(120):
+  if r.read('music_round',1)[0]==level and r.read('music_active',1)[0]==1:break
+  r.run(1)
+ else:raise AssertionError(('round music did not start',level))
  s=state(r);s.mode=2;put(r,s);r.run(40)
  start=int.from_bytes(r.read('music_tick'),'big');r.audio_capture=[];r.run(240)
  end=int.from_bytes(r.read('music_tick'),'big');elapsed=(end-start)&65535

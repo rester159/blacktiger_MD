@@ -38,7 +38,11 @@ for _ in range(30):
 assert state(r).spawned[row]==2 and r.read('taken',1)[0]&1
 die();assert state(r).spawned[row]==2 and r.read('world_opened',1)[0]&1 and r.read('taken',1)[0]&1
 # Exhaustion consumes the final life as well.
-s=state(r);s.mode=4;s.mode_timer=0;s.p.lives=1;put(r,s);r.run(5);assert state(r).mode==7 and state(r).p.lives==0
+s=state(r);s.mode=4;s.mode_timer=0;s.p.lives=1;put(r,s)
+for _ in range(120):
+ r.run(1)
+ if state(r).mode==7:break
+assert state(r).mode==7 and state(r).p.lives==0
 # Continue preserves the round, inventory, health progression and world; only score/lives reset.
 old_round=state(r).round;old_opened=r.read('world_opened',1)
 r.run(10,8);s=state(r)

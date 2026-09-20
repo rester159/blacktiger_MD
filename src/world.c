@@ -1,3 +1,4 @@
+#include "bonus.h"
 #include "progress.h"
 #include "world.h"
 #include "assets.h"
@@ -31,6 +32,7 @@ void world_restart(void) {
     world_reset();world_opened=opened;taken=collected;
 }
 u16 world_word(u16 x, u16 y, u16 original) {
+    original=bonus_word(x,y,original);
     const Round *r = &rounds[game.round];
     u8 mask = world_rows[y] & world_opened, i;
     u16 shift = r->width == 2048 ? 7 : 6;

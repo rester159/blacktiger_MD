@@ -1,3 +1,4 @@
+#include "bonus.h"
 #include "music.h"
 #include "armor_break.h"
 #include "progress.h"
@@ -53,7 +54,8 @@ u8 terrain(s16 x, s16 y) {
         return 0;
     {
         u16 cell = ((y >> 4) << (r->width == 2048 ? 7 : 6)) + (x >> 4);
-        return world_opened ? world_collision(cell, r->collision[cell]) : r->collision[cell];
+        u8 value=bonus_collision(cell,r->collision[cell]);
+        return world_opened ? world_collision(cell,value) : value;
     }
 }
 static u8 support(s16 x, s16 y) {
@@ -72,6 +74,7 @@ void game_round(u8 round) {
     zero(game.shots, sizeof game.shots);
     if(preserve){u16 i;for(i=0;i<160;i++)game.spawned[i]&=254;world_restart();}
     else {zero(game.spawned,sizeof game.spawned);world_reset();teleporter_reset();eruption_reset();reinforcement_reset();}
+    bonus_reset(preserve);
     npc_reset();
     skeleton_reset();
     emerge_reset();
@@ -97,6 +100,24 @@ void game_round(u8 round) {
     p->hp = progress_max_hp;
     motion_reset();game.player_low=0;player_death_reset();armor_break_reset();
     player_attack=(PlayerAttack){0};player_daggers_reset();
+}
+void game_bonus_transition(void) {
+ u16 i,x=player_motion.scroll_x,y=player_motion.scroll_y;
+ music_request=bonus_entered?0x21+game.round:0x2d;
+ bonus_destination(game.round,bonus_entered,&x,&y,&bonus_saved_x,&bonus_saved_y);
+ bonus_entered=1;
+ zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
+ for(i=0;i<160;i++)game.spawned[i]&=254;
+ world_restart();npc_reset();skeleton_reset();emerge_reset();zombie_reset();
+ missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();
+ reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();container_actor_restart();
+ player_attack=(PlayerAttack){0};player_daggers_reset();armor_break_reset();
+ shop_poison=0;game.p.attack=0;
+ player_motion.scroll_x=x;player_motion.scroll_y=y;
+ game.p.x=(s32)(u16)(x+player_motion.screen_x)*FX;
+ game.p.y=(s32)(u16)(y+player_motion.screen_y)*FX;
+ game.cam_x=bound_axis(PX(game.p.x)-112,0,rounds[game.round].width-256);
+ game.cam_y=bound_axis(PX(game.p.y)-144,0,rounds[game.round].height-224);
 }
 void game_new(void) {
     restart_pending=0;loaded_round=255;
@@ -825,6 +846,7 @@ void game_tick(u16 input) {
     }
     if (game.mode != PLAY)
         return;
+    if(bonus_contact()){game_bonus_transition();return;}
     spawn_actors();
     {
         u16 i;

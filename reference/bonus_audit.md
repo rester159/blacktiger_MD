@@ -44,3 +44,26 @@ Remaining integration: native trigger state and collision; shared transient-pool
 reset preserving player rewards and consumed rows; player/camera relocation;
 door/background animation and collision patches; transition presentation;
 death/restart behavior and natural entrance-to-exit cartridge validation.
+
+## Native integration
+
+`bonus.c` now provides the shared contact gate, camera policy, consumed-trigger
+state, and sparse tile/collision overrides. `game_bonus_transition` clears
+transient actor/projectile/effect pools while preserving rewards, opened chests,
+hidden-wall state and consumed spawn rows. It keeps the logical player screen
+position and applies the source destination/return camera. Music uses 2D on
+entry and round+21 on exit. Life restart clears the entrance latch and retains
+consumed triggers; fresh rounds reset both.
+
+All 12 contacts pass injected cartridge tests with forced grounded ladder state,
+including both camera branches, reward/persistence preservation, music, restart
+and actual VRAM pattern residency. The shared gate/camera policy also matches
+225 original-ROM cases. These fixtures do not establish a natural room route.
+
+The compiler currently installs the first animation phase for each latch state,
+including the changed doorway collision tiles. All eight source phase lists are
+retained in bonus.json, but native phase scheduling and source fade/presentation
+are still outstanding. Map patching remains generic across every round.
+
+A normal grounded round-one entrance also passes without the ladder override;
+the destination hidden-wall actor spawns through the production scanner.

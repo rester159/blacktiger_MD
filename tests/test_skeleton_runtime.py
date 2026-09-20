@@ -48,6 +48,7 @@ def weapon_edges(r):
  for variant,profile in enumerate(contract['profiles']):
   definition=next(d['id'] for d in meta['actor_definitions'] if d['bank']==0 and d['address']==contract['constructors'][variant])
   for dx,dy in ((0,0),(11,12),(-11,-12),(12,0),(0,13)):
+   s=state(r);s.mode=2;s.cam_x=16;s.cam_y=752;put(r,s);r.run(60)
    s=state(r);s.mode=1;s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.hp=4;s.p.armor=2;s.p.invincible=0;s.p.climb=0;s.clock=0;s.time=100
    for a in s.actors:a.active=0
    for q in s.shots:q.active=0

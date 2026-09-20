@@ -1,3 +1,4 @@
+#include "bonus.h"
 #include "armor_break.h"
 #include "player_motion.h"
 #include "player_death.h"
@@ -37,7 +38,7 @@ static u16 word_at(s16 x, s16 y) {
         return 0;
     {
         u16 word = r->map[((u16)y << (r->width == 2048 ? 8 : 7)) + x];
-        return (world_opened & world_rows[y]) ? world_word(x, y, word) : word;
+        return ((world_opened & world_rows[y]) || bonus_rows[y>>1]) ? world_word(x, y, word) : word;
     }
 }
 static u16 cached(u16 word) {
@@ -80,7 +81,7 @@ static void row(s16 x, s16 y) {
     for (i = 0; i < 33; i++)
         b[i] = (y >= r->height / 8 || x + i >= w)
                    ? 0
-                   : cached((world_opened & world_rows[y]) ? world_word(x + i, y, p[i]) : p[i]);
+                   : cached(((world_opened & world_rows[y]) || bonus_rows[y>>1]) ? world_word(x + i, y, p[i]) : p[i]);
     VDP_setTileMapDataRow(BG_B, b, y & 31, x & 63, 33, DMA_QUEUE_COPY);
     video_dma_bytes += 66;
 }
@@ -91,7 +92,7 @@ static void column(s16 x, s16 y) {
     for (i = 0; i < 29; i++, p += w)
         b[i] = (x >= w || y + i >= h)
                    ? 0
-                   : cached((world_opened & world_rows[y + i]) ? world_word(x, y + i, *p) : *p);
+                   : cached(((world_opened & world_rows[y + i]) || bonus_rows[(y+i)>>1]) ? world_word(x, y + i, *p) : *p);
     VDP_setTileMapDataColumn(BG_B, b, x & 63, y & 31, 29, 1, DMA_QUEUE_COPY);
     video_dma_bytes += 58;
 }
@@ -107,7 +108,7 @@ static void pin_column(s16 x, s16 y, s16 delta) {
     if (x >= w)
         return;
     for (i = 0; i < 29 && y + i < h; i++, p += w) {
-        u16 v = ((world_opened & world_rows[y + i]) ? world_word(x, y + i, *p) : *p) & 2047;
+        u16 v = (((world_opened & world_rows[y + i]) || bonus_rows[(y+i)>>1]) ? world_word(x, y + i, *p) : *p) & 2047;
         if (v >= 16)
             visible[v - 16] += delta;
     }
@@ -119,7 +120,7 @@ static void pin_row(s16 x, s16 y, s16 delta) {
     if (y >= r->height / 8)
         return;
     for (i = 0; i < 33 && x + i < w; i++) {
-        u16 v = ((world_opened & world_rows[y]) ? world_word(x + i, y, p[i]) : p[i]) & 2047;
+        u16 v = (((world_opened & world_rows[y]) || bonus_rows[y>>1]) ? world_word(x + i, y, p[i]) : p[i]) & 2047;
         if (v >= 16)
             visible[v - 16] += delta;
     }
@@ -140,7 +141,7 @@ static void terrain_updates(void) {
                     u16 x = px + dx, y = py + dy, old;
                     if (x < old_x || x >= old_x + 33 || y < old_y || y >= old_y + 29)
                         continue;
-                    old = r->map[(y << (shift + 1)) + x] & 2047;
+                    old = bonus_word(x,y,r->map[(y << (shift + 1)) + x]) & 2047;
                     if (old >= 16)
                         visible[old - 16]--;
                     pin(x, y, 1);

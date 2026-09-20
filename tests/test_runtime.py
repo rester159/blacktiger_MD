@@ -23,6 +23,16 @@ def check_video_cache(r,s):
    at=0xe000+((y&31)*64+(x&63))*2;actual=word(at)
    if x>=width or y>=height:assert actual==0;continue
    expected=int.from_bytes(world[(y*width+x)*2:(y*width+x)*2+2],'big')
+   # Alternate-area artwork uses compiled source map writes.
+   rom=(ROOT/'out/release/rom.bin').read_bytes() if not hasattr(r,'bonus_rom') else r.bonus_rom
+   r.bonus_rom=rom
+   if 'bonus_rounds' in r.symbols:
+    ptr,count=struct.unpack_from('>IH',rom,r.symbols['bonus_rounds']+level*20)
+    cell=(y//2)*(width//2)+x//2
+    for pi in range(count):
+     at=ptr+pi*20
+     if int.from_bytes(rom[at:at+2],'big')==cell:
+      expected=struct.unpack_from('>H',rom,at+2+r.read('bonus_entered',1)[0]*8+((y&1)*2+(x&1))*2)[0];break
    assert actual&0xf800==expected&0xf800,(level,x,y,'attribute')
    original=(expected&2047)-16;physical=actual&2047
    assert bytes(v[(physical*32+k)^1] for k in range(32))==patterns[original*32:original*32+32],(level,x,y,'tile')
