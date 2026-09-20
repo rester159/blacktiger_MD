@@ -547,6 +547,8 @@ def main():
     body.append('const Round rounds[8]={'+',\n'.join('{bg%d,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d,patches%d,open_tile%d,%d,%d}'%(r,r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera'],r,r,len(hidden['rounds'][r]),collision[0]) for r,d in enumerate(report['rounds']))+'};')
     from extract_clear_screen import generate as generate_clear_screen
     report['clear_screens']=generate_clear_screen(Source(args.source),emit,decode,pack,words)
+    from extract_sfx import generate as generate_sfx
+    generate_sfx()
     from extract_ending import generate as generate_ending
     report['ending']=generate_ending(Source(args.source),emit,decode,pack,words,colors,groups,pm,raw)
     (ROOT/'res/assets.res').write_text('\n'.join(resources)+'\n')

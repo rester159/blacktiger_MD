@@ -1,3 +1,4 @@
+#include "sfx.h"
 #include "game.h"
 #include "music.h"
 #include <genesis.h>
@@ -36,10 +37,24 @@ static void music_update(void) {
     last_audio_mode=mode;
     if(!bus)Z80_releaseBus();
 }
+void sfx_tone(u8 channel,u16 period){PSG_setTone(channel,period);}
+void sfx_volume(u8 channel,u8 attenuation){PSG_setEnvelope(channel,attenuation);}
+void sfx_noise(u8 control){PSG_setNoise((control>>2)&1,control&3);}
 void audio_tick(void) {
     static u8 age, sound;
+    u16 elapsed=vtimer-audio_video_frame;
+    static u8 sfx_ready;
     music_update();
-    if (game.sound) {
+    if(!sfx_ready){sfx_reset();sfx_ready=1;}
+    sfx_advance(elapsed,pal_audio);
+    if(sfx_request){u8 request=sfx_request;sfx_request=0;sfx_start(request);}
+    if(game.mode==TITLE){sfx_start(0x1f);age=0;}
+    if(game.sound==SND_JUMP){sfx_start(0x1b);age=0;}
+    else if(game.sound==SND_PLAYER_ATTACK){sfx_start(0x3a);age=0;}
+    else if(game.sound==SND_DIE){sfx_start(0x1f);sfx_start(2);age=0;}
+    sfx_render(pal_audio);
+    if(sfx_active){age=0;return;}
+    if (game.sound && game.sound!=SND_PLAYER_ATTACK && game.sound!=SND_JUMP && game.sound!=SND_DIE && game.sound!=SND_CLEAR) {
         sound = game.sound;
         age = 18;
         PSG_setEnvelope(0, 0);
@@ -47,6 +62,7 @@ void audio_tick(void) {
     }
     if (age) {
         u16 period;
+        sfx_invalidate();
         age--;
         switch (sound) {
         case SND_ATTACK:

@@ -34,7 +34,8 @@ enum {
     SND_RESCUE,
     SND_BUY,
     SND_DIE,
-    SND_CLEAR
+    SND_CLEAR,
+    SND_PLAYER_ATTACK
 };
 typedef struct {
     u16 code[5];

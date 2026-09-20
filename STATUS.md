@@ -852,3 +852,19 @@ checks cover all pages, actual VRAM/palettes, music, repeated Start, terminal fl
 and starting a new game. Original HUD, high-score entry, whole-board sprite and
 scheduler comparison, natural full-game completion and hardware timing remain
 unfinished. See `reference/ending_audit.md`.
+
+## Shared native sound-effects player
+
+Added source-derived finite SSG effects with two priority-controlled native slots,
+four timer-phase variants, regional timing and a Genesis PSG mixer. All 34 finite
+programs are available; player attack, jump and death now use their witnessed
+source commands. The extra prototype clear chirp is removed. Native tests compare
+all finite streams with the original driver, and cartridge checks render every
+supported effect, verify finite stopping and unclipped isolated/music-mixed audio,
+and exercise actual player bindings.
+
+Two sustained commands (14/3C) remain unsupported rather than receiving fabricated
+endings. Other gameplay-event bindings still use provisional cues. PSG voice count,
+noise gating/timbre and frequency range require documented adaptations; source
+command-queue contention, detailed listening and hardware/PAL validation remain
+unfinished. See `reference/audio_audit.md`.
