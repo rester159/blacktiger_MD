@@ -194,3 +194,10 @@ remains suspended during the encounter. Upper motion/damage/retirement matches 4
 ticks; cartridge checks cover both compositions, independent upper defeat, and forced cleanup.
 Arena gates/camera setup, the remaining boss families, and full victory presentation still require
 work. These controlled checks do not establish natural round completion.
+
+The ordinary stone enemy (bank 4 9A4C) now shares the stacked upper-component movement
+kernel instead of generic walking/shooting. Its own initial animation, proximity immunity, four
+two-HP damage layers, worn form, 15-point defeat, random coin drop, and persistent retirement
+are native. The common movement suite now compares 7,260 source ticks including the ordinary
+variant. A real round-four row passes cartridge checks for immunity, damage, drops and retirement.
+This ordinary actor does not clear pools, suspend spawns, lock the player, or clear the round.

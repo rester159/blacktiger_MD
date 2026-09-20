@@ -23,7 +23,7 @@ with tempfile.TemporaryDirectory() as folder:
  for(int i=0;i<16;i++)out[i]=v[i];}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
  if upper:
-  content=(tmp/'stub.c').read_text().replace('bosses[0].segment=boss_roots[root];','init(0,1,0);bosses[0].segment=boss_upper_roots[root];')
+  content=(tmp/'stub.c').read_text().replace('bosses[0].segment=boss_roots[root];','if(variant==2){for(int i=0;i<66;i++)if(stone_kinds[i])game.actors[0].def=i;}init(0,variant==2?4:1,0);bosses[0].segment=boss_upper_roots[root];')
   (tmp/'stub.c').write_text(content)
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/data.c'),str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
  lib=C.CDLL(str(tmp/'b.dylib'));out=(C.c_int*16)();current=-1;count=0;clear_ticks=[]
@@ -42,5 +42,5 @@ with tempfile.TemporaryDirectory() as folder:
    assert list(out)[:15]==expected,(c['variant'],c['name'],tick,list(out),expected)
   elif tick==1 or not any(v['case']==case for v in clear_ticks):clear_ticks.append(dict(case=case,tick=tick))
   count+=1
- report={'passed':True,'source_body_ticks':count,'clear_events':clear_ticks,'scope':('Upper components: proximity, weighted movement, fractional jumps/falls, wall/ground response, four damage layers and independent death/retirement.' if upper else 'Main controllers: proximity, weighted movement, wall/ground response, fractional jumps/falls, damage phase and death animation/clear callback. Complete clear presentation remains separate.')}
+ report={'passed':True,'source_body_ticks':count,'clear_events':clear_ticks,'scope':('Upper components and ordinary stone enemy: proximity, weighted movement, fractional jumps/falls, wall/ground response, four damage layers and independent death/retirement.' if upper else 'Main controllers: proximity, weighted movement, wall/ground response, fractional jumps/falls, damage phase and death animation/clear callback. Complete clear presentation remains separate.')}
  (ROOT/('reports/'+oracle_name.replace('_','-')+'-tests.json')).write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

@@ -8,13 +8,14 @@ static const BossSegment *segments(const BossState *s) {return s->part?boss_uppe
 static void init(u16 slot,u8 part,u8 owner) {
  Actor *a=&game.actors[slot];BossState *s=&bosses[slot];
  animation_reset(&s->animation);s->part=part;s->owner=owner;
- s->segment=roots(s)[part>1?part+13:0];
+ s->segment=roots(s)[part==4?17:part>1?part+13:0];
  s->left=s->fraction=s->worn=s->vulnerable=s->pending=s->dying=0;
  a->life=part?boss_upper_layers:layered_boss_layers[layered_boss_kinds[a->def]-1];
- if(part)a->hp=boss_upper_health[layered_boss_kinds[a->def]-1];
+ if(part)a->hp=part==4?actor_defs[a->def].hp:boss_upper_health[layered_boss_kinds[a->def]-1];
 }
 void boss_spawn(u16 slot) {
  Actor *a=&game.actors[slot];u8 kind=layered_boss_kinds[a->def];u16 i;u8 part=1;
+ if(stone_kinds[a->def]){init(slot,4,255);return;}
  if(!kind)return;
  init(slot,0,slot);
  for(i=slot+1;i<MAX_ACTORS && part<boss_component_counts[kind-1];i++)if(!game.actors[i].active) {
@@ -27,14 +28,14 @@ u8 boss_present(void) {
 }
 u8 boss_contact_damage(u16 slot) {return bosses[slot].part?boss_upper_damage:actor_damage[game.actors[slot].def];}
 u8 boss_break_layer(Actor *a) {
- if(!layered_boss_kinds[a->def])return 0;
+ if(!layered_boss_kinds[a->def] && !stone_kinds[a->def])return 0;
  if(a->life>1){a->life--;a->hp=bosses[a-game.actors].part?boss_upper_reset_health:layered_boss_reset_health;game.sound=SND_HIT;return 1;}
  a->life=0;return 0;
 }
 
 u8 boss_hit(u16 slot,u8 damage) {
  Actor *a=&game.actors[slot];BossState *s=&bosses[slot];
- if(!layered_boss_kinds[a->def])return 0;
+ if(!layered_boss_kinds[a->def] && !stone_kinds[a->def])return 0;
  if(!s->pending && !s->dying) {
   if(a->hp>damage)a->hp-=damage;
   else {s->pending=1;s->vulnerable=0;a->state=1;}
@@ -73,7 +74,12 @@ void boss_step(u16 slot) {
   if(boss_break_layer(a)) {s->worn=1;s->vulnerable=1;a->state=0;select_segment(s,choose(slot));}
   else {
    a->state=2;game.kills++;game.sound=SND_KILL;
-   if(s->part) {s->dying=2;game.score+=boss_upper_score;select_segment(s,roots(s)[13]);}
+   if(s->part) {
+    if(s->part==4) {
+     game.spawned[a->source]=2;
+     loot_spawn(drop_categories[a->def],loot_random>>8,PX(a->x),PX(a->y));
+    }
+    s->dying=2;game.score+=boss_upper_score;select_segment(s,roots(s)[13]);}
    else {
     u16 i;game.boss_dead=1;s->dying=1;s->animation.remaining=1;game.spawned[a->source]=2;
     game.score+=layered_boss_score;
