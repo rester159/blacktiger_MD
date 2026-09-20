@@ -140,3 +140,10 @@ and the original random recurrence. Host checks match 896 original selections, 1
 ticks, seven rewards, pool exhaustion, and 448 random updates. Cartridge checks exercise skeleton
 death drops, collection and expiry. Its dedicated 33-slot pool does not yet reproduce competition
 with other source small actors; contact geometry and exact random update phase remain provisional.
+
+The stationary directional actor (bank 2 constructor B67F, 24 source placements) now uses its
+source facing/blink cycles and death sequence instead of firing generic turret projectiles.
+The reusable 32-direction aiming routine matches 512 original-ROM observations; eight controlled
+actor scenarios match 1,440 ticks, including nonfatal/fatal damage and persistence. A linked-ROM
+check covers a real spawn, stationary behavior, absence of placeholder shots, score and retirement.
+Contact geometry remains provisional. These tests do not establish a natural full-game route.

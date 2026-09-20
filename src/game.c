@@ -1,6 +1,7 @@
 #include "game.h"
 #include "assets.h"
 #include "loot.h"
+#include "sentry.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -107,6 +108,8 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (sentry_hit(a - game.actors, damage))
+        return;
     if (skeleton_hit(a - game.actors, damage))
         return;
     if (d->kind == HIDDEN_WALL && a->state)
@@ -162,6 +165,8 @@ static void spawn_actors(void) {
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
                 npc_spawn(j);
+                if (sentry_kinds[a->def])
+                    sentry_spawn(j);
                 if (skeleton_kinds[a->def] != 255)
                     skeleton_spawn(j);
                 if (actor_defs[s->def].kind == HIDDEN_WALL)
@@ -273,6 +278,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (sentry_kinds[a->def]) {
+        sentry_step(i);
+        if (a->active && !a->state && close) hurt();
         return;
     }
     if (skeleton_kinds[a->def] != 255) {

@@ -5,8 +5,8 @@ from pathlib import Path
 from test_runtime import Runner,state,put
 ROOT=Path(__file__).resolve().parents[1];rom=(ROOT/'out/release/rom.bin').read_bytes()
 meta=json.loads((ROOT/'reports/assets.json').read_text());contract=json.loads((ROOT/'reference/skeleton.json').read_text())
-def fixture(r,variant):
- target=contract['constructors'][variant];d=next(d['id'] for d in meta['actor_definitions'] if d['bank']==0 and d['address']==target)
+def fixture(r,variant,bank=0,constructor=None):
+ target=contract['constructors'][variant] if constructor is None else constructor;d=next(d['id'] for d in meta['actor_definitions'] if d['bank']==bank and d['address']==target)
  found=None
  for level,info in enumerate(meta['rounds']):
   for row in range(info['spawns']):

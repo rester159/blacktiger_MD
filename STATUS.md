@@ -58,3 +58,10 @@ animation ticks, seven rewards, full-pool refusal and 448 random updates. Cartri
 three actual skeleton death callbacks, collection and expiry. Native loot currently has its own
 33-slot pool; source competition with other small actors, exact random update phase and player
 contact bounds remain gaps. Remaining enemy families and compound bosses are still required.
+
+The stationary directional actor (bank 2 constructor B67F, 24 source placements) now uses its
+source facing/blink cycles and death sequence instead of firing generic turret projectiles.
+The reusable 32-direction aiming routine matches 512 original-ROM observations; eight controlled
+actor scenarios match 1,440 ticks, including nonfatal/fatal damage and persistence. A linked-ROM
+check covers a real spawn, stationary behavior, absence of placeholder shots, score and retirement.
+Contact geometry remains provisional. These tests do not establish a natural full-game route.
