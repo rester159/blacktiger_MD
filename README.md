@@ -61,6 +61,7 @@ Files:
 - `src/game.c`: native game systems, independent of SGDK rendering.
 - `src/animation.c`, `src/npc.c`: shared source-derived animation and eight NPC variants.
 - `src/video.c`: scrolling, tile/sprite caches, hardware sprite limits, HUD.
+- `src/skeleton.c`: shared skeleton movement, weapons, blocks, durability, and death.
 - `src/world.c`: sparse terrain changes, hidden walls, reveal effects, and rewards.
 - `src/audio.c`: native PSG effects.
 - `tools/extract.py`: source verification and asset conversion.
@@ -70,7 +71,8 @@ Files:
 
 ## Known gaps — required before calling this a finished port
 
-- Enemy families, attacks, and boss mappings remain provisional. Initial health is now checked
+- Most enemy families, attacks, and boss mappings remain provisional; the three skeleton variants
+  now have source-derived shared state machines. Initial health is now checked
   against witnessed constructor states for 65 definitions; initial graphics are checked for 51.
   Remaining graphics use explicit fallbacks. Later animation, difficulty-dependent state, and
   multi-piece boss composition still need source-derived implementations.
@@ -124,3 +126,10 @@ their open state across camera despawns. The converter compiles original reveal/
 Original-ROM oracle checks cover all 39 patch writes and 12 reward handlers; actual cartridge tests
 cover every source row. Exact weapon/contact bounds, screen-attack target selection, and maximum-HP
 progression remain part of the unfinished combat/player systems.
+
+Three skeleton variants now use native state machines with 12/36/48 durability, directional
+blocking, original animation timing, obstacle jumps, falling, independent weapon actors, and death
+sequences. Thirty controlled original-ROM scenarios match 2,190 native ticks and 822 weapon frames.
+Linked-cartridge tests verify their actual source spawns, damage, guard behavior, scores, and
+retirement. Random death drops and exact player/body/weapon collision bounds remain unimplemented
+or provisional; these checks do not establish a complete natural playthrough.

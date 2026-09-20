@@ -270,6 +270,12 @@ static void sprites(void) {
         code = d->code + (d->frames > 1 ? ((a->timer / 8) % d->frames) * 2 : 0);
         x = PX(a->x) - game.cam_x;
         y = PX(a->y) - game.cam_y;
+        if (skeleton_kinds[a->def] != 255) {
+            const AnimFrame *f = skeleton_frame(i);
+            if (f)
+                body(f->code, f->palette, x, y, f->flip);
+            continue;
+        }
         if (d->kind == HIDDEN_WALL) {
             const AnimFrame *f = hidden_frame(i);
             if (f)
@@ -286,6 +292,12 @@ static void sprites(void) {
             body(code, d->palette, x, y, a->face > 0);
         else
             piece(code, d->palette, x, y, 0);
+    }
+    for (i = 0; i < MAX_ACTORS; i++) {
+        s16 wx, wy;
+        const AnimFrame *f = skeleton_weapon_frame(i, &wx, &wy);
+        if (f)
+            piece(f->code, f->palette, wx - game.cam_x, wy - game.cam_y, f->flip);
     }
     for (i = 0; i < rounds[game.round].patch_count; i++) {
         const AnimFrame *f = world_effect(i);

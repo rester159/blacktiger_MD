@@ -1,6 +1,7 @@
 #include "game.h"
 #include "assets.h"
 #include "npc.h"
+#include "skeleton.h"
 #include "world.h"
 Game game;
 static s16 absolute(s16 x) {
@@ -37,6 +38,7 @@ void game_round(u8 round) {
     zero(game.spawned, sizeof game.spawned);
     npc_reset();
     world_reset();
+    skeleton_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
     game.boss_dead = 0;
@@ -102,6 +104,8 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (skeleton_hit(a - game.actors, damage))
+        return;
     if (d->kind == HIDDEN_WALL && a->state)
         return;
     a->hit = 10;
@@ -152,6 +156,8 @@ static void spawn_actors(void) {
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
                 npc_spawn(j);
+                if (skeleton_kinds[a->def] != 255)
+                    skeleton_spawn(j);
                 if (actor_defs[s->def].kind == HIDDEN_WALL)
                     hidden_spawn(j);
                 game.spawned[i] = 1;
@@ -261,6 +267,12 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (skeleton_kinds[a->def] != 255) {
+        skeleton_step(i);
+        if (a->active && !a->state && close)
+            hurt();
         return;
     }
     if (d->kind == HIDDEN_WALL) {
@@ -483,6 +495,16 @@ void game_tick(u16 input) {
     }
     world_tick();
     player_step(input, pressed);
+    skeleton_weapons_tick();
+    {
+        u16 i;
+        for (i = 0; i < MAX_ACTORS; i++) {
+            s16 x, y;
+            if (skeleton_weapon_frame(i, &x, &y) && absolute(x - PX(p->x) - 8) < 16 &&
+                absolute(y - PX(p->y) - 8) < 20)
+                hurt();
+        }
+    }
     spawn_actors();
     {
         u16 i;

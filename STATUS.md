@@ -43,3 +43,13 @@ handlers. The host tests check all cells under 55 patch combinations; cartridge 
 rows, live VDP pixels, hits and rewards. Original MAME checks independently exercise 39 patch writes
 and 12 reward dispatches. Weapon/contact bounds, maximum-HP progression, screen-attack enemy
 selection and persistence across death still need broader arcade matching.
+
+Three skeleton variants (source constructors 93ED/9B85/A35C) now share a native C transition
+routine and source-compiled animation segments. Durability is 12/36/48 rather than the one-point
+callback trigger; shield variants block directionally. Walking, approach/swing, separate weapon
+actors, obstacle jumps, falling, damage, persistence and death match 2,190 original-ROM ticks across
+30 controlled scenarios, plus 822 weapon frame comparisons. Cartridge tests cover each actual
+source constructor, nonfatal/fatal projectiles, shields, score, and retirement. Random death drops
+remain missing; body/weapon/player hitboxes still use provisional native geometry. Next shared
+work should include the common drop/reward system and remaining enemy families, followed by
+compound boss composition and natural progression validation.

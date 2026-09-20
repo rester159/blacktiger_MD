@@ -49,7 +49,7 @@ def test():
  for a in s.actors:a.active=0
  for q in s.shots:q.active=0
  for i in range(160):s.spawned[i]=2
- a=s.actors[0];a.active=1;a.definition=1;a.hp=1;a.hit=0;a.source=0;a.x=176*256;a.y=896*256;a.vx=a.vy=0;a.face=-1
+ a=s.actors[0];a.active=1;a.definition=8;a.hp=1;a.hit=0;a.source=0;a.x=176*256;a.y=896*256;a.vx=a.vy=0;a.face=-1
  kills=s.kills;put(r,s);r.run(90,1<<1);s=state(r);check('projectile defeats enemy',s.kills>kills)
  s.p.invincible=0;s.p.armor=2;a=s.actors[0];a.active=1;a.hp=12;a.hit=0;a.x=s.p.x;a.y=s.p.y;a.vy=0;put(r,s);r.run(8);s=state(r);check('armor absorbs contact',s.p.armor==1 and s.p.hp==4)
   # Shop purchase uses the same public input path after state injection.
