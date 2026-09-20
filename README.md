@@ -62,6 +62,7 @@ Files:
 - `src/game.c`: native game systems, independent of SGDK rendering.
 - `src/player_motion.c`: source-derived locomotion, chain attacks and jumping attacks.
 - `src/player_dagger.c`: three-way dagger volleys, terrain impacts and hit explosions.
+- `src/round_clear.c`: shared victory animation, armor restoration and round Zenny bonuses.
 - `src/animation.c`, `src/npc.c`: shared source-derived animation and eight NPC variants.
 - `src/video.c`: scrolling, tile/sprite caches, hardware sprite limits, HUD.
 - `src/loot.c`: common source drop tables, coin pickup animation/rewards, and random recurrence.

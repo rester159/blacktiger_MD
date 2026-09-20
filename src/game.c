@@ -1,3 +1,4 @@
+#include "round_clear.h"
 #include "actor_dispatch.h"
 #include "bonus.h"
 #include "music.h"
@@ -64,6 +65,7 @@ static u8 support(s16 x, s16 y) {
 }
 static u8 restart_pending,loaded_round=255;
 void game_round(u8 round) {
+    round_clear_reset();
     music_request=0x21+(round&7);
     Player *p = &game.p;
     const Round *r = &rounds[round];
@@ -136,10 +138,11 @@ void game_new(void) {
     game_round(0);
 }
 void game_boss_clear(void) {
+ round_clear_reset();armor_break_reset();game.p.attack=0;
  player_attack=(PlayerAttack){0};player_daggers_reset();
  zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
  missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();
- game.boss_dead=1;game.mode=CLEAR;game.mode_timer=180;game.sound=SND_CLEAR;
+ game.boss_dead=1;game.mode=CLEAR;game.mode_timer=0;game.sound=SND_CLEAR;
 }
 static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
     u16 i;
@@ -204,10 +207,7 @@ static void actor_hit(Actor *a, u8 damage) {
         loot_spawn(drop_categories[a->def], loot_random >> 8, PX(a->x), PX(a->y));
     game.sound = SND_KILL;
     if (d->kind == BOSS) {
-        game.boss_dead = 1;
-        game.mode = CLEAR;
-        game.mode_timer = 180;
-        game.sound = SND_CLEAR;
+        game_boss_clear();
     }
 }
 /* Ordinary scenes need one actor scan, not one full scan per boss family. */
@@ -789,12 +789,19 @@ void game_tick(u16 input) {
         return;
     }
     if (game.mode == CLEAR) {
-        if (game.mode_timer)
-            --game.mode_timer;
-        else if (game.round < 7)
-            game_round(game.round + 1);
-        else
-            game.mode = ENDING;
+        if(!round_clear.active) {
+            if(player_motion.jumping || player_motion.falling || player_motion.ladder) {
+                player_step(player_motion.ladder?IN_DOWN:0,0);
+                game.cam_x=bound_axis(PX(p->x)-112,0,rounds[game.round].width-256);
+                game.cam_y=bound_axis(PX(p->y)-144,0,rounds[game.round].height-224);
+                return;
+            }
+            round_clear_start();
+        }
+        if(round_clear_step()) {
+            if(game.round<7)game_round(game.round+1);
+            else game.mode=ENDING;
+        }
         return;
     }
     if (game.mode == GAMEOVER) {

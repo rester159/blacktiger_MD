@@ -110,7 +110,7 @@ void boss_step(u16 slot) {
    break;
   case 3:if(ground(slot,16,32))target=choose(slot);else gravity(s,64);break;
   case 6:a->active=0;return;
-  case 5:a->active=0;game.boss_dead=1;game.mode=CLEAR;game.mode_timer=180;game.sound=SND_CLEAR;return;
+  case 5:game_boss_clear();return;
   default:return;
   }
   select_segment(s,target);

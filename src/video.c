@@ -3,6 +3,7 @@
 #include "armor_break.h"
 #include "player_motion.h"
 #include "player_death.h"
+#include "round_clear.h"
 #include "player_dagger.h"
 #include "assets.h"
 #include "container.h"
@@ -30,7 +31,7 @@ static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
 static u8 line_count[28], sprite_slot_for_key[16384];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
-static u8 last_round = 255, last_mode = 255, last_opened;
+static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4];
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
 static u16 word_at(s16 x, s16 y) {
@@ -316,7 +317,8 @@ static void sprites(void) {
     u16 i;
     u8 pose=player_motion.pose/2;
     u8 f=player_motion.frame&7;
-    const HeroFrame *h=&hero_frames[p->armor!=0][pose][player_motion.selector*8+(f&7)];
+    const ClearFrame *clear=game.mode==CLEAR?round_clear_frame():0;
+    const HeroFrame *h=&hero_frames[(clear && clear->hold?round_clear.original_armor:p->armor)!=0][pose][player_motion.selector*8+(f&7)];
     s16 x = PX(p->x) - game.cam_x, y = PX(p->y) - game.cam_y;
     sprite_count = sprite_uploads = 0;
     if (++epoch == 0) {
@@ -325,10 +327,17 @@ static void sprites(void) {
         memset(body_stamp, 0, sizeof body_stamp);
     }
     memset(line_count, 0, sizeof line_count);
-    if(game.mode==DEAD && player_death_frame()) {
+    if(game.mode==CLEAR && round_clear.phase==2) {
+        /* The hero has departed before the Zenny award. */
+    } else if(clear && !clear->hold) {
+        for(i=0;i<6;i++)if(clear->visible&(1<<i)) {
+            const ClearSprite *c=&clear->sprites[i];
+            piece(c->code,c->palette,(u8)(round_clear.x+c->dx),(u8)(round_clear.y+c->dy),c->flip);
+        }
+    } else if(game.mode==DEAD && player_death_frame()) {
         const PlayerDeathFrame *d=player_death_frame();
         for(i=0;i<2;i++)body(d->code[i],d->palette[i],player_death.x[i],player_death.y[i],d->flip[i]);
-    } else if (!p->invincible || (game.frame & 4)) {
+    } else if (game.mode==CLEAR || !p->invincible || (game.frame & 4)) {
         body(h->code[0] - (h->flip ? 1 : 0), 0, x, y, h->flip);
         if(game.mode!=DEAD)piece(h->code[4]+p->weapon-1, 0, x + h->dx, y + h->dy, h->weapon_flip);
     }
@@ -446,7 +455,8 @@ static void digits(char *p, u16 v, u16 count) {
     }
 }
 static void overlay(void) {
-    u8 m = game.mode, changed = m != last_mode;
+    u8 m = game.mode, changed = m != last_mode || (m==CLEAR && last_clear_phase!=round_clear.phase);
+    last_clear_phase=round_clear.phase;
     char b[40];
     u16 stats = (game.p.hp << 12) | (game.p.armor << 8) | (game.p.weapon << 4) | game.p.lives;
     if (changed) {
@@ -502,7 +512,9 @@ static void overlay(void) {
         }
         text(3, 23, "A BUY   B / START EXIT");
     } else if (m == CLEAR) {
-        text(10, 11, "ROUND CLEAR");
+        if(round_clear.phase==2) {
+            text(10,11,"Zenny BONUS");digits(b,round_clear_reward(game.round),5);b[5]=0;text(13,14,b);
+        }
     } else if (m == DEAD)
         text(10, 11, "TRY AGAIN...");
     else if (m == GAMEOVER) {

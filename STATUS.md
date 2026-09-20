@@ -757,3 +757,19 @@ behavior selector, preserving movement/contact ordering and early boss paths.
 The 180-frame entry benchmark improves in all eight rounds (119–173 updates),
 with the existing pixel fixtures unchanged. See `reference/dispatch_audit.md`.
 Sustained 60 Hz and full natural routes remain unverified.
+
+## Native round completion
+
+The shared clear routine now waits for landing or ladder descent, plays the
+source victory sequence for all five weapons, restores missing armor to level 2
+without healing, and awards 300/500/800/1200/1600/2400/4800 Zenny across rounds
+1–7. Round 8 branches to the ending after its shorter common animation and
+skips the bonus. Ordinary bonus holds last 240 updates.
+
+The source capture covers 20 complete animation profiles and 32 payout cases;
+the native host comparison checks 3,080 animation updates, sprite bytes, timing,
+resource changes and integer overflow. Cartridge fixtures exercise all 20
+profiles, their hardware victory sprites, the airborne landing wait, and both
+round-transition branches. Boss families share one clear
+entry point. Source bonus-screen backgrounds, fades, final cutscene, and a
+natural complete playthrough remain unfinished. See `reference/clear_audit.md`.

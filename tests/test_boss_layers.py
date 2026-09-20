@@ -7,7 +7,7 @@ ref=json.loads((ROOT/'reference/boss_layers_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/boss_layers_oracle_events.txt'),('lua_sha256','tools/boss_layers_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
 defs=json.loads((ROOT/'reports/assets.json').read_text())['actor_definitions']
 with tempfile.TemporaryDirectory() as folder:
- tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text();stubs=['#include "assets.h"','#include "boss.h"','Game game;','u8 terrain(s16 x,s16 y){return 0;}']
+ tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text();stubs=['#include "assets.h"','#include "boss.h"','Game game;','void game_boss_clear(void){for(int i=0;i<MAX_ACTORS;i++)game.actors[i].active=0;game.boss_dead=1;game.mode=CLEAR;game.mode_timer=0;game.sound=SND_CLEAR;}','u8 terrain(s16 x,s16 y){return 0;}']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''void setup(int def,int hp){game=(Game){0};game.actors[0].def=def;game.actors[0].hp=hp;game.actors[0].active=1;boss_spawn(0);}

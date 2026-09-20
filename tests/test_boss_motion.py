@@ -8,7 +8,7 @@ ref=json.loads((ROOT/('reference/'+oracle_name+'_oracle.json')).read_text())
 for key,path in [('trace_sha256','reference/'+oracle_name+'_oracle_events.txt'),('lua_sha256','tools/'+oracle_name+'_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text()
- stubs=['#include "assets.h"','Game game;','static int wall;','u8 terrain(s16 x,s16 y){return y>=160 || (wall && x>=160 && x<176 && y>=wall)?3:0;}','#include "'+str(ROOT/'src/boss.c')+'"']
+ stubs=['#include "assets.h"','Game game;','void game_boss_clear(void){for(int i=0;i<MAX_ACTORS;i++)game.actors[i].active=0;game.boss_dead=1;game.mode=CLEAR;game.mode_timer=0;game.sound=SND_CLEAR;}','static int wall;','u8 terrain(s16 x,s16 y){return y>=160 || (wall && x>=160 && x<176 && y>=wall)?3:0;}','#include "'+str(ROOT/'src/boss.c')+'"']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''void setup(int variant,int root,int px,int y,int obstacle,int sample) {

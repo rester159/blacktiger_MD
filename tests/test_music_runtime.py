@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """All eight native FM tracks produce cartridge audio and keep display-clock tempo."""
 import array,json,hashlib,math,wave
-from test_runtime import ROOT,Runner,state,put
+from test_runtime import finish_clear,ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30);cases=[]
 for level in range(8):
  if level:
-  s=state(r);s.mode=5;s.mode_timer=1;put(r,s);r.run(20)
+  s=state(r);s.mode=5;s.mode_timer=1;finish_clear(r,s);r.run(20)
  for _ in range(120):
   if r.read('music_round',1)[0]==level and r.read('music_active',1)[0]==1:break
   r.run(1)

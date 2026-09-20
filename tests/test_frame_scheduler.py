@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Early VBlank flushes stay in blanking and never double-step NTSC frames."""
 import hashlib,json
-from test_runtime import ROOT,Runner,state,put
+from test_runtime import finish_clear,ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);cases=[]
 for level in range(8):
  if level:
-  s=state(r);s.mode=5;s.mode_timer=1;put(r,s);r.run(12)
+  s=state(r);s.mode=5;s.mode_timer=1;finish_clear(r,s);r.run(12)
  s=state(r);s.p.invincible=10000;s.p.hp=4;s.p.lives=3;put(r,s);r.run(30)
  start=state(r).frame;before=int.from_bytes(r.read('early_vblank_flushes'),'big')
  last=start;peak=0

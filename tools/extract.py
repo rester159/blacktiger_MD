@@ -152,6 +152,8 @@ def main():
     generate_music()
     from extract_armor_break import generate as generate_armor_break
     generate_armor_break(Source(args.source))
+    from extract_clear import generate as generate_clear
+    generate_clear(Source(args.source))
     from extract_player_death import generate as generate_player_death
     generate_player_death(Source(args.source))
     from extract_player_dagger import generate as generate_player_dagger

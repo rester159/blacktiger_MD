@@ -12,6 +12,9 @@ class Shot(BE):_fields_=[('x',S32),('y',S32),('vx',S16),('vy',S16),*[(k,U8) for 
 class Game(BE):_fields_=[('p',Player),('actors',Actor*24),('shots',Shot*18),('spawned',U8*160),('score',U32),*[(k,U16) for k in ('coins','time','clock','frame','cam_x','cam_y','previous_input','mode_timer')],*[(k,U8) for k in ('round','mode','sound','shop_item','rescued','boss_dead')],('kills',U16),('rescue_actor',U8),('rescue_kind',U8),('player_low',U8)]
 def state(r):return Game.from_buffer_copy(r.read('game',C.sizeof(Game)))
 def put(r,s):r.write('game',0,bytes(s))
+def finish_clear(r,s):
+ """Inject the end-of-clear hold when testing unrelated round-entry behavior."""
+ r.write("round_clear",0,bytes([2,1,0,0,0,0,0,0]));put(r,s)
 def save(r,name):r.capture(name+'.png')
 def check_video_cache(r,s):
  level=s.round;width=128 if level==2 else 256;height=256 if level==2 else 128
@@ -74,7 +77,7 @@ def test():
  # Every next-round edge uses production CLEAR -> game_round -> video_round.
  for level in range(8):
   if level:
-   s=state(r);s.mode=5;s.mode_timer=1;put(r,s);r.run(8)
+   s=state(r);s.mode=5;s.mode_timer=1;finish_clear(r,s);r.run(8)
   s=state(r);check(f'round {level+1} entry',s.round==level and s.mode==1)
   s.p.invincible=10000;put(r,s);r.run(30);save(r,f'tested-round{level+1}')
   check(f'round {level+1} cache',int.from_bytes(r.read('video_cache_faults'),'big')==0)
@@ -84,6 +87,6 @@ def test():
   r.run(3,8);r.run(3);check_video_cache(r,state(r));check(f'round {level+1} live VRAM',True)
   # Reset round on death if the open route hits a pit, preserving the next entry test.
   s=state(r);s.mode=1;s.round=level;s.p.hp=4;s.p.lives=3;put(r,s)
- s=state(r);s.mode=5;s.mode_timer=1;put(r,s);r.run(5);check('ending edge',state(r).mode==6);save(r,'tested-ending')
+ s=state(r);s.mode=5;s.mode_timer=1;finish_clear(r,s);r.run(5);check('ending edge',state(r).mode==6);save(r,'tested-ending')
  out={'cadence':cadence,'full_rate_all_routes':all(x['full_rate'] for x in cadence),'checks':checks,'passed':len(checks),'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),'frames':r.frames,'limitations':['State injection covers entry and subsystem behavior; does not prove natural completion or arcade fidelity.']};(ROOT/'reports/runtime-tests.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out,indent=2));r.close()
 if __name__=='__main__':test()
