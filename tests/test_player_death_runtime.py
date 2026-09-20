@@ -5,7 +5,7 @@ from test_runtime import ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);cases=[]
 for left in (0,1):
  s=state(r);s.mode=2;put(r,s);r.run(20)
- s=state(r);s.mode=1;s.cam_x=0;s.cam_y=688;s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.hp=1;s.p.armor=0;s.p.invincible=0;s.p.climb=0;s.p.lives=3;s.time=100;s.clock=0
+ s=state(r);s.mode=1;s.frame=9;s.cam_x=0;s.cam_y=688;s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.hp=1;s.p.armor=0;s.p.invincible=0;s.p.climb=0;s.p.lives=3;s.time=100;s.clock=0
  for a in s.actors:a.active=0
  for q in s.shots:q.active=0
  for i in range(len(s.spawned)):s.spawned[i]=2

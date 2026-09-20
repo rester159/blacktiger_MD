@@ -633,3 +633,19 @@ allocation competition remains separate from this dedicated four-slot effect poo
 The hazard oracle previously addressed F3B0/E919 for armor/invulnerability; it now
 uses the audited F3AD/F424 and its 126 observations were regenerated and passed.
 Audio remains placeholder; this implements sprite behavior, not original sound.
+
+## Shared game-loop performance
+
+Game-loop profiling identified repeated empty-pool collision scans and repeated
+boss-family scans. Projectile collision passes now determine populated families
+once, retain the original family/contact order, and skip empty families. Calls
+for inactive projectiles are avoided; a single actor scan handles ordinary-scene
+boss checks. With no chain or flying dagger, the weapon collision pass returns
+immediately. No animation, movement, damage, or spawn cadence was reduced.
+
+The same round-entry benchmark improved from 90–157 to 107–172 logic updates per
+180 video frames. Sampled median game cost fell 22–38%; the exact per-round results
+and both cartridge hashes are in reports/performance-comparison.json. Faster
+simulation changes distance traveled during this video-frame window, so this is
+an approximate route sample, not a matched-state microbenchmark. Full-rate play,
+worst-case loads, PAL and hardware performance remain unfinished.

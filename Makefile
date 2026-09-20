@@ -13,6 +13,7 @@ res/generated/object_patterns.bin: tools/extract.py tools/extract_armor_break.py
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
 test: all
+	.venv/bin/python tools/profile_runtime.py
 	.venv/bin/python tests/test_armor_break.py
 	.venv/bin/python tests/test_armor_break_runtime.py
 	.venv/bin/python tests/test_player_death.py
