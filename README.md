@@ -80,7 +80,7 @@ Files:
   remain unverified. Actor-specific evidence is in `STATUS.md` and `reports/`.
 - Walking, crouching, ladders, jumps and falls now match controlled arcade traces.
   Chain and dagger attacks now also have source comparisons. Player hurt/death,
-  alternate collision postures, some compound-boss geometry and global camera limits
+  screen-edge collision behavior, some compound-boss geometry and global camera limits
   remain unfinished. See `reference/player_audit.md`.
 - Shops, rewards, progression and restarts have subsystem checks; complete rescue,
   round-clear and ending presentation and natural progression still need validation.

@@ -1,8 +1,9 @@
 #include "hazard.h"
 #include "assets.h"
 u8 player_contact(s16 x, s16 y, u8 half_width, u8 half_height) {
-    s16 dx = PX(game.p.x) + 8 - x, dy = PX(game.p.y) + 8 - y;
-    s16 width = half_width + contact_player_width, height = half_height + contact_player_height;
+    s16 dx = PX(game.p.x) + 8 - x, dy = PX(game.p.y) + (game.player_low?18:8) - y;
+    s16 width = (game.player_low?3:half_width) + contact_player_width;
+    s16 height = (game.player_low?3:half_height) + contact_player_height;
     return dx >= -width && dx <= width && dy >= -height && dy <= height;
 }
 u8 actor_contact(u16 slot) {

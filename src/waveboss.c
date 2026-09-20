@@ -78,7 +78,7 @@ void waveboss_seeds_tick(void){
 }
 const AnimFrame *waveboss_seed_frame(u16 slot){WaveBossSeed *p=&waveboss_seeds[slot];return p->active && p->animation.remaining?animation_current(&p->animation,waveboss_segments[p->segment].clip):0;}
 u8 waveboss_player_contact(u16 slot){
- Actor *a=&game.actors[slot];return large_player_contact(&waveboss_shapes[wavebosses[slot].profile],PX(a->x)-game.cam_x,PX(a->y)-game.cam_y,PX(game.p.x)-game.cam_x,PX(game.p.y)-game.cam_y,contact_player_width,contact_player_height,0);
+ Actor *a=&game.actors[slot];return large_player_contact(&waveboss_shapes[wavebosses[slot].profile],PX(a->x)-game.cam_x,PX(a->y)-game.cam_y,PX(game.p.x)-game.cam_x,PX(game.p.y)-game.cam_y,contact_player_width,contact_player_height,game.player_low);
 }
 u8 waveboss_weapon_contact(u16 slot,s16 x,s16 y,u8 dagger){
  Actor *a=&game.actors[slot];if(!waveboss_vulnerable(slot))return 0;

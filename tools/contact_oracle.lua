@@ -29,6 +29,7 @@ for id,c in ipairs(cases) do
  p:write_u8(actor+16,c.width);p:write_u8(actor+17,c.height);p:write_u8(actor+13,39)
  p:write_u8(0xf400,0x80);be(0xf401,128+c.dx);be(0xf403,96+c.dy)
  p:write_u8(0xf40b,3);p:write_u8(0xf40c,8)
+ p:write_u8(0xf426,c.low);p:write_u8(0xf412,c.jumping)
  call(c.pool==32 and 0x3174 or 0x34d9)
  emit(string.format('CONTACT|%d|%d',id-1,p:read_u8(0xf400)))
 end

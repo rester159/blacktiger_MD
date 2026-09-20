@@ -43,7 +43,7 @@ const AnimFrame *missile_frame(u16 slot) {
 u8 missile_player_contact(u16 slot) {
  const Missile *m=&missiles[slot];s16 dx,dy,width,height;
  if(!m->active || m->dying || (game.frame&1))return 0;
- dx=PX(game.p.x)+8-m->x;dy=PX(game.p.y)+8-m->y;
- width=m->width+contact_player_width;height=m->height+contact_player_height;
+ dx=PX(game.p.x)+8-m->x;dy=PX(game.p.y)+(game.player_low?18:8)-m->y;
+ width=(game.player_low?3:m->width)+contact_player_width;height=(game.player_low?3:m->height)+contact_player_height;
  return dx>=-width && dx<=width && dy>=-height && dy<=height;
 }

@@ -167,3 +167,35 @@ compound-boss contact/weak-point geometry, full low-posture player collision,
 chain-hit spark and sounds, fifth-tier held-weapon palette/flip, source attack-state
 cleanup across every rescue/death/status task, and natural full-game balance/routes.
 The source death record format audited above remains to be implemented.
+
+## Crouching contact integration
+
+The cartridge exports `Game.player_low = F426 && !F412` after its player update.
+Small/medium contacts shift the player origin down ten pixels and replace both
+actor half extents with 3 while crouched (source3174/34D9); the player half sizes
+remain 3/8. Thus the crouched box is not merely a shortened standing box. Jumping
+always selects normal contact even when F426 remains set. Ordinary actors, lethal
+zones, collectibles, shared projectile contacts, skeleton weapons, missile actors,
+statue/hunter shells and explosions use this rule. Wave bosses and dragons now
+receive that flag in their already-source-checked alternate large-contact helpers.
+
+2,352 original-ROM comparisons cover twelve small/medium constructor shapes and
+all low/jump combinations. Eighteen linked-cartridge one-contact-tick cases verify
+real Down input changes collision and a live jump overrides the stored low bit.
+Screen-coordinate wrapping outside the tested interior and remaining compound-boss
+contact models still need completion.
+
+## Death initialization and direction leads
+
+Fixed2253 selects bank6 template B1CC and copies64 bytes to F400. Its tail initializes
+F43D=1 and F43E=9C07, so the death loader's first +9 reaches a 00 marker at9C10;
+8524 then chooses its animation root. Normal lethal damage fixed2F99 clears F41E,
+HP and held/hit sprites, marks F400=40, and sets F41F=1 if player screen-X low byte
+is less than the damaging actor's screen-X low byte, otherwise0. Source47F2 lethal
+hazards set F41E=1 and clear chain sprites; hazard death chooses direction from the
+player selector in8524. Time-expiry fixed2B83 sets normal death and derives F41F
+from (selector+1)&4. Existing native `player_hurt` lacks a source actor position
+argument, so accurate normal death direction will need passed contact context.
+Fixed2013 after animation completion owns resource/persistence reset already
+covered by the restart subsystem; its presentation/continue scheduling is still
+separate. Source armor break is fixed7A09, also called by hazard/time death.

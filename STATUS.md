@@ -3,8 +3,8 @@
 Deliverable: an SGDK development cartridge and a reproducible new repository.
 User's requested complete native Black Tiger port: **not achieved**.
 
-The main remaining shared systems are player hurt/death, complete collision
-postures and compound-boss contact geometry, global camera/scanner
+The main remaining shared systems are player hurt/death, compound-boss contact
+geometry and screen-edge behavior, global camera/scanner
 cadence, presentation and audio. All eight maps use one renderer and game loop;
 normal locomotion and the known major enemy/boss families now have native routines.
 Injected actor/ending tests do not establish natural full-game completion.
@@ -600,3 +600,12 @@ pass with body-damage fixtures isolated from independently hittable projectiles.
 Player death, alternate contact postures, some compound-boss geometry, global scan
 ordering, impact presentation and audio remain unfinished; these checks do not
 prove a natural full-game route. See `reference/player_audit.md` for exact scope.
+
+
+Crouching now changes live collision as well as graphics. Small/medium actor
+contacts, ordinary projectiles, skeleton weapons and statue/hunter explosions use
+the source low-posture origin and fixed actor extents; an active jump overrides
+that posture. Wave bosses and dragons now use their alternate contact branches.
+Checks match 2,352 source boundary cases across twelve shapes and include eighteen
+real-input cartridge collision cases. Screen-edge wrapping and remaining compound
+boss geometry are not established by those interior-boundary checks.

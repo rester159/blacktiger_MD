@@ -13,6 +13,7 @@ res/generated/object_patterns.bin: tools/extract.py tools/extract_player_dagger.
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
 test: all
+	.venv/bin/python tests/test_posture_runtime.py
 	.venv/bin/python tests/test_player_weapon_runtime.py
 	.venv/bin/python tests/test_chain_actor.py
 	.venv/bin/python tests/test_player_dagger.py

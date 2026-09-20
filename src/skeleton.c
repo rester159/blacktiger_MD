@@ -247,8 +247,8 @@ u8 skeleton_weapon_contact(u16 slot) {
     if (!s->weapon_active || !s->weapon.remaining) return 0;
     p = profile(slot);
     dx = PX(game.p.x) + 8 - s->wx;
-    dy = PX(game.p.y) + 8 - s->wy;
-    width = p->weapon_width + contact_player_width;
-    height = p->weapon_height + contact_player_height;
+    dy = PX(game.p.y) + (game.player_low?18:8) - s->wy;
+    width = (game.player_low?3:p->weapon_width) + contact_player_width;
+    height = (game.player_low?3:p->weapon_height) + contact_player_height;
     return dx >= -width && dx <= width && dy >= -height && dy <= height ? p->weapon_damage : 0;
 }

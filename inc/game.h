@@ -91,7 +91,7 @@ typedef struct {
     u16 coins, time, clock, frame, cam_x, cam_y, previous_input, mode_timer;
     u8 round, mode, sound, shop_item, rescued, boss_dead;
     u16 kills;
-    u8 rescue_actor, rescue_kind;
+    u8 rescue_actor, rescue_kind, player_low;
 } Game;
 extern Game game;
 void game_new(void);

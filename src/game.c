@@ -91,7 +91,7 @@ void game_round(u8 round) {
     p->invincible = 120;
     p->face = 0;
     p->hp = progress_max_hp;
-    motion_reset();
+    motion_reset();game.player_low=0;
     player_attack=(PlayerAttack){0};player_daggers_reset();
 }
 void game_new(void) {
@@ -274,6 +274,7 @@ static void player_step(u16 in, u16 pressed) {
     p->grounded=!player_motion.jumping && !player_motion.falling && !p->climb;
     p->face=((player_motion.selector+1)&4)!=0;
     reinforcement_player_low=player_motion.low;
+    game.player_low=player_motion.low && !player_motion.jumping;
     if(!was_jumping && player_motion.jumping)game.sound=SND_JUMP;
     if(p->invincible)--p->invincible;
     p->attack=player_attack.active;

@@ -98,8 +98,8 @@ u8 hunter_shell_hit_at(s16 x,s16 y,u8 kind) {return hit_at(hunter_shells,x,y,kin
 static u8 player_contact(StatueShell *s,u8 blast,u8 hunter) {
  s16 dx,dy,w,h;
  if(!s->active || (s->mode&2) || s->pending || (game.frame&1)!=blast)return 0;
- dx=PX(game.p.x)+(blast?0:8)-s->x;dy=PX(game.p.y)+(blast?0:8)-s->y;
- w=(blast?12:hunter?2:4)+contact_player_width;h=(blast?(hunter?12:10):hunter?2:4)+contact_player_height;
+ dx=PX(game.p.x)+(blast?0:8)-s->x;dy=PX(game.p.y)+(blast?0:8)+(game.player_low?10:0)-s->y;
+ w=(game.player_low?3:blast?12:hunter?2:4)+contact_player_width;h=(game.player_low?3:blast?(hunter?12:10):hunter?2:4)+contact_player_height;
  return dx>=-w && dx<=w && dy>=-h && dy<=h;
 }
 u8 statue_shell_player_contact(u16 slot,u8 blast) {return player_contact(blast?&statue_blasts[slot]:&statue_shells[slot],blast,0);}
