@@ -1,5 +1,6 @@
 #include "progress.h"
 #include "player_motion.h"
+#include "player_death.h"
 #include "player_dagger.h"
 #include "reinforcement.h"
 #include "edge_spawn.h"
@@ -91,7 +92,7 @@ void game_round(u8 round) {
     p->invincible = 120;
     p->face = 0;
     p->hp = progress_max_hp;
-    motion_reset();game.player_low=0;
+    motion_reset();game.player_low=0;player_death_reset();
     player_attack=(PlayerAttack){0};player_daggers_reset();
 }
 void game_new(void) {
@@ -335,15 +336,15 @@ static void actor_step(u16 i, u16 pressed) {
     a->timer++;
     if (layered_boss_kinds[a->def]) {
         boss_step(i);
-        if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt(boss_contact_damage(i));
+        if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt_from(boss_contact_damage(i),PX(a->x));
         return;
     }
     if (pair_kinds[a->def]) {
         pair_step(i);
-        if(a->active && pair_vulnerable(i) && !(game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && pair_vulnerable(i) && !(game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if(dragon_kinds[a->def]){dragon_step(i,dragon_projectile_spawn);if(a->active && dragon_player_contact(i))player_hurt(actor_damage[a->def]);return;}
+    if(dragon_kinds[a->def]){dragon_step(i,dragon_projectile_spawn);if(a->active && dragon_player_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));return;}
     if (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300) {
         game.spawned[a->source]&=254; /* Preserve the consumed bit during offscreen cleanup. */
         a->active = 0;
@@ -351,76 +352,76 @@ static void actor_step(u16 i, u16 pressed) {
     }
     if (edge_spawn_kinds[a->def]) {
         edge_actor_step(i);
-        if(a->active && (game.frame&1) && actor_contact(i) && edge_actor_contact(i))player_hurt(2);
+        if(a->active && (game.frame&1) && actor_contact(i) && edge_actor_contact(i))player_hurt_from(2,PX(a->x));
         return;
     }
     if (reinforcement_kinds[a->def]) {
         reinforcement_body_step(i);
-        if(a->active && reinforcement_body_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && reinforcement_body_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (flailer_kinds[a->def]) {
         flailer_step(i);
-        if(a->active && flailer_vulnerable(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && flailer_vulnerable(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (waveboss_kinds[a->def]) {
         waveboss_step(i);
-        if(a->active && waveboss_contact(i) && waveboss_player_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && waveboss_contact(i) && waveboss_player_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (eruption_kinds[a->def]) {
         eruption_step(i);
         if(a->active && eruption_contact(i) && (game.frame&1) && actor_contact(i)){
             if(eruption_kinds[a->def]>=3)status_poison_contact();
-            player_hurt(actor_damage[a->def]);
+            player_hurt_from(actor_damage[a->def],PX(a->x));
         }
         return;
     }
     if (teleporter_kinds[a->def]) {
         teleporter_step(i);
-        if(a->active && teleporter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && teleporter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (hunter_kinds[a->def]) {
         hunter_step(i);
-        if(a->active && hunter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && hunter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (crawler_kinds[a->def]) {
         crawler_step(i);
         if(a->active && crawler_contact(i) && !(game.frame&1) && actor_contact(i)) {
-            if(crawler_kinds[a->def]!=3 || status_poison_cloud_contact())player_hurt(actor_damage[a->def]);
+            if(crawler_kinds[a->def]!=3 || status_poison_cloud_contact())player_hurt_from(actor_damage[a->def],PX(a->x));
         }
         return;
     }
     if (statue_kinds[a->def]) {
         statue_step(i);
-        if(a->active && statue_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && statue_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (boulder_kinds[a->def]) {
         boulder_step(i);
-        if (a->active && boulder_damage(i) && (game.frame&1) && actor_contact(i)) player_hurt(boulder_damage(i));
+        if (a->active && boulder_damage(i) && (game.frame&1) && actor_contact(i)) player_hurt_from(boulder_damage(i),PX(a->x));
         return;
     }
     if (stone_kinds[a->def]) {
         boss_step(i);
-        if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt(boss_contact_damage(i));
+        if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt_from(boss_contact_damage(i),PX(a->x));
         return;
     }
     if (zombie_kinds[a->def]) {
         zombie_step(i);
-        if ((game.frame&1) && zombie_vulnerable(i) && actor_contact(i)) player_hurt(actor_damage[a->def]);
+        if ((game.frame&1) && zombie_vulnerable(i) && actor_contact(i)) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (wisp_kinds[a->def]) {
         wisp_step(i);
-        if ((game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) player_hurt(actor_damage[a->def]);
+        if ((game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (emerge_kinds[a->def]) {
-        if (emerge_step(i)) player_hurt(actor_damage[a->def]);
+        if (emerge_step(i)) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (hazard_kinds[a->def]) {
@@ -429,13 +430,13 @@ static void actor_step(u16 i, u16 pressed) {
     }
     if (sentry_kinds[a->def]) {
         sentry_step(i);
-        if (a->active && !a->state && close) player_hurt(actor_damage[a->def]);
+        if (a->active && !a->state && close) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (skeleton_kinds[a->def] != 255) {
         skeleton_step(i);
         if (a->active && !a->state && close)
-            player_hurt(actor_damage[a->def]);
+            player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (d->kind == HIDDEN_WALL) {
@@ -456,7 +457,7 @@ static void actor_step(u16 i, u16 pressed) {
     }
     if (d->kind == HAZARD) {
         if (close)
-            player_hurt(actor_damage[a->def]);
+            player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     if (d->kind == FLYER) {
@@ -513,7 +514,7 @@ static void actor_step(u16 i, u16 pressed) {
             shot(x + 16, y + 16, (dx < 0 ? -1 : 1) * 640, 0, 1, 2);
     }
     if (close)
-        player_hurt(actor_damage[a->def]);
+        player_hurt_from(actor_damage[a->def],PX(a->x));
 }
 static u8 weapon_target(u16 j) {
     Actor *a=&game.actors[j];u8 k=actor_defs[a->def].kind;
@@ -623,7 +624,7 @@ static void shots_step(void) {
         }
         if (s->enemy) {
             if (absolute(x - PX(game.p.x) - 16) < 12 && absolute(y - PX(game.p.y) - 16) < 14) {
-                player_hurt(s->damage);
+                player_hurt_from(s->damage,x);
                 s->active = 0;
             }
         } else if(dragon_shot_hit(x,y,s->damage,s->kind) || edge_shot_hit(x,y,s->damage,s->kind) || flailer_weapon_hit(x,y,s->kind) || hunter_shell_hit_at(x,y,s->kind) || statue_shell_hit_at(x,y,s->kind) || missile_hit_at(x,y,s->damage,s->kind))s->active=0;
@@ -701,6 +702,12 @@ void game_tick(u16 input) {
         return;
     }
     if (game.mode == DEAD) {
+        if(player_death.active) {
+            player_attack=(PlayerAttack){0};
+            player_daggers_step();
+            if(!player_death_step()){if(game.mode_timer)--game.mode_timer;return;}
+            game.mode_timer=0;
+        }
         if (game.mode_timer)
             --game.mode_timer;
         else {
@@ -748,20 +755,20 @@ void game_tick(u16 input) {
     statue_shell_tick();hunter_shell_tick();
     {u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++) {
         if(!game.p.invincible && hunter_shell_player_contact(i,0))hunter_shell_contact(i);
-        if(hunter_shell_player_contact(i,1))player_hurt(1);
+        if(hunter_shell_player_contact(i,1))player_hurt_from(1,hunter_blasts[i].x);
         if(!game.p.invincible && statue_shell_player_contact(i,0))statue_shell_contact(i);
-        if(statue_shell_player_contact(i,1))player_hurt(1);
+        if(statue_shell_player_contact(i,1))player_hurt_from(1,statue_blasts[i].x);
     }}
     container_traps_tick();waveboss_seeds_tick();flailer_weapons_tick();reinforcement_shots_step();edge_shots_step();dragon_shots_step();
-    {u16 i;for(i=0;i<24;i++)if(dragon_shot_contact(i))player_hurt(1);}
-    {u16 i;for(i=0;i<24;i++){u8 damage=edge_shot_contact(i);if(damage)player_hurt(damage);}}
-    {u16 i;for(i=0;i<24;i++)if(reinforcement_shot_contact(i))player_hurt(1);}
-    {u16 i;for(i=0;i<MAX_ACTORS;i++){u8 contact=flailer_weapon_contact(i);if(contact==1)player_hurt(1);else if(contact==2 && status_poison_cloud_contact())player_hurt(2);}}
-    {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact=container_trap_contact(i);if(contact==1)player_hurt(1);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
+    {u16 i;for(i=0;i<24;i++)if(dragon_shot_contact(i))player_hurt_from(1,dragon_shots[i].x);}
+    {u16 i;for(i=0;i<24;i++){u8 damage=edge_shot_contact(i);if(damage)player_hurt_from(damage,edge_shots[i].x);}}
+    {u16 i;for(i=0;i<24;i++)if(reinforcement_shot_contact(i))player_hurt_from(1,reinforcement_shots[i].x);}
+    {u16 i;for(i=0;i<MAX_ACTORS;i++){u8 contact=flailer_weapon_contact(i);if(contact==1)player_hurt_from(1,flailer_weapons[i].x);else if(contact==2 && status_poison_cloud_contact())player_hurt_from(2,flailer_weapons[i].x);}}
+    {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact=container_trap_contact(i);if(contact==1)player_hurt_from(1,container_traps[i].x);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
     {
         u16 i;for(i=0;i<MAX_MISSILES;i++) {
             Missile *m=&missiles[i];
-            if(missile_player_contact(i))player_hurt(m->damage);
+            if(missile_player_contact(i))player_hurt_from(m->damage,m->x);
         }
     }
     skeleton_weapons_tick();
@@ -769,7 +776,7 @@ void game_tick(u16 input) {
         u16 i;
         for (i = 0; i < MAX_ACTORS; i++) {
             u8 damage = skeleton_weapon_contact(i);
-            if (damage) player_hurt(damage);
+            if (damage) {s16 wx,wy;skeleton_weapon_frame(i,&wx,&wy);player_hurt_from(damage,wx);}
         }
     }
     if (game.mode != PLAY)

@@ -199,3 +199,13 @@ argument, so accurate normal death direction will need passed contact context.
 Fixed2013 after animation completion owns resource/persistence reset already
 covered by the restart subsystem; its presentation/continue scheduling is still
 separate. Source armor break is fixed7A09, also called by hazard/time death.
+
+### Death implementation follow-through
+
+The audited nine-byte source records are now compiled into typed native frame data
+by tools/extract_player_death.py. src/player_death.c implements all four clips and
+the terminal callback; actual damage paths pass source X. Twenty independent MAME
+fixtures compare every sprite byte and duration over 6,580 updates. Runtime checks
+exercise lethal missiles and hazards through the production life/restart path.
+This supersedes the earlier pending-death notes, but does not establish source
+hardware hiding at wrapped edges, armor-break fragments or complete continue UI.

@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory() as temp:
  game.actors[0]=(Actor){.active=1,.def=def,.x=128*256,.y=96*256};
  return actor_contact(0);}
 ''');(tmp/'stubs.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/hazard.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'contact.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/hazard.c'),str(ROOT/'src/player_death.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'contact.dylib')],check=True)
  lib=C.CDLL(str(tmp/'contact.dylib'));count=0
  for line in (ROOT/'reference/contact_oracle_events.txt').read_text().splitlines():
   v=line.split('|')

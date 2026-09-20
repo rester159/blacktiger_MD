@@ -3,4 +3,5 @@
 #include "game.h"
 u8 player_attack_damage(u8 tier);
 void player_hurt(u8 damage);
+void player_hurt_from(u8 damage,s16 source_x);
 #endif

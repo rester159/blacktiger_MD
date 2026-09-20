@@ -18,7 +18,7 @@ with tempfile.TemporaryDirectory() as folder:
  void wave_snapshot(int *out){for(int i=0;i<6;i++){ContainerTrap *p=&container_traps[i];out[3*i]=p->active;out[3*i+1]=p->x;out[3*i+2]=p->y;}}
  void tick(int slot,int damage){if(damage)dragon_shot_hit_slot(slot,damage);dragon_shots_step();}
  ''');(tmp/'stub.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','container_actor.c','container.c','hazard.c','loot.c','progress.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'s.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','container_actor.c','container.c','hazard.c','player_death.c','loot.c','progress.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'s.dylib')],check=True)
  lib=C.CDLL(str(tmp/'s.dylib'));out=(C.c_int*10)();current=-1;count=0;waves=0;explosions=0;zero_frames=0
  def check(slot,a,display,medium):
   lib.snapshot(slot,out);assert out[0]==bool(a[0]),(case,tick,'active',slot,list(out),a.hex())

@@ -1,4 +1,5 @@
 #include "player_motion.h"
+#include "player_death.h"
 #include "player_dagger.h"
 #include "assets.h"
 #include "container.h"
@@ -314,9 +315,12 @@ static void sprites(void) {
         memset(body_stamp, 0, sizeof body_stamp);
     }
     memset(line_count, 0, sizeof line_count);
-    if (!p->invincible || (game.frame & 4)) {
+    if(game.mode==DEAD && player_death_frame()) {
+        const PlayerDeathFrame *d=player_death_frame();
+        for(i=0;i<2;i++)body(d->code[i],d->palette[i],player_death.x[i],player_death.y[i],d->flip[i]);
+    } else if (!p->invincible || (game.frame & 4)) {
         body(h->code[0] - (h->flip ? 1 : 0), 0, x, y, h->flip);
-        piece(h->code[4]+p->weapon-1, 0, x + h->dx, y + h->dy, h->weapon_flip);
+        if(game.mode!=DEAD)piece(h->code[4]+p->weapon-1, 0, x + h->dx, y + h->dy, h->weapon_flip);
     }
     for(i=0;i<player_attack.count;i++) {
         u8 left=((player_attack.selector+1)&4)!=0;

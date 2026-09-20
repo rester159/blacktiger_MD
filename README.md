@@ -79,7 +79,7 @@ Files:
   global scanner timing, pool contention, difficulty interactions and full-game routes
   remain unverified. Actor-specific evidence is in `STATUS.md` and `reports/`.
 - Walking, crouching, ladders, jumps and falls now match controlled arcade traces.
-  Chain and dagger attacks now also have source comparisons. Player hurt/death,
+  Chain and dagger attacks now also have source comparisons. Armor-break presentation,
   screen-edge collision behavior, some compound-boss geometry and global camera limits
   remain unfinished. See `reference/player_audit.md`.
 - Shops, rewards, progression and restarts have subsystem checks; complete rescue,
@@ -152,8 +152,7 @@ Contact geometry remains provisional. These tests do not establish a natural ful
 The 72 stationary lethal-zone placements (bank 1 B2A9) now use source normal-player contact
 dimensions and enter death directly, bypassing armor and hurt invulnerability. Boundary checks
 match 126 original-ROM cases; cartridge checks cover weapon immunity, fatal contact, interrupted
-post-death interactions and single-life respawn. Alternate player contact postures and the original
-death presentation/timing remain unfinished.
+post-death interactions and single-life respawn. Shared crouch/jump contact rules and source death animations are now integrated; see the latest status entry.
 
 Placed time-extension and screen-attack pickups (58 source placements) now give their distinct
 rewards instead of flat coins/score, use normal source contact bounds, persist after collection,

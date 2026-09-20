@@ -3,14 +3,14 @@
 Deliverable: an SGDK development cartridge and a reproducible new repository.
 User's requested complete native Black Tiger port: **not achieved**.
 
-The main remaining shared systems are player hurt/death, compound-boss contact
+The main remaining shared systems are armor-break presentation, compound-boss contact
 geometry and screen-edge behavior, global camera/scanner
 cadence, presentation and audio. All eight maps use one renderer and game loop;
 normal locomotion and the known major enemy/boss families now have native routines.
 Injected actor/ending tests do not establish natural full-game completion.
 
 Known native issues: frame overruns on denser routes; unverified PAL timing;
-placeholder audio; incomplete combat integration, death and parts of presentation. Exact
+placeholder audio; incomplete combat integration and parts of presentation. Exact
 cadence, cartridge hash, and test counts live in JSON reports and `dist/build.json`.
 
 Resolved during this build: wrong-CPU libgcc, sprite-cache lookup cost, full-view cache pinning cost,
@@ -69,8 +69,7 @@ Contact geometry remains provisional. These tests do not establish a natural ful
 The 72 stationary lethal-zone placements (bank 1 B2A9) now use source normal-player contact
 dimensions and enter death directly, bypassing armor and hurt invulnerability. Boundary checks
 match 126 original-ROM cases; cartridge checks cover weapon immunity, fatal contact, interrupted
-post-death interactions and single-life respawn. Alternate player contact postures and the original
-death presentation/timing remain unfinished.
+post-death interactions and single-life respawn. Shared crouch/jump contact rules and source death animations are now integrated; see the latest status entry.
 
 Placed time-extension and screen-attack pickups (58 source placements) now give their distinct
 rewards instead of flat coins/score, use normal source contact bounds, persist after collection,
@@ -609,3 +608,15 @@ that posture. Wave bosses and dragons now use their alternate contact branches.
 Checks match 2,352 source boundary cases across twelve shapes and include eighteen
 real-input cartridge collision cases. Screen-edge wrapping and remaining compound
 boss geometry are not established by those interior-boundary checks.
+
+## Native player death sequences
+
+Four shared source-derived clips now handle ordinary and hazard deaths in both
+facings. Each contains 33 two-body frames spanning 328 updates, followed by the
+restart callback on update 329. Native C performs signed sprite movement, palette
+and flip selection; no original instructions run in the cartridge. Damage callers
+pass attacker position for ordinary fall direction. Hazards use player facing.
+Twenty arcade oracle fixtures compare 6,580 updates, including coordinate wrapping.
+Cartridge fixtures verify both ordinary directions, every frame, hazard selection,
+and exactly one life deducted after the animation finishes. Armor-break fragments,
+source hardware edge hiding and full continue presentation remain unfinished.

@@ -1,4 +1,5 @@
 #include "hazard.h"
+#include "player_death.h"
 #include "assets.h"
 u8 player_contact(s16 x, s16 y, u8 half_width, u8 half_height) {
     s16 dx = PX(game.p.x) + 8 - x, dy = PX(game.p.y) + (game.player_low?18:8) - y;
@@ -26,9 +27,7 @@ void hazard_step(u16 slot) {
         game.p.hp = 0;
         game.p.climb = 0;
         game.p.vx = game.p.vy = 0;
-        game.mode = DEAD;
-        game.mode_timer = 120; /* Existing native death presentation, still provisional. */
-        game.sound = SND_DIE;
+        player_death_start(1,game.p.face);
     }
 }
 

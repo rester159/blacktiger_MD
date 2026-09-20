@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory() as temp:
  int active(void){return game.actors[0].active;} int persistent(void){return game.spawned[0];}
  int seconds(void){return game.time;} int coins(void){return game.coins;} int score(void){return game.score;}
 ''');(tmp/'stubs.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/s) for s in ('pickup.c','hazard.c','data.c')],str(tmp/'stubs.c'),'-o',str(tmp/'pickup.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/s) for s in ('pickup.c','hazard.c','player_death.c','data.c')],str(tmp/'stubs.c'),'-o',str(tmp/'pickup.dylib')],check=True)
  lib=C.CDLL(str(tmp/'pickup.dylib'));items=targets=0
  for line in (ROOT/'reference/pickup_oracle_events.txt').read_text().splitlines():
   v=line.split('|')

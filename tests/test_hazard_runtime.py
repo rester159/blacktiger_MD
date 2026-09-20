@@ -19,8 +19,8 @@ for _ in range(100):
 assert s.mode==4 and s.p.hp==0 and s.p.armor==4 and s.p.lives==3
 assert s.actors[slot].active and s.spawned[row]!=2
 assert s.coins==coins and s.time==time and s.actors[slot+1].active and not s.actors[slot+1].state
-s.mode_timer=0;put(r,s)
-for _ in range(100):
+assert r.read('player_death',9)[4] == 2 + bool(s.p.face)
+for _ in range(1500):
  r.run(1);s=state(r)
  if s.mode==1:break
 assert s.p.lives==2 and s.p.hp==r.read('progress_max_hp',1)[0] and s.mode==1
