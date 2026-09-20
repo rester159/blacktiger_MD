@@ -368,12 +368,13 @@ boss health display, exact global pool contention and full round-clear presentat
 The source screen-attack filter also establishes that special-contact caster shells (36)
 and hunter shells (40) are excluded; caster shells now survive POW, with a linked-cartridge regression check. These body checks do not establish full-family fidelity.
 
-Bank 1 92E6 now uses the native teleporter family: 30,000 source body ticks and 728
-constructor attempts verify relocation, first-spawn/45-attempt recurrence, five attack cycles,
-18 internal durability, phase-dependent damage halving and a 100-point final reward. Its
+Bank 1 92E6 and 8D33 now share the native teleporter family: 60,000 source body ticks and
+1,456 constructor attempts verify relocation, first-spawn/45-attempt recurrence, five attack cycles,
+18/8 internal durability, phase-dependent damage halving and a 100-point final reward. Its
 six-part attack shares the container-trap engine with separate source animation roots,
 origins, and contact dispatch. Another 2,880 source ticks check all parts in both directions.
-Linked cartridge checks cover the actual round-six row, six-part attack, status contact,
+Linked cartridge checks cover actual round-six and round-four rows, both six-part attacks,
+ordinary armor damage, status contact,
 antidote consumption, shop cure, recurring construction and POW defeat.
 
 The attack's special contact 43 reverses horizontal controls; it is separate from poison.

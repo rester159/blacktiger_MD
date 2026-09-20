@@ -31,12 +31,14 @@ for id,c in ipairs(data.cases) do
   emit(string.format('TICK|%d|%d|%s|%s|%s|%s|%s',id-1,tick,hex(0xf940,48),hex(0xfeac,16),finished and '1' or '0',hex(0xec58,1),reward and '0540' or '0000'))
  end
 end
+for kind,constructor in ipairs({0x92e6,0x8d33}) do
 for sample=0,7 do
  for a=0xe000,0xffff do p:write_u8(a,0) end
  ports:write_u8(1,1);p:write_u8(0xe0e3,1);le(0xe927,0xec58);p:write_u8(0xe009,sample)
  for attempt=1,91 do
-  p:write_u8(0xec58,0);p:write_u8(0xf940,0);call(0x92e6)
-  emit(string.format('SPAWN|%d|%d|%d|%d|%d|%d|%d',sample,attempt,p:read_u8(0xf940),p:read_u8(0xf941)*256+p:read_u8(0xf942),p:read_u8(0xf943)*256+p:read_u8(0xf944),p:read_u8(0xec59),p:read_u8(0xec5a)))
+  p:write_u8(0xec58,0);p:write_u8(0xf940,0);call(constructor)
+  emit(string.format('SPAWN|%d|%d|%d|%d|%d|%d|%d|%d',kind-1,sample,attempt,p:read_u8(0xf940),p:read_u8(0xf941)*256+p:read_u8(0xf942),p:read_u8(0xf943)*256+p:read_u8(0xf944),p:read_u8(0xec59),p:read_u8(0xec5a)))
  end
+end
 end
 emit('COMPLETE');out:close();m:exit()

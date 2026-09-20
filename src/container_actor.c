@@ -41,6 +41,7 @@ static void attack_spawn(s16 x,u8 left,const u16 *roots,u8 special) {
   t->active=1;t->left=left;t->contact=0;t->part=i%3+(special?3:0);
  }
 }
+void container_ground_spawn(s16 x,u8 left){attack_spawn(x+8,left,container_trap_roots,0);}
 void container_wave_spawn(s16 x,u8 left){attack_spawn(x+(left?-32:48),left,container_wave_roots,1);}
 void container_step(u16 slot,u8 contact) {
  Actor *a=&game.actors[slot];ContainerState *s=&containers[slot];u16 tries;

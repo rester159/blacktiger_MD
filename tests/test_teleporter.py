@@ -3,19 +3,20 @@ import ctypes as C,json,subprocess,tempfile,re,hashlib
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];ref=json.loads((ROOT/'reference/teleporter_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/teleporter_oracle_events.txt'),('lua_sha256','tools/teleporter_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
-meta=json.loads((ROOT/'reports/assets.json').read_text());definition=next(d['id'] for d in meta['actor_definitions'] if (d['bank'],d['address'])==(1,0x92e6))
+meta=json.loads((ROOT/'reports/assets.json').read_text());definitions=[next(d['id'] for d in meta['actor_definitions'] if (d['bank'],d['address'])==(1,address)) for address in (0x92e6,0x8d33)]
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text()
  stubs=['#include "assets.h"','Game game;','#include "'+str(ROOT/'src/teleporter.c')+'"']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''u8 terrain(s16 x,s16 y){return 0;}
+ void container_ground_spawn(s16 x,u8 left){}
  void container_wave_spawn(s16 x,u8 left){}
  void constructor_setup(int sample){teleporter_reset();game.cam_x=game.cam_y=0;loot_random=sample*256;}
  void constructor(int *out){s16 x=0,y=0;out[0]=teleporter_prepare(0,&x,&y);out[1]=x;out[2]=y;out[3]=teleporter_once[0];out[4]=teleporter_delay[0];}
- void setup(int px,int sample) {
+ void setup(int px,int sample,int definition) {
  game=(Game){0};game.p.x=px*256;game.p.y=120*256;game.mode=PLAY;game.spawned[0]=1;
- loot_random=sample*256;game.actors[0]=(Actor){.active=1,.x=128*256,.y=96*256,.def='''+str(definition)+'''};
+ loot_random=sample*256;game.actors[0]=(Actor){.active=1,.x=128*256,.y=96*256,.def=definition};
  teleporter_spawn(0);}
  void tick(int damage,int *out) {
  Actor *a=&game.actors[0];TeleporterState *s=&teleporters[0];
@@ -29,14 +30,14 @@ with tempfile.TemporaryDirectory() as folder:
  for line in (ROOT/'reference/teleporter_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break
   if line.startswith('SPAWN|'):
-   _,sample,attempt,*values=map(lambda v:int(v) if v!='SPAWN' else v,line.split('|'))
+   _,kind,sample,attempt,*values=map(lambda v:int(v) if v!='SPAWN' else v,line.split('|'))
    if attempt==1:lib.constructor_setup(sample)
    lib.constructor(out);expected=[bool(values[0]),*values[1:]]
    assert out[0]==expected[0] and list(out)[3:5]==expected[3:5],(sample,attempt,list(out)[:5],expected)
    if out[0]:assert list(out)[1:3]==expected[1:3]
    continue
   _,case,tick,a,display,clear,persist,task=line.split('|');case=int(case);tick=int(tick);a=bytes.fromhex(a);display=bytes.fromhex(display);c=ref['cases'][case]
-  if current!=case:lib.setup(c['px'],c['random']);current=case
+  if current!=case:lib.setup(c['px'],c['random'],definitions[c['kind']]);current=case
   lib.tick(c['damage'] if tick>=80 and tick%100==80 else 0,out)
   assert out[0]==bool(a[0]),(case,tick,'active')
   if a[0]:
@@ -46,5 +47,5 @@ with tempfile.TemporaryDirectory() as folder:
   assert out[12]==(100 if task=='0540' else 0),(case,tick,'score',task)
   assert out[13]==int(persist,16)
   count+=1
- report={'passed':True,'source_body_ticks':count,'cases':len(ref['cases']),'source_constructor_attempts':728,'scope':'Teleporter body phases, facing, relocation, attack-cycle retirement, custom damage reduction and 100-point defeat reward. Includes original first-spawn and 45-attempt recurrence gate at all eight random positions. Native body, recurring constructor and shared wave attack are integrated.'}
+ report={'passed':True,'source_body_ticks':count,'cases':len(ref['cases']),'source_constructor_attempts':1456,'scope':'Both teleporter profiles: body phases, facing, relocation, attack-cycle retirement, custom damage reduction and 100-point defeat reward. Includes original first-spawn and 45-attempt recurrence gate at all eight random positions. Native body, recurring constructor and shared wave attack are integrated.'}
  (ROOT/'reports/teleporter-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
