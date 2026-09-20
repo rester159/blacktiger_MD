@@ -468,3 +468,21 @@ attempt, delay pausing out of proximity, and no third appearance. This is constr
 only: both actors still require their shared movement/attack graphs, layered damage and rewards.
 Their source body callbacks are 83BC/9B6E; initial templates are 8899/A07D, and their six-part
 projectile templates are 88C9/8989 and A0AD/A16D respectively.
+
+Both reinforcement fighters (bank-two 8344/9AF6) now use one native body controller and
+six-part projectile pool. The 90 compiled body segments preserve distance-weighted choices,
+walking/obstacle responses, both jump patterns, quarter-pixel gravity, two/four health layers,
+recoil, defeat and 20/80-point rewards. Both source routines unconditionally choose the
+right-facing jump windup; the native graph preserves that behavior. Projectile graphics and
+motion are identical between the profiles and share twelve clips for six parts in two directions.
+Only the third part carries the source 40×4 contact extent and one damage; the other parts
+are visual. Independent projectile tests compare 4,608 source ticks, including offscreen
+retirement. Cartridge tests cover actual placements, natural attacks, weak and fatal hits,
+every health layer, rewards, retirement and projectile contacts. Normal player posture is
+used in the cartridge: the second profile's low-target variant is source-verified in host tests,
+but connecting it requires the remaining native player-posture work. Separate projectile pools
+still do not reproduce global source allocation contention.
+
+The reinforcement body oracle compares 199,680 ticks in 416 cases, including full projectile
+pools, and 1,362 six-part launch snapshots. Reward-table extraction corrected the stronger
+fighter to 80 points. The two templates supply initial health 4/18 and layer counts 2/4.

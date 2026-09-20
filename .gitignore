@@ -80,3 +80,6 @@ reports/flailer-oracle/
 reports/flailer-weapon-oracle/
 
 /reports/reinforcement-oracle/
+
+/reports/reinforcement-body-oracle/
+/reports/reinforcement-shot-oracle/
