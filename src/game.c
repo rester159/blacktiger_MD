@@ -1,3 +1,4 @@
+#include "music.h"
 #include "armor_break.h"
 #include "progress.h"
 #include "player_motion.h"
@@ -60,6 +61,7 @@ static u8 support(s16 x, s16 y) {
 }
 static u8 restart_pending,loaded_round=255;
 void game_round(u8 round) {
+    music_request=0x21+(round&7);
     Player *p = &game.p;
     const Round *r = &rounds[round];
     u8 preserve=restart_pending && loaded_round==round;
@@ -223,6 +225,7 @@ static void spawn_actors(void) {
         if (!npc_spawn_ready(i))
             continue;
         if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def] || dragon_kinds[s->def]) {
+            music_request=music_boss_commands[game.round];
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
             missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();
         }

@@ -13,6 +13,8 @@ res/generated/object_patterns.bin: tools/extract.py tools/extract_music.py $(wil
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
 test: all
+	.venv/bin/python tests/test_music_catalog_runtime.py
+	.venv/bin/python tests/test_music_events_runtime.py
 	.venv/bin/python tests/test_music.py
 	.venv/bin/python tests/test_music_runtime.py
 	.venv/bin/python tests/test_frame_scheduler.py

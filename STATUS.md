@@ -688,3 +688,21 @@ currently stop it; proper boss themes, jingles, source priority/resume behavior,
 original SSG effects, mix/timbre comparison and hardware listening remain unfinished.
 The existing PSG effects remain provisional. reports/music-preview.wav is a short
 rendered first-round sample, not an original arcade recording.
+
+## Boss themes and finite FM cues
+
+The shared player now supports the complete 25-track FM data catalog at commands
+20–39 (38 is a control command). Three boss themes are selected at real boss spawn
+using the fixed5A30 per-round table: 29,29,2A,29,29,2A,29,2B. Shop entry selects2C;
+shop exit restarts the round music. CLEAR selects32, or33 for the final round;
+33 continues across the transition into ENDING. GAMEOVER selects31 once and lets
+it finish, without restarting it. One-shot tracks stop at their observed source
+terminal event; loop tracks preserve their intro/loop boundaries.
+
+Native data occupies 429,789 bytes and the cartridge remains below4 MiB. Host
+checks cover all25 programs with both regional clock accumulators. Cartridge
+checks exercise all8 actual boss placements and production mode changes; short
+audio samples from all25 tracks are non-silent and unclipped. Additional catalog
+cues remain unwired pending their source event/presentation ports. The prototype
+CLEAR duration can still interrupt its full jingle; full cutscene timing, continue
+flow, source priority/resume rules and original PSG effects remain unfinished.

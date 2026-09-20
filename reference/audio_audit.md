@@ -40,3 +40,18 @@ SFX alongside the eight adapted FM round tracks.
 Death's 1F command addresses sound special FF01, stopping SSG effects rather than
 FM music. Native round music therefore continues through DEAD and restarts when
 PLAY resumes, matching the round-start command being sent again.
+
+## Event mapping and finite catalog
+
+All25 FM programs at20–39 excluding control38 are captured. END records represent
+all six source channel pointers becoming zero; unlike a repeated state they must
+terminate, not loop. Native finite completion applies the final writes then keys
+off all channels. The final ending program33 lasts19,365 timer updates.
+
+Audited event mappings: fixed5A30 boss table29292A29292A292B; fixed6470 shop2C;
+fixed6547 round restart after shop; fixed5A4F clear32/final33; fixed20A4 game-over31.
+Fixed20DB has continue34; fixed21B7 uses2E; fixed51AE uses2F; bank6 B92B uses30;
+fixed7079 alternate-area entry uses2D. Those latter contexts still require their
+presentation/event ports. The entire catalog is available without inventing event
+bindings. Boss requests are issued by the native spawn path and cannot be replaced
+by the fallback round-music selection in the same frame.

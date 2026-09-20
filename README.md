@@ -85,7 +85,7 @@ Files:
 - Shops, rewards, progression and restarts have subsystem checks; complete rescue,
   round-clear and ending presentation and natural progression still need validation.
 - Background priority groups, palette changes during play, arcade title presentation, original
-  boss/jingle music selection and original sound effects remain incomplete. All eight round FM tracks now play through a native YM2612 stream player; PSG effects are still placeholders.
+  remaining music event priorities and original sound effects are incomplete. The native YM2612 player supports 25 FM tracks, with round, boss, shop, clear, ending and game-over routing; PSG effects are still placeholders.
 - NTSC performance is not consistently 60 Hz. See per-round cadence in `reports/runtime-tests.json`.
   PAL has a 60-tick accumulator but has not been verified in the emulator.
 - No complete natural playthrough or real-console test has passed. Tests that inject state explicitly
