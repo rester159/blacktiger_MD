@@ -87,7 +87,7 @@ static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
             s->vy = vy;
             s->enemy = enemy;
             s->kind = kind;
-            s->damage = enemy ? 1 : game.p.weapon;
+            s->damage = enemy ? 1 : player_attack_damage(game.p.weapon);
             s->life = 80;
             break;
         }
@@ -490,7 +490,7 @@ void game_tick(u16 input) {
             if (game.coins >= cost) {
                 game.coins -= cost;
                 game.sound = SND_BUY;
-                if (game.shop_item == 0 && p->weapon < 4)
+                if (game.shop_item == 0 && p->weapon < 5)
                     p->weapon++;
                 if (game.shop_item == 1)
                     p->armor = 4;

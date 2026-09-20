@@ -138,3 +138,9 @@ spawn through emergence, projectile death, score and recurring retirement. The p
 scanner still differs in cadence and viewport gating, and shared arcade pool contention is not
 modeled. Renderer fixtures explicitly initialize its source first frame; their reference pixels
 were regenerated from the pinned pre-optimization cartridge.
+
+Player attack strength now comes from the source's five-tier attack-entry table (1/2/4/8/16)
+instead of the displayed tier number. The native projectile creation path uses that lookup, and
+the existing shop permits the fifth tier. Original-ROM attack-entry observations and cartridge
+input/firing checks cover every tier, with an additional fifth-tier purchase check. Weapon reach,
+attack poses and timing, projectile geometry and source shop pricing remain provisional.

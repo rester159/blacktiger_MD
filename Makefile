@@ -21,6 +21,7 @@ test: all
 	.venv/bin/python tests/test_contact.py
 	.venv/bin/python tests/test_damage.py
 	.venv/bin/python tests/test_damage_runtime.py
+	.venv/bin/python tests/test_weapon_runtime.py
 	.venv/bin/python tests/test_zombie.py
 	.venv/bin/python tests/test_zombie_runtime.py
 	.venv/bin/python tests/test_wisp.py

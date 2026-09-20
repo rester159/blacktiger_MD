@@ -7,8 +7,9 @@ ref=json.loads((ROOT/'reports/damage-oracle.json').read_text())
 for key,path in [('trace_sha256','reference/damage_oracle_events.txt'),('lua_sha256','tools/damage_oracle.lua')]:
  assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
 with tempfile.TemporaryDirectory() as folder:
- tmp=Path(folder)
+ tmp=Path(folder);(tmp/'genesis.h').write_text('')
  (tmp/'stub.c').write_text('''#include "damage.h"
+ const u8 player_weapon_damage[5]={1,2,4,8,16};
  Game game;
  void check(int hp,int armor,int damage,int invincible) {
  game=(Game){0};game.mode=PLAY;game.p.hp=hp;game.p.armor=armor;game.p.invincible=invincible;
@@ -17,7 +18,7 @@ with tempfile.TemporaryDirectory() as folder:
  int timer(void){return game.p.invincible;} int dead(void){return game.mode==DEAD;}
  int motion(void){return game.p.vy==123 && game.p.climb==1;}
 ''')
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(ROOT/'inc'),str(ROOT/'src/damage.c'),str(tmp/'stub.c'),'-o',str(tmp/'damage.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/damage.c'),str(tmp/'stub.c'),'-o',str(tmp/'damage.dylib')],check=True)
  lib=C.CDLL(str(tmp/'damage.dylib'));count=0
  for line in (ROOT/'reference/damage_oracle_events.txt').read_text().splitlines():
   v=line.split('|')
