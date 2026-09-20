@@ -204,8 +204,8 @@ void skeleton_step(u16 slot) {
         select_segment(&s->body, &s->segment, target);
     }
 }
-void skeleton_weapons_tick(void) {
-    u16 i;
+u32 skeleton_weapons_tick(void) {
+    u16 i;u32 active=0;
     for (i = 0; i < MAX_ACTORS; i++) {
         SkeletonState *s = &skeletons[i];
         u16 tries;
@@ -225,7 +225,9 @@ void skeleton_weapons_tick(void) {
             game.sound = SND_ATTACK;
             select_segment(&s->weapon, &s->weapon_segment, seg->next);
         }
+        if(s->weapon_active && s->weapon.remaining)active|=(u32)1<<i;
     }
+    return active;
 }
 const AnimFrame *skeleton_frame(u16 slot) {
     SkeletonState *s = &skeletons[slot];

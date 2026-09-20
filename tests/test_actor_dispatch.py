@@ -6,7 +6,7 @@ from run_rom import Runner
 rom=(ROOT/'out/release/rom.bin').read_bytes();r=Runner(ROOT/'out/release/rom.bin');symbols=r.symbols;r.close()
 meta=json.loads((ROOT/'reports/assets.json').read_text())
 routes=[('pair','pair_frame',1),('edge_spawn','edge_actor_frame',2),('reinforcement','reinforcement_body_frame',2),('flailer','flailer_frame',2),('dragon','dragon_frame',3),('waveboss','waveboss_frame',4),('eruption','eruption_frame',2),('teleporter','teleporter_frame',2),('hunter','hunter_frame',2),('crawler','crawler_frame',1),('statue','statue_frame',2),('boulder','boulder_frame',2),('layered_boss','boss_frame',2),('stone','boss_frame',2),('zombie','zombie_frame',2),('wisp','wisp_frame',2),('emerge','emerge_frame',2),('sentry','sentry_frame',2),('skeleton','skeleton_frame',2)]
-counts={}
+counts={};vulnerabilities={}
 for d in meta['actor_definitions']:
  i=d['id'];function=None;layout=0
  if d['kind']==5:function,layout='container_frame',2
@@ -23,6 +23,14 @@ for d in meta['actor_definitions']:
  expected=(symbols[function] if function else 0,layout,behavior)
  actual=struct.unpack_from('>IHH',rom,symbols['actor_dispatch']+i*8)
  assert actual==expected,(i,function,expected,actual)
+ checks=[('waveboss','waveboss_vulnerable'),('flailer','flailer_vulnerable'),('reinforcement','reinforcement_body_vulnerable'),('edge_spawn','edge_actor_vulnerable'),('eruption','actor_never_vulnerable'),('teleporter','teleporter_vulnerable'),('hunter','hunter_vulnerable'),('crawler','crawler_vulnerable'),('statue','statue_vulnerable'),('pair','pair_vulnerable'),('layered_boss','boss_vulnerable'),('stone','boss_vulnerable'),('zombie','zombie_vulnerable'),('emerge','emerge_vulnerable')]
+ check=None
+ if d['kind'] in (4,5,6,7):check='actor_never_vulnerable'
+ elif d['kind']==9:check='actor_hidden_vulnerable'
+ else:check=next((name for family,name in checks if rom[symbols[family+'_kinds']+i]),None)
+ actual_check=struct.unpack_from('>I',rom,symbols['actor_vulnerable']+i*4)[0]
+ assert actual_check==(symbols[check] if check else 0),(i,check,actual_check)
+ vulnerabilities[check or 'always']=vulnerabilities.get(check or 'always',0)+1
  counts[function or 'fallback']=counts.get(function or 'fallback',0)+1
-report=dict(passed=True,definitions=sum(counts.values()),routes=counts,rom_sha256=hashlib.sha256(rom).hexdigest(),scope='Every generated native frame callback and sprite layout/behavior route matches the existing family metadata. Pixel equivalence and gameplay have separate cartridge checks.')
+report=dict(passed=True,definitions=sum(counts.values()),routes=counts,vulnerability_routes=vulnerabilities,rom_sha256=hashlib.sha256(rom).hexdigest(),scope='Every generated native frame callback and sprite layout/behavior/vulnerability route matches the existing family metadata. Pixel equivalence and gameplay have separate cartridge checks.')
 (ROOT/'reports/actor-dispatch-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

@@ -22,6 +22,13 @@ with tempfile.TemporaryDirectory() as tmp:
  for(unsigned i=0;i<66;i++)if(skeleton_kinds[i]==variant)game.actors[0].def=i;
  skeleton_reset();skeleton_spawn(0);skeletons[0].segment=skeleton_profiles[variant].roots[root];skeletons[0].body.vy=vy;
 }
+unsigned mask_fixture(void) {
+ skeleton_reset();
+ const unsigned slots[]={0,7,15,23};
+ for(unsigned n=0;n<4;n++){SkeletonState *s=&skeletons[slots[n]];*s=(SkeletonState){0};s->weapon_segment=skeleton_profiles[0].roots[WEAPON_R];s->weapon_active=1;s->weapon.remaining=2;s->weapon.vx=s->weapon.vy=0;}
+ skeletons[22].weapon.remaining=2; /* Retired slots must stay absent. */
+ return skeleton_weapons_tick();
+}
 int weapon_contact(int dx,int dy,int active,int loaded) {
  SkeletonState *s=&skeletons[0];s->weapon_active=active;s->weapon.remaining=loaded;
  s->wx=128;s->wy=96;game.p.x=(120+dx)*256;game.p.y=(88+dy)*256;
@@ -67,6 +74,7 @@ void tick(int damage,int *out) {
   else:assert out[13]==0,(c['variant'],c['name'],tick,'unexpected weapon')
   assert out[22]==bool(int(persistence,16)&2),(c['variant'],c['name'],tick,'persistence')
   comparisons+=1
+ mask=lib.mask_fixture();assert mask==sum(1<<i for i in (0,7,15,23)),hex(mask)
  contact_checks=0
  for variant,p in enumerate(profiles):
   lib.setup(variant,0,0,0,128,0,0,0)
@@ -75,5 +83,5 @@ void tick(int damage,int *out) {
     assert lib.weapon_contact(dx,dy,1,1)==(p['weapon_damage'] if abs(dx)<=11 and abs(dy)<=12 else 0)
     contact_checks+=1
   assert lib.weapon_contact(0,0,0,1)==0 and lib.weapon_contact(0,0,1,0)==0
-report={'weapon_contact_checks':contact_checks,'passed':True,'cases':len(reference['cases']),'tick_comparisons':comparisons,'weapon_frame_comparisons':weapon_frames,'trace_sha256':reference['trace_sha256'],'scope':reference['scope']+' Excludes random loot and player hitbox geometry.'}
+report={'weapon_mask_boundary_check':True,'weapon_contact_checks':contact_checks,'passed':True,'cases':len(reference['cases']),'tick_comparisons':comparisons,'weapon_frame_comparisons':weapon_frames,'trace_sha256':reference['trace_sha256'],'scope':reference['scope']+' Excludes random loot and player hitbox geometry.'}
 (ROOT/'reports/skeleton-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

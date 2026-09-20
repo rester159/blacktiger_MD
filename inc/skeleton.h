@@ -16,7 +16,7 @@ void skeleton_reset(void);
 void skeleton_spawn(u16 slot);
 u8 skeleton_hit(u16 slot, u8 damage);
 void skeleton_step(u16 slot);
-void skeleton_weapons_tick(void);
+u32 skeleton_weapons_tick(void);
 u8 skeleton_weapon_contact(u16 slot);
 const AnimFrame *skeleton_frame(u16 slot);
 const AnimFrame *skeleton_weapon_frame(u16 slot, s16 *x, s16 *y);

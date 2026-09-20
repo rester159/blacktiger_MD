@@ -773,3 +773,12 @@ profiles, their hardware victory sprites, the airborne landing wait, and both
 round-transition branches. Boss families share one clear
 entry point. Source bonus-screen backgrounds, fades, final cutscene, and a
 natural complete playthrough remain unfinished. See `reference/clear_audit.md`.
+
+## Collision dispatch performance
+
+Vulnerability checks now use native callbacks compiled per actor definition,
+preserving the previous family precedence and special cases. Skeleton weapon
+contact processing reuses an active-slot mask from its update pass. The same
+180-display-frame entry test improves all eight rounds to 131–176 logic
+updates, compared with 118–175 before these changes. Full-route 60 Hz remains
+unachieved; exact measurements and limits are in `reference/dispatch_audit.md`.

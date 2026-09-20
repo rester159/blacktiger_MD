@@ -563,23 +563,10 @@ static void actor_step(u16 i, u16 pressed) {
         player_hurt_from(actor_damage[a->def],PX(a->x));
 }
 static u8 weapon_target(u16 j) {
-    Actor *a=&game.actors[j];u8 k=actor_defs[a->def].kind;
-    if(!a->active || k==CHEST || k==CAPTIVE || k==PICKUP || k==HAZARD)return 0;
-    if(k==HIDDEN_WALL)return !a->state;
-    if(waveboss_kinds[a->def])return waveboss_vulnerable(j);
-    if(flailer_kinds[a->def])return flailer_vulnerable(j);
-    if(reinforcement_kinds[a->def])return reinforcement_body_vulnerable(j);
-    if(edge_spawn_kinds[a->def])return edge_actor_vulnerable(j);
-    if(eruption_kinds[a->def])return 0;
-    if(teleporter_kinds[a->def])return teleporter_vulnerable(j);
-    if(hunter_kinds[a->def])return hunter_vulnerable(j);
-    if(crawler_kinds[a->def])return crawler_vulnerable(j);
-    if(statue_kinds[a->def])return statue_vulnerable(j);
-    if(pair_kinds[a->def])return pair_vulnerable(j);
-    if(layered_boss_kinds[a->def] || stone_kinds[a->def])return boss_vulnerable(j);
-    if(zombie_kinds[a->def])return zombie_vulnerable(j);
-    if(emerge_kinds[a->def])return emerge_vulnerable(j);
-    return 1;
+    ActorVulnerable check;
+    if(!game.actors[j].active)return 0;
+    check=actor_vulnerable[game.actors[j].def];
+    return !check || check(j);
 }
 static u8 weapon_contact(u16 j,s16 x,s16 y,u8 dagger) {
     Actor *a=&game.actors[j];
@@ -848,10 +835,9 @@ void game_tick(u16 input) {
             if(m->active && missile_player_contact(i))player_hurt_from(m->damage,m->x);
         }
     }
-    skeleton_weapons_tick();
     {
-        u16 i;
-        for (i = 0; i < MAX_ACTORS; i++) {
+        u16 i;u32 active=skeleton_weapons_tick();
+        for (i=0;active;i++,active>>=1)if(active&1) {
             u8 damage = skeleton_weapon_contact(i);
             if (damage) {s16 wx,wy;skeleton_weapon_frame(i,&wx,&wy);player_hurt_from(damage,wx);}
         }

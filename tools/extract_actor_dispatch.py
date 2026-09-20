@@ -21,7 +21,7 @@ def emit(definitions,skeleton):
  ('emerge_frame','DRAW_BODY',[(2,v) for v in (0x8000,0x81a2)]),
  ('sentry_frame','DRAW_BODY',[(2,0xb67f)]),
  ('skeleton_frame','DRAW_BODY',[(0,v) for v in skeleton['constructors']])]
- rows=[]
+ rows=[];vulnerability=[]
  for d in definitions:
   function,layout='0','DRAW_FALLBACK'
   if d['kind']==5:function,layout='container_frame','DRAW_BODY'
@@ -34,4 +34,10 @@ def emit(definitions,skeleton):
   behavior={'edge_actor_frame':'EDGE','reinforcement_body_frame':'REINFORCEMENT','flailer_frame':'FLAILER','waveboss_frame':'WAVEBOSS','eruption_frame':'ERUPTION','teleporter_frame':'TELEPORTER','hunter_frame':'HUNTER','crawler_frame':'CRAWLER','statue_frame':'STATUE','boulder_frame':'BOULDER','boss_frame':'STONE','zombie_frame':'ZOMBIE','wisp_frame':'WISP','emerge_frame':'EMERGE'}.get(function,'NORMAL')
   if (d['bank'],d['address'])==(1,0xb2a9):behavior='HAZARD'
   rows.append('{'+function+','+layout+',BEHAVIOR_'+behavior+'}')
- (ROOT/'src/actor_dispatch.c').write_text('/* Generated native function routing; no arcade code is executed. */\n#include "actor_dispatch.h"\n#include "assets.h"\n#include "npc.h"\n#include "zombie.h"\n#include "sentry.h"\n#include "world.h"\nconst ActorDispatch actor_dispatch[]={\n'+',\n'.join(rows)+'\n};\n')
+  check='0'
+  if d['kind'] in (4,5,6,7) or function=='eruption_frame':check='actor_never_vulnerable'
+  elif d['kind']==9:check='actor_hidden_vulnerable'
+  elif function in ('waveboss_frame','flailer_frame','reinforcement_body_frame','edge_actor_frame','teleporter_frame','hunter_frame','crawler_frame','statue_frame','pair_frame','boss_frame','zombie_frame','emerge_frame'):
+   check=function.removesuffix('_frame')+'_vulnerable'
+  vulnerability.append(check)
+ (ROOT/'src/actor_dispatch.c').write_text('/* Generated native function routing; no arcade code is executed. */\n#include "actor_dispatch.h"\n#include "assets.h"\n#include "npc.h"\n#include "zombie.h"\n#include "sentry.h"\n#include "world.h"\nconst ActorDispatch actor_dispatch[]={\n'+',\n'.join(rows)+'\n};\nstatic u8 actor_never_vulnerable(u16 slot){(void)slot;return 0;}\nstatic u8 actor_hidden_vulnerable(u16 slot){return !game.actors[slot].state;}\nconst ActorVulnerable actor_vulnerable[]={\n'+',\n'.join(vulnerability)+'\n};\n')
