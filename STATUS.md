@@ -10,7 +10,7 @@ normal locomotion and the known major enemy/boss families now have native routin
 Injected actor/ending tests do not establish natural full-game completion.
 
 Known native issues: frame overruns on denser routes; unverified PAL timing;
-placeholder audio; incomplete combat integration and parts of presentation. Exact
+placeholder sound effects and incomplete music selection; incomplete combat integration and parts of presentation. Exact
 cadence, cartridge hash, and test counts live in JSON reports and `dist/build.json`.
 
 Resolved during this build: wrong-CPU libgcc, sprite-cache lookup cost, full-view cache pinning cost,
@@ -666,3 +666,25 @@ samples verify no such overruns and no double-step on any sampled video frame;
 116–174 updates across the sampled entries. Full-rate routes and real-hardware
 validation remain incomplete. Detailed evidence is in frame-scheduler-tests.json
 and performance-profile.json; this is not a full-game timing guarantee.
+
+## Native round music
+
+All eight round FM tracks now play on the Genesis YM2612 through music.c. Offline
+MAME observations run the supplied sound driver only during extraction; the ROM
+contains typed timed register data and a native C player, with no sound CPU code
+or emulation. A full channel-state/register repeat identifies each intro and loop.
+The original round-start routine at fixed233B selects commands 21–28.
+
+Redundant register writes are removed, frequency numbers are corrected for the
+Genesis FM clock, and six FM voices map to the two YM2612 register banks. Data
+uses 261,390 bytes, including carrier-only attenuation to prevent mix clipping. Timing follows elapsed video frames, including missed gameplay
+frames, using the source timer ratio rather than one update per game tick. PAL
+has a separate clock accumulator and pitch adjustment; PAL hardware remains untested.
+
+Host checks cover 103,666 sequencing/clock batches through intros and two loop
+wraps for every track. Cartridge checks verify eight selections, rendered audio,
+continued tempo while paused, and stopping on game over. Music continues through death and restarts on respawn, while clear/ending
+currently stop it; proper boss themes, jingles, source priority/resume behavior,
+original SSG effects, mix/timbre comparison and hardware listening remain unfinished.
+The existing PSG effects remain provisional. reports/music-preview.wav is a short
+rendered first-round sample, not an original arcade recording.

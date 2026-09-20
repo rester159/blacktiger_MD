@@ -13,7 +13,10 @@ def run_oracle(source,name,cases='return {}\n'):
  (out/'cases.lua').write_text(cases)
  script=ROOT/'tools'/(name.replace('-','_')+'.lua')
  command=['/opt/homebrew/bin/mame','blktiger','-rompath',str(romdir.parent),'-debug','-debugger','none','-autoboot_delay','0','-autoboot_script',str(script),'-video','none','-sound','none','-nothrottle','-skip_gameinfo','-noconfirm_quit','-noplugins','-nohttp','-nowriteconfig','-cfg_directory','cfg','-nvram_directory','nvram','-state_directory','sta','-snapshot_directory','snap','-diff_directory','diff','-homepath','home','-inipath','home']
- run=subprocess.run(command,cwd=out,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),capture_output=True,timeout=60)
+ try:
+  run=subprocess.run(command,cwd=out,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),capture_output=True,timeout=60)
+ except subprocess.TimeoutExpired as error:
+  (out/'stdout.txt').write_bytes(error.stdout or b'');(out/'stderr.txt').write_bytes(error.stderr or b'');raise
  (out/'stdout.txt').write_bytes(run.stdout);(out/'stderr.txt').write_bytes(run.stderr)
  assert run.returncode==0,run.stderr.decode(errors='replace')
  raw=(out/'events.txt').read_bytes();lines=raw.decode().splitlines();assert lines[-1]=='COMPLETE',lines[-4:]

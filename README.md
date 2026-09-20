@@ -67,7 +67,7 @@ Files:
 - `src/loot.c`: common source drop tables, coin pickup animation/rewards, and random recurrence.
 - `src/skeleton.c`: shared skeleton movement, weapons, blocks, durability, and death.
 - `src/world.c`: sparse terrain changes, hidden walls, reveal effects, and rewards.
-- `src/audio.c`: native PSG effects.
+- `src/audio.c` and `src/music.c`: native FM round music and provisional PSG effects.
 - `tools/extract.py`: source verification and asset conversion.
 - `tests/test_assets.py`: complete map decoding and corruption negative control.
 - `tests/test_runtime.py`: deterministic tests of the actual cartridge in Genesis Plus GX.
@@ -85,7 +85,7 @@ Files:
 - Shops, rewards, progression and restarts have subsystem checks; complete rescue,
   round-clear and ending presentation and natural progression still need validation.
 - Background priority groups, palette changes during play, arcade title presentation, original
-  music, and original sound effects are not implemented. PSG effects are newly authored placeholders.
+  boss/jingle music selection and original sound effects remain incomplete. All eight round FM tracks now play through a native YM2612 stream player; PSG effects are still placeholders.
 - NTSC performance is not consistently 60 Hz. See per-round cadence in `reports/runtime-tests.json`.
   PAL has a 60-tick accumulator but has not been verified in the emulator.
 - No complete natural playthrough or real-console test has passed. Tests that inject state explicitly

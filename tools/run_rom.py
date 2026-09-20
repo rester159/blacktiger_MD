@@ -9,6 +9,9 @@ ROOT=Path(__file__).resolve().parents[1]
 CORE=ROOT.parent/'_capcom/black tiger/dist/reports/development/BT-PLAT-001/core_admission_work/source/Genesis-Plus-GX-f2b40ca6c97b2ff7f70d3c00d7ace84200bb31eb/genesis_plus_gx_libretro.dylib'
 CORE=Path(os.environ.get('BLACKTIGER_CORE',str(CORE)))
 class Info(C.Structure):_fields_=[('path',C.c_char_p),('data',C.c_void_p),('size',C.c_size_t),('meta',C.c_char_p)]
+class Geometry(C.Structure):_fields_=[('base_width',C.c_uint),('base_height',C.c_uint),('max_width',C.c_uint),('max_height',C.c_uint),('aspect_ratio',C.c_float)]
+class Timing(C.Structure):_fields_=[('fps',C.c_double),('sample_rate',C.c_double)]
+class AVInfo(C.Structure):_fields_=[('geometry',Geometry),('timing',Timing)]
 class Runner:
  def __init__(self,path,core=CORE):
   self.lib=l=C.CDLL(str(core));self.frame=None;self.mask=0;self.pixel=2;self.frames=0;self.audio=0
@@ -27,12 +30,16 @@ class Runner:
     if self.pixel==2:r=(a>>11)*255//31;g=((a>>5)&63)*255//63
     else:r=((a>>10)&31)*255//31;g=((a>>5)&31)*255//31
     self.frame=np.stack([r,g,(a&31)*255//31],axis=2).astype(np.uint8)
-  def audio(p,n):self.audio+=n;return n
+  def audio(p,n):
+   self.audio+=n
+   if getattr(self,'audio_capture',None) is not None:self.audio_capture.append(C.string_at(p,n*4))
+   return n
   funcs=[('environment',C.CFUNCTYPE(C.c_bool,C.c_uint,C.c_void_p),env),('video_refresh',C.CFUNCTYPE(None,C.c_void_p,C.c_uint,C.c_uint,C.c_size_t),video),('audio_sample',C.CFUNCTYPE(None,C.c_int16,C.c_int16),lambda l,r:None),('audio_sample_batch',C.CFUNCTYPE(C.c_size_t,C.POINTER(C.c_int16),C.c_size_t),audio),('input_poll',C.CFUNCTYPE(None),lambda:None),('input_state',C.CFUNCTYPE(C.c_int16,C.c_uint,C.c_uint,C.c_uint,C.c_uint),lambda p,d,i,b: int(p==0 and bool(self.mask&(1<<b))))]
   self.callbacks=[]
   for name,typ,fn in funcs:
    cb=typ(fn);self.callbacks.append(cb);f=getattr(l,'retro_set_'+name);f.argtypes=[typ];f(cb)
   l.retro_init();raw=path.read_bytes();self.buffer=C.create_string_buffer(raw);info=Info(str(path).encode(),C.cast(self.buffer,C.c_void_p),len(raw),None);l.retro_load_game.argtypes=[C.POINTER(Info)];l.retro_load_game.restype=C.c_bool;assert l.retro_load_game(C.byref(info))
+  av=AVInfo();l.retro_get_system_av_info.argtypes=[C.POINTER(AVInfo)];l.retro_get_system_av_info(C.byref(av));self.sample_rate=av.timing.sample_rate
   self.ram=(C.c_uint8*65536).in_dll(l,'work_ram');self.symbols={}
   for line in (ROOT/'out/release/symbol.txt').read_text().splitlines():
    v=line.split()
