@@ -4,6 +4,7 @@
 #include "sentry.h"
 #include "hazard.h"
 #include "pickup.h"
+#include "emerge.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -43,6 +44,7 @@ void game_round(u8 round) {
     npc_reset();
     world_reset();
     skeleton_reset();
+    emerge_reset();
     loot_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
@@ -110,6 +112,8 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (emerge_hit(a - game.actors, damage))
+        return;
     if (sentry_hit(a - game.actors, damage))
         return;
     if (skeleton_hit(a - game.actors, damage))
@@ -152,6 +156,8 @@ static void spawn_actors(void) {
         if (absolute((s16)s->x - (s16)game.cam_x - 128) > 176 ||
             absolute((s16)s->y - (s16)game.cam_y - 112) > 152)
             continue;
+        if (!emerge_spawn_ready(i))
+            continue;
         if (!npc_spawn_ready(i))
             continue;
         for (j = 0; j < MAX_ACTORS; j++)
@@ -167,6 +173,7 @@ static void spawn_actors(void) {
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
                 npc_spawn(j);
+                if (emerge_kinds[a->def]) emerge_spawn(j);
                 if (sentry_kinds[a->def])
                     sentry_spawn(j);
                 if (skeleton_kinds[a->def] != 255)
@@ -272,7 +279,7 @@ static void screen_attack(void) {
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
-        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def])) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
         actor_hit(a, 200);
@@ -291,6 +298,10 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (emerge_kinds[a->def]) {
+        if (emerge_step(i)) hurt();
         return;
     }
     if (hazard_kinds[a->def]) {
@@ -435,6 +446,8 @@ static void shots_step(void) {
                     absolute(y - PX(a->y) - 16) < 20) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
+                        continue;
+                    if (emerge_kinds[a->def] && !emerge_vulnerable(j))
                         continue;
                     actor_hit(a, s->damage);
                     s->active = 0;

@@ -88,3 +88,12 @@ case no longer drops a visible piece due to the old conservative band count. The
 route improves from 129 to 149 logic updates per 180 video frames; three additional sampled
 rounds reach 180/180. Other routes still overrun, and worst-case/PAL performance remains unproven.
 See `reports/renderer-performance.json` for the exact scope and before/after cartridge hashes.
+
+The two emerge/hide variants (bank 2 8000/81A2, 32 placements) now share source-compiled animation
+phases, 4/16 health, 50/100 scores, exposed-only projectile collision, alternate-frame contact,
+contact-extended exposure, hide/reappearance gates, and permanent death rewards. Checks compare
+1,200 original actor ticks and 672 constructor attempts, including byte-wrapped proximity
+boundaries. Cartridge tests cover both real spawns, early immunity, exposed hits, fatal hits,
+and normal reappearance. Exact source scanner scheduling and player hurt timing remain gaps.
+Renderer fixtures initialize these actors' first source frame and retain their unflipped source
+orientation; reference pixels were regenerated from the pinned pre-optimization cartridge.

@@ -1,6 +1,7 @@
 #include "assets.h"
 #include "loot.h"
 #include "sentry.h"
+#include "emerge.h"
 #include "npc.h"
 #include "world.h"
 #include <genesis.h>
@@ -329,6 +330,11 @@ static void sprites(void) {
         code = d->code + (d->frames > 1 ? ((a->timer / 8) % d->frames) * 2 : 0);
         x = PX(a->x) - game.cam_x;
         y = PX(a->y) - game.cam_y;
+        if (emerge_kinds[a->def]) {
+            const AnimFrame *f=emerge_frame(i);
+            if (f) body(f->code,f->palette,x,y,f->flip);
+            continue;
+        }
         if (sentry_kinds[a->def]) {
             const AnimFrame *f = sentry_frame(i);
             if (f) body(f->code, f->palette, x, y, f->flip);
