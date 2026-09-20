@@ -8,6 +8,7 @@ from collections import Counter
 import numpy as np
 from PIL import Image, ImageDraw
 from arcade_source import Source
+from extract_wisp import extract as extract_wisp
 from extract_emerge import extract as extract_emerge
 from extract_pickup import extract as extract_pickup
 from extract_hazard import extract as extract_hazard
@@ -147,6 +148,11 @@ def main():
         clip=seg['clip'];native_clip('skeleton_'+str(i),clip['frames'],clip['loop'])
     body.append('const SkeletonSegment skeleton_segments[]={'+','.join('{&skeleton_%d,%d,%d}'%(i,seg['next'],seg['event']) for i,seg in enumerate(skeleton['segments']))+'};')
     body.append('const SkeletonProfile skeleton_profiles[]={'+','.join('{{'+','.join(map(str,p['roots']))+'},'+','.join(map(str,[p['durability'],p['guard'],p['variant'],p['score']]))+'}' for p in skeleton['profiles'])+'};')
+    wisp=extract_wisp(Source(args.source))
+    (ROOT/'reference/wisp.json').write_text(json.dumps(wisp,indent=2)+'\n')
+    for i,seg in enumerate(wisp['segments']):native_clip('wisp_'+str(i),seg['clip']['frames'],None)
+    body.append('const WispSegment wisp_segments[]={'+','.join('{&wisp_%d,{%d,%d},%d}'%(i,*seg['next'],seg['event']) for i,seg in enumerate(wisp['segments']))+'};')
+    body.append('const u16 wisp_roots[]={'+','.join(map(str,wisp['roots']))+'};')
     emerging=extract_emerge(Source(args.source))
     (ROOT/'reference/emerge.json').write_text(json.dumps(emerging,indent=2)+'\n')
     for i,p in enumerate(emerging['profiles']):
@@ -214,6 +220,7 @@ def main():
     ds=[]
     for d in defs.values():ds.append('{'+','.join(map(str,[d['code'],d['kind'],d['palette'],d['hp'],d['pieces'],d['frames'],d['npc_kind']]))+'}')
     body.append('const ActorDef actor_defs[]={'+','.join(ds)+'};');report['actor_definitions']=list(defs.values())
+    body.append('const u8 wisp_kinds[]={'+','.join('1' if d['bank']==2 and d['address']==0xa6f8 else '0' for d in defs.values())+'};')
     body.append('const u8 emerge_kinds[]={'+','.join(str((0x8000,0x81a2).index(d['address'])+1) if d['bank']==2 and d['address'] in (0x8000,0x81a2) else '0' for d in defs.values())+'};')
     body.append('const u8 pickup_kinds[]={'+','.join(str((0xb4af,0xb515).index(d['address'])+1) if d['bank']==4 and d['address'] in (0xb4af,0xb515) else '0' for d in defs.values())+'};')
     body.append('const u8 screen_attack_targets[]={'+','.join('1' if d['constructor_evidence']['screen_attack_target'] else '0' for d in defs.values())+'};')
@@ -281,7 +288,7 @@ def main():
         report['rounds'].append({'round':r+1,'width':w*16,'height':h*16,'camera':[cx,cy],'layout':layout,'patterns':len(unique),'spawns':len(spawn),'collision_codes':dict(Counter(coll))})
     body.append('const Round rounds[8]={'+',\n'.join('{bg%d,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d,patches%d,open_tile%d,%d,%d}'%(r,r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera'],r,r,len(hidden['rounds'][r]),collision[0]) for r,d in enumerate(report['rounds']))+'};')
     (ROOT/'res/assets.res').write_text('\n'.join(resources)+'\n')
-    (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "animation.h"\n#include "skeleton.h"\n#include "emerge.h"\nextern const EmergeProfile emerge_profiles[2];\nextern const u8 emerge_kinds[];\nextern const AnimClip npc_idle, npc_released, npc_rescue;\nextern const AnimClip *const hidden_clips[12];\nextern const AnimClip hidden_life_collected, hidden_explosion;\nextern const u8 hidden_kinds[];\nextern const u8 skeleton_kinds[];\nextern const AnimClip *const sentry_clips[7];\nextern const u8 pickup_kinds[],screen_attack_targets[],pickup_width,pickup_height,pickup_seconds;\nextern const u8 hazard_kinds[],hazard_width,hazard_height,contact_player_width,contact_player_height;\nextern const u8 sentry_kinds[], aim_table[64], sentry_health;\nextern const u16 sentry_score;\nextern const AnimClip *const loot_clips[7];\nextern const u16 loot_values[7];\nextern const u8 drop_table[28][32], drop_categories[];\nextern const SkeletonSegment skeleton_segments[];\nextern const SkeletonProfile skeleton_profiles[3];\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[10][16];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
+    (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "animation.h"\n#include "skeleton.h"\n#include "emerge.h"\n#include "wisp.h"\nextern const WispSegment wisp_segments[];\nextern const u16 wisp_roots[7];\nextern const u8 wisp_kinds[];\nextern const EmergeProfile emerge_profiles[2];\nextern const u8 emerge_kinds[];\nextern const AnimClip npc_idle, npc_released, npc_rescue;\nextern const AnimClip *const hidden_clips[12];\nextern const AnimClip hidden_life_collected, hidden_explosion;\nextern const u8 hidden_kinds[];\nextern const u8 skeleton_kinds[];\nextern const AnimClip *const sentry_clips[7];\nextern const u8 pickup_kinds[],screen_attack_targets[],pickup_width,pickup_height,pickup_seconds;\nextern const u8 hazard_kinds[],hazard_width,hazard_height,contact_player_width,contact_player_height;\nextern const u8 sentry_kinds[], aim_table[64], sentry_health;\nextern const u16 sentry_score;\nextern const AnimClip *const loot_clips[7];\nextern const u16 loot_values[7];\nextern const u8 drop_table[28][32], drop_categories[];\nextern const SkeletonSegment skeleton_segments[];\nextern const SkeletonProfile skeleton_profiles[3];\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[10][16];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
     (ROOT/'src/data.c').write_text('/* Generated by tools/extract.py. */\n#include <genesis.h>\n#include "assets.h"\n'+'\n'.join(body)+'\n')
     report['outputs']={p.name:{'bytes':p.stat().st_size,'sha256':sha(p.read_bytes())} for p in OUT.glob('*.bin')}
     (ROOT/'reports/assets.json').write_text(json.dumps(report,indent=2)+'\n')

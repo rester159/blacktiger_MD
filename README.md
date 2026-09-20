@@ -180,3 +180,10 @@ boundaries. Cartridge tests cover both real spawns, early immunity, exposed hits
 and normal reappearance. Exact source scanner scheduling and player hurt timing remain gaps.
 Renderer fixtures initialize these actors' first source frame and retain their unflipped source
 orientation; reference pixels were regenerated from the pinned pre-optimization cartridge.
+
+The wandering actor at bank 2 A6F8 (26 placements) now uses a native proximity/random movement
+routine and source animation segments instead of stationary turret shots. Hits reset its cycle
+and restore its one-point trigger without killing it or awarding score. Eight scenarios match
+1,920 original ticks for graphics, motion, repeated hits and proximity changes. A cartridge test
+covers an actual spawn, motion, absent placeholder shots and repeated nonlethal hit callbacks.
+Player damage details and common viewport retirement still need broader source matching.

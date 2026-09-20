@@ -48,15 +48,19 @@ for level in range(8):
    q=s.shots[i];q.active=1;q.enemy=i==2;q.kind=i&1;q.x=(s.cam_x+48+i*64)*256;q.y=(s.cam_y+150)*256
   for i in range(12):
    d=meta['actor_definitions'][s.actors[i].definition]
-   if d['bank']==2 and d['address'] in (0x8000,0x81a2):s.actors[i].face=-1
+   if d['bank']==2 and d['address'] in (0x8000,0x81a2,0xa6f8):s.actors[i].face=-1
   put(r,s)
-  # These two families now have private animation state. Initialize their source first
+  # Ported families have private animation state. Initialize their source first
   # frame for this paused renderer fixture, without advancing their gameplay state.
   if 'emerging' in r.symbols:
    for i in range(12):
     d=meta['actor_definitions'][s.actors[i].definition]
     if d['bank']==2 and d['address'] in (0x8000,0x81a2):
      r.write('emerging',i*12,b'\0\0\0\x08'+bytes(8))
+  if 'wisps' in r.symbols:
+   for i in range(12):
+    d=meta['actor_definitions'][s.actors[i].definition]
+    if d['bank']==2 and d['address']==0xa6f8:r.write('wisps',i*12,b'\0\0\0\x06'+bytes(8))
   r.run(100)
   costs.append(struct.unpack('>3H',r.read('video_cost',6))[1])
   if not baseline:validate_sat(r)

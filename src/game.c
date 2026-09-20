@@ -5,6 +5,7 @@
 #include "hazard.h"
 #include "pickup.h"
 #include "emerge.h"
+#include "wisp.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -112,6 +113,8 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (wisp_hit(a - game.actors))
+        return;
     if (emerge_hit(a - game.actors, damage))
         return;
     if (sentry_hit(a - game.actors, damage))
@@ -173,6 +176,7 @@ static void spawn_actors(void) {
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
                 npc_spawn(j);
+                if (wisp_kinds[a->def]) wisp_spawn(j);
                 if (emerge_kinds[a->def]) emerge_spawn(j);
                 if (sentry_kinds[a->def])
                     sentry_spawn(j);
@@ -279,7 +283,7 @@ static void screen_attack(void) {
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
-        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def])) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
         actor_hit(a, 200);
@@ -298,6 +302,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (wisp_kinds[a->def]) {
+        wisp_step(i);
+        if ((game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) hurt();
         return;
     }
     if (emerge_kinds[a->def]) {
