@@ -26,21 +26,22 @@ void container_spawn(u16 slot) {
  animation_reset(&s->animation);
  s->segment=container_roots[s->phase==3?4:s->phase==2?(a->life==5?6:a->life?5:4):0];
 }
-static void trap_spawn(s16 x,u8 left) {
+static void attack_spawn(s16 x,u8 left,const u16 *roots,u8 special) {
  u16 base,i; s16 y=game.cam_y+112;
  for(base=0;base<MAX_CONTAINER_TRAPS;base+=6) {
   for(i=0;i<6 && !container_traps[base+i].active;i++);
   if(i==6)break;
  }
  if(base==MAX_CONTAINER_TRAPS)return;
- for(i=0;i<6;i++,y+=16) {u8 t=terrain(x+16,y+16);if(t==2 || t==3)break;}
+ for(i=0;i<6;i++,y+=16) {u8 t=terrain(x+8,y+16);if(t==2 || t==3)break;}
  if(i==6)y=PX(game.p.y)+16;
  for(i=0;i<6;i++) {
   ContainerTrap *t=&container_traps[base+i];animation_reset(&t->animation);
-  t->segment=container_trap_roots[i];t->x=x+8+(i>=3?(left?-24:24):0);t->y=y;
-  t->active=1;t->left=left;t->contact=0;t->part=i%3;
+  t->segment=roots[i];t->x=x+(i>=3?(left?-24:24):0);t->y=y;
+  t->active=1;t->left=left;t->contact=0;t->part=i%3+(special?3:0);
  }
 }
+void container_wave_spawn(s16 x,u8 left){attack_spawn(x+(left?-32:48),left,container_wave_roots,1);}
 void container_step(u16 slot,u8 contact) {
  Actor *a=&game.actors[slot];ContainerState *s=&containers[slot];u16 tries;
  if(s->pending) {
@@ -50,7 +51,7 @@ void container_step(u16 slot,u8 contact) {
  for(tries=0;tries<4;tries++) {
   const ContainerSegment *seg=&container_segments[s->segment];
   if(animation_tick(&s->animation,seg->clip))break;
-  if(seg->event==0) {trap_spawn(PX(a->x),s->left);s->phase=3;game.sound=SND_HIT;}
+  if(seg->event==0) {attack_spawn(PX(a->x)+8,s->left,container_trap_roots,0);s->phase=3;game.sound=SND_HIT;}
   else if(seg->event==1 || seg->event==2) {s->phase=2;game.sound=SND_COIN;}
   else return;
   select_clip(&s->animation,&s->segment,seg->next);
@@ -92,7 +93,7 @@ void container_traps_tick(void) {
 }
 u8 container_trap_contact(u16 slot) {
  ContainerTrap *t=&container_traps[slot];
- return t->active && t->contact && !(game.frame&1) && player_contact(t->x,t->y,4,16);
+ return t->active && t->contact && !(game.frame&1) && player_contact(t->x,t->y,4,16)?(t->part>=3?2:1):0;
 }
 const AnimFrame *container_trap_frame(u16 slot) {
  ContainerTrap *t=&container_traps[slot];return t->active && t->animation.remaining?animation_current(&t->animation,container_segments[t->segment].clip):0;

@@ -2,8 +2,19 @@
 #include "assets.h"
 #include "loot.h"
 #include "progress.h"
+#include "container.h"
 typedef struct {AnimState animation;u16 segment;u8 mode,pending,left,phase,cycles;} TeleporterState;
 static TeleporterState teleporters[MAX_ACTORS];
+static u8 teleporter_once[160],teleporter_delay[160];
+void teleporter_reset(void){u16 i;for(i=0;i<160;i++)teleporter_once[i]=teleporter_delay[i]=0;}
+u8 teleporter_prepare(u16 row,s16 *x,s16 *y) {
+ u8 sample;
+ if(teleporter_once[row]){if(++teleporter_delay[row]!=45)return 0;teleporter_delay[row]=0;}
+ else teleporter_once[row]=1;
+ sample=(loot_random>>8)&7;*x=game.cam_x+teleporter_positions[sample][0];*y=game.cam_y+teleporter_positions[sample][1];return 1;
+}
+u8 teleporter_contact(u16 slot){return !(teleporters[slot].mode&2) && !game.actors[slot].state;}
+void teleporter_screen_attack(u16 slot){Actor *a=&game.actors[slot];TeleporterState *s=&teleporters[slot];if(!a->state){a->life=1;s->pending=200;s->mode|=3;a->state=1;}}
 static void select_segment(TeleporterState *s,u16 target) {animation_reset(&s->animation);s->segment=target;}
 static u16 facing(Actor *a,TeleporterState *s,u8 root) {
  s->left=(u8)(PX(game.p.x)-game.cam_x)<(u8)(PX(a->x)-game.cam_x);
@@ -20,7 +31,7 @@ u8 teleporter_hit(u16 slot,u8 damage) {
  if(!damage || !teleporter_vulnerable(slot))return 0;
  s->pending=damage;s->mode|=3;a->state=1;return 1;
 }
-/* Shared body kernel; six-part attack and recurring constructor hook are pending. */
+
 void teleporter_step(u16 slot) {
  Actor *a=&game.actors[slot];TeleporterState *s=&teleporters[slot];u16 tries;
  if(s->pending) {
@@ -44,7 +55,7 @@ void teleporter_step(u16 slot) {
   case 1:s->phase=1;break;
   case 2:s->mode=8;break;
   case 3:target=facing(a,s,3);break;
-  case 4:if(++s->cycles==5)target=teleporter_roots[9+s->left];break;
+  case 4:container_wave_spawn(PX(a->x),s->left);if(++s->cycles==5)target=teleporter_roots[9+s->left];break;
   case 5: {
    u8 sample=(loot_random>>8)&7;a->x=(game.cam_x+teleporter_positions[sample][0])*FX;a->y=(game.cam_y+teleporter_positions[sample][1])*FX;
    target=facing(a,s,5);break;

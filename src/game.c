@@ -3,6 +3,7 @@
 #include "game.h"
 #include "container.h"
 #include "shop.h"
+#include "status.h"
 #include "damage.h"
 #include "boss.h"
 #include "assets.h"
@@ -51,11 +52,11 @@ void game_round(u8 round) {
     u8 preserve=restart_pending && loaded_round==round;
     u16 restart_x=r->start_x,restart_y=r->start_y;
     if(preserve)checkpoint_lookup(round,game.cam_x,game.cam_y,&restart_x,&restart_y);
-    loaded_round=round;game.round = round;
+    status_reverse=0;loaded_round=round;game.round = round;
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
     if(preserve){u16 i;for(i=0;i<160;i++)game.spawned[i]&=254;world_restart();}
-    else {zero(game.spawned,sizeof game.spawned);world_reset();}
+    else {zero(game.spawned,sizeof game.spawned);world_reset();teleporter_reset();}
     npc_reset();
     skeleton_reset();
     emerge_reset();
@@ -121,6 +122,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CHEST || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (teleporter_kinds[a->def]){teleporter_hit(a-game.actors,damage);return;}
     if (hunter_kinds[a->def]){hunter_hit(a-game.actors,damage);return;}
     if (crawler_kinds[a->def]){crawler_hit(a-game.actors,damage);return;}
     if (statue_kinds[a->def]){statue_hit(a-game.actors,damage);return;}
@@ -177,6 +179,7 @@ static void spawn_actors(void) {
         if (zombie_kinds[s->def] && !zombie_prepare_variant(i,zombie_kinds[s->def]-1,&sx,&sy)) continue;
         if (!emerge_spawn_ready(i))
             continue;
+        if (teleporter_kinds[s->def] && !teleporter_prepare(i,&sx,&sy))continue;
         if (pair_kinds[s->def] && !pair_ready(sx,sy))continue;
         if (!npc_spawn_ready(i))
             continue;
@@ -198,6 +201,7 @@ static void spawn_actors(void) {
                 a->timer = i * 7;
                 if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);
+                if(teleporter_kinds[a->def])teleporter_spawn(j);
                 if(hunter_kinds[a->def])hunter_spawn(j,hunter_kinds[a->def]-1);
                 if(crawler_kinds[a->def])crawler_spawn(j,0);
                 if(statue_kinds[a->def])statue_spawn(j);
@@ -221,6 +225,7 @@ static void spawn_actors(void) {
 }
 static void player_step(u16 in, u16 pressed) {
     Player *p = &game.p;
+    status_tick();in=status_controls(in);pressed=status_controls(pressed);
     s16 x = PX(p->x), y = PX(p->y), nx, ny, feet;
     u8 ladder = terrain(x + 16, y + 16) == 1 || terrain(x + 16, y + 28) == 1;
     if (p->invincible)
@@ -314,11 +319,12 @@ static void screen_attack(void) {
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
-        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def] || pair_kinds[a->def] || statue_kinds[a->def] || crawler_kinds[a->def] || hunter_kinds[a->def])) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def] || pair_kinds[a->def] || statue_kinds[a->def] || crawler_kinds[a->def] || hunter_kinds[a->def] || teleporter_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
         a->life = 1;
-        if(hunter_kinds[a->def])hunter_screen_attack(j);
+        if(teleporter_kinds[a->def])teleporter_screen_attack(j);
+        else if(hunter_kinds[a->def])hunter_screen_attack(j);
         else if(crawler_kinds[a->def])crawler_screen_attack(j);
         else if(statue_kinds[a->def])statue_screen_attack(j);
         else actor_hit(a, 200);
@@ -347,6 +353,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (teleporter_kinds[a->def]) {
+        teleporter_step(i);
+        if(a->active && teleporter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
         return;
     }
     if (hunter_kinds[a->def]) {
@@ -533,6 +544,7 @@ static void shots_step(void) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CHEST || k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
+                    if (teleporter_kinds[a->def] && !teleporter_vulnerable(j))continue;
                     if (hunter_kinds[a->def] && !hunter_vulnerable(j))continue;
                     if (crawler_kinds[a->def] && !crawler_vulnerable(j))continue;
                     if (statue_kinds[a->def] && !statue_vulnerable(j))continue;
@@ -585,7 +597,7 @@ void game_tick(u16 input) {
         if (game.mode_timer)
             --game.mode_timer;
         else {
-            p->armor=progress_initial_armor;shop_poison=0;
+            p->armor=progress_initial_armor;shop_poison=0;status_reverse=0;
             if(p->lives)p->lives--;
             if(p->lives) {restart_pending=1;game_round(game.round);restart_pending=0;}
             else game.mode=GAMEOVER;
@@ -634,7 +646,7 @@ void game_tick(u16 input) {
         if(statue_shell_player_contact(i,1))player_hurt(1);
     }}
     container_traps_tick();
-    {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++)if(container_trap_contact(i))player_hurt(1);}
+    {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact=container_trap_contact(i);if(contact==1)player_hurt(1);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
     {
         u16 i;for(i=0;i<MAX_MISSILES;i++) {
             Missile *m=&missiles[i];

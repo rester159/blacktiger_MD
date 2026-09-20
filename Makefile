@@ -53,7 +53,10 @@ test: all
 	.venv/bin/python tests/test_progress.py
 	.venv/bin/python tests/test_progress_runtime.py
 	.venv/bin/python tests/test_restart_runtime.py
+	.venv/bin/python tests/test_status.py
+	.venv/bin/python tests/test_wave.py
 	.venv/bin/python tests/test_teleporter.py
+	.venv/bin/python tests/test_teleporter_runtime.py
 	.venv/bin/python tests/test_hunter.py
 	.venv/bin/python tests/test_hunter_shell.py
 	.venv/bin/python tests/test_hunter_runtime.py

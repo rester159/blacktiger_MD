@@ -25,4 +25,5 @@ u16 container_shuffle(u8 round,u16 seed,u8 *out);
 void container_new(void);
 void container_round(u8 round);
 u8 container_content(u8 persistent);
+void container_wave_spawn(s16 x,u8 left);
 #endif

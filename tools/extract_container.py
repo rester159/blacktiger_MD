@@ -36,10 +36,12 @@ def extract(s):
  roots=list(map(intern,[0xb21a,0xb24c,0xb28a,0xb26b,0xb222,0xb237,0xb22a,0xb244]))
  trap_templates=[s.read(1,0x831a+32*i,32) for i in range(6)]
  trap_roots=[intern(int.from_bytes(t[30:32],'little')+5) for t in trap_templates]
+ wave_templates=[s.read(1,0x868e+32*i,32) for i in range(6)]
+ wave_roots=[intern(int.from_bytes(t[30:32],'little')+5) for t in wave_templates]
  callbacks=[0xae12,0xae48,0xae2a,0x82d4,0x82f9,0x8309]
  while pending:
   pc=pending.pop(0);clip=compile_clip(s,1,pc);event=6;target=65535
   if clip['event']:
    event=callbacks.index(clip['event']['address']);target=intern(clip['event']['record']+3)
   segments[indices[pc]]={'source':pc,'clip':clip,'event':event,'next':target}
- return {'roots':roots,'trap_roots':trap_roots,'segments':segments,'trap_templates':[t.hex() for t in trap_templates],'contact_handlers':handlers,'coin_values':coins,'source_set' :s.lock['aggregate_sha256'],'round_contents':tables,'phases':phases,'scope':'Content shuffle, constructor phases and contact effects. Includes native phase and trap animation graphs. Startup inventory, key acquisition and full lifecycle persistence still require a source port.','witnesses':list(s.witnesses.values())}
+ return {'wave_roots':wave_roots,'wave_templates':[t.hex() for t in wave_templates],'roots':roots,'trap_roots':trap_roots,'segments':segments,'trap_templates':[t.hex() for t in trap_templates],'contact_handlers':handlers,'coin_values':coins,'source_set' :s.lock['aggregate_sha256'],'round_contents':tables,'phases':phases,'scope':'Content shuffle, constructor phases and contact effects. Includes native phase and trap animation graphs. Startup inventory, key acquisition and full lifecycle persistence still require a source port.','witnesses':list(s.witnesses.values())}

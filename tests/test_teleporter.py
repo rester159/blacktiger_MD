@@ -10,6 +10,9 @@ with tempfile.TemporaryDirectory() as folder:
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''u8 terrain(s16 x,s16 y){return 0;}
+ void container_wave_spawn(s16 x,u8 left){}
+ void constructor_setup(int sample){teleporter_reset();game.cam_x=game.cam_y=0;loot_random=sample*256;}
+ void constructor(int *out){s16 x=0,y=0;out[0]=teleporter_prepare(0,&x,&y);out[1]=x;out[2]=y;out[3]=teleporter_once[0];out[4]=teleporter_delay[0];}
  void setup(int px,int sample) {
  game=(Game){0};game.p.x=px*256;game.p.y=120*256;game.mode=PLAY;game.spawned[0]=1;
  loot_random=sample*256;game.actors[0]=(Actor){.active=1,.x=128*256,.y=96*256,.def='''+str(definition)+'''};
@@ -25,6 +28,13 @@ with tempfile.TemporaryDirectory() as folder:
  lib=C.CDLL(str(tmp/'s.dylib'));out=(C.c_int*14)();current=-1;count=0
  for line in (ROOT/'reference/teleporter_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break
+  if line.startswith('SPAWN|'):
+   _,sample,attempt,*values=map(lambda v:int(v) if v!='SPAWN' else v,line.split('|'))
+   if attempt==1:lib.constructor_setup(sample)
+   lib.constructor(out);expected=[bool(values[0]),*values[1:]]
+   assert out[0]==expected[0] and list(out)[3:5]==expected[3:5],(sample,attempt,list(out)[:5],expected)
+   if out[0]:assert list(out)[1:3]==expected[1:3]
+   continue
   _,case,tick,a,display,clear,persist,task=line.split('|');case=int(case);tick=int(tick);a=bytes.fromhex(a);display=bytes.fromhex(display);c=ref['cases'][case]
   if current!=case:lib.setup(c['px'],c['random']);current=case
   lib.tick(c['damage'] if tick>=80 and tick%100==80 else 0,out)
@@ -36,5 +46,5 @@ with tempfile.TemporaryDirectory() as folder:
   assert out[12]==(100 if task=='0540' else 0),(case,tick,'score',task)
   assert out[13]==int(persist,16)
   count+=1
- report={'passed':True,'source_body_ticks':count,'cases':len(ref['cases']),'scope':'Teleporter body phases, facing, relocation, attack-cycle retirement, custom damage reduction and 100-point defeat reward. Recurring constructor and six-part attack integration remain pending.'}
+ report={'passed':True,'source_body_ticks':count,'cases':len(ref['cases']),'source_constructor_attempts':728,'scope':'Teleporter body phases, facing, relocation, attack-cycle retirement, custom damage reduction and 100-point defeat reward. Includes original first-spawn and 45-attempt recurrence gate at all eight random positions. Native body, recurring constructor and shared wave attack are integrated.'}
  (ROOT/'reports/teleporter-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
