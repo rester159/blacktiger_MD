@@ -1,4 +1,5 @@
 #include "progress.h"
+#include "checkpoint.h"
 #include "game.h"
 #include "container.h"
 #include "shop.h"
@@ -47,6 +48,8 @@ void game_round(u8 round) {
     Player *p = &game.p;
     const Round *r = &rounds[round];
     u8 preserve=restart_pending && loaded_round==round;
+    u16 restart_x=r->start_x,restart_y=r->start_y;
+    if(preserve)checkpoint_lookup(round,game.cam_x,game.cam_y,&restart_x,&restart_y);
     loaded_round=round;game.round = round;
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
@@ -66,10 +69,10 @@ void game_round(u8 round) {
     game.rescued = 0;
     game.time = 180;
     game.clock = 0;
-    game.cam_x = r->start_x;
-    game.cam_y = r->start_y;
-    p->x = (r->start_x + 128) * FX;
-    p->y = (r->start_y + 144) * FX;
+    game.cam_x = restart_x;
+    game.cam_y = restart_y;
+    p->x = (restart_x + checkpoint_player_x) * FX;
+    p->y = (restart_y + checkpoint_player_y) * FX;
     p->vx = p->vy = 0;
     p->climb = p->grounded = p->attack = 0;
     p->invincible = 120;

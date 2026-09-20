@@ -317,3 +317,12 @@ and four-byte persistence-copy loop (clear bit zero only); linked tests use actu
 hidden-wall collection, life loss and a fresh game. Original checkpoint camera/position,
 continue behavior and death presentation timing remain unfinished. New-game input preserves
 the held Start latch so the same press cannot immediately pause gameplay.
+
+Same-round life loss now selects the original checkpoint through a shared 256-pixel region
+lookup: 32 entries per round, with 8x4 or 4x8 indexing according to the map orientation.
+All eight grids and the player spawn offset (112,144) are extracted; fresh round entry also
+uses that offset instead of the provisional (128,144). The lookup matches 768 original
+calls spanning every cell, boundary offsets, 16-bit wrapping and both source save slots.
+Thirty-two linked DEAD-to-PLAY cases verify camera/hero placement and life debit. Some table
+entries address unused regions, so injected lookup coverage is not proof of natural route
+reachability. Continuous source camera limits, scrolling and continue behavior remain unported.
