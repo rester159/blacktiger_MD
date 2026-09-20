@@ -16,4 +16,17 @@ def extract(s):
    pc=s.word(1,table+2*i);t=s.read(1,pc,48)
    variants.append({'template':pc,'bytes':t.hex(),'contact':t[13],'initial':compile_clip(s,1,int.from_bytes(t[30:32],'little')+5),'collected':compile_clip(s,1,int.from_bytes(t[28:30],'little')+5)})
   phases.append(variants)
- return {'source_set':s.lock['aggregate_sha256'],'round_contents':tables,'phases':phases,'scope':'Eight-slot content shuffle and constructor data. Keys, opening, content effects and persistence still need native integration.','witnesses':list(s.witnesses.values())}
+ handlers=[0x49b9,0x4a37,0x4a8f,0x4ae7,0x4b3f,0x49e3]
+ coins=[]
+ for pc in (0x4a80,0x4ad8,0x4b30,0x4b88):
+  s.expect(None,pc,'2aa7f311')
+  value=s.word(None,pc+4);coins.append(value)
+  s.expect(None,pc+6,'1922a7f33e')
+  index=s.read(None,pc+11,1)[0]
+  # 4FAF updates the five decimal coin-display digits, not the score.
+  digits=s.read(None,0x505e+index-4,5)
+  assert int(''.join(map(str,digits)))==value
+ s.expect(None,0x49b9,'21abf37ea7c835')
+ s.expect(None,0x4a2c,'3ab6f3320ef4af3221f4c9')
+ for pc in handlers:s.read(None,pc,0x2a if pc==0x49b9 else 0x54 if pc==0x49e3 else 0x58)
+ return {'contact_handlers':handlers,'coin_values':coins,'source_set' :s.lock['aggregate_sha256'],'round_contents':tables,'phases':phases,'scope':'Content shuffle, constructor phases and contact effects. Native contact kernel is not yet connected to gameplay; inventory, phase timing, trap actors and persistence still need integration.','witnesses':list(s.witnesses.values())}

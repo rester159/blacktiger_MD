@@ -264,3 +264,10 @@ container variants and selection by persistence ID. The three constructor phases
 types are extracted for the next implementation work. **Key inventory, opening, trap spawning,
 reward collection and opened/collected persistence are still missing**, so containers are not yet
 fully ported. Exact source global startup/RNG scheduling also remains unverified.
+
+The six container contact handlers now also have a shared native effect kernel, checked against
+144 original-ROM calls covering zero/nonzero keys, both opening states, all four coin values,
+16-bit money wrap and health restoration. Coin pickups award 50/100/500/1000 money and no
+score; the source's second update changes the decimal money display. This kernel is deliberately
+not yet called by gameplay: opening animation ownership, inventory acquisition, six-part traps
+and persistent reconstruction must be connected before the closed-container behavior changes.

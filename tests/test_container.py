@@ -6,7 +6,7 @@ ref=json.loads((ROOT/'reference/container_oracle.json').read_text());data=json.l
 for key,path in [('trace_sha256','reference/container_oracle_events.txt'),('lua_sha256','tools/container_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('')
- (tmp/'stub.c').write_text('#include "assets.h"\n#include "container.h"\nvolatile u16 loot_random;\nconst u8 container_initial[8][8]='+str(data['round_contents']).replace('[','{').replace(']','}')+';\nvoid restart(int round,int seed,u8 *out){loot_random=seed;container_round(round);for(int i=0;i<8;i++)out[i]=container_content(33+i);}\n')
+ (tmp/'stub.c').write_text('#include "assets.h"\n#include "container.h"\nvolatile u16 loot_random;\nconst u16 container_coin_values[4]={50,100,500,1000};\nconst u8 container_initial[8][8]='+str(data['round_contents']).replace('[','{').replace(']','}')+';\nvoid restart(int round,int seed,u8 *out){loot_random=seed;container_round(round);for(int i=0;i<8;i++)out[i]=container_content(33+i);}\n')
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/container.c'),str(tmp/'stub.c'),'-o',str(tmp/'c.dylib')],check=True)
  lib=C.CDLL(str(tmp/'c.dylib'));lib.container_shuffle.restype=C.c_uint16;out=(C.c_uint8*8)();count=0
  for line in (ROOT/'reference/container_oracle_events.txt').read_text().splitlines():

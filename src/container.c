@@ -21,3 +21,17 @@ void container_round(u8 round) {
  }
 }
 u8 container_content(u8 persistent) {return persistent>=33 && persistent<41?container_contents[persistent-33]-16:0;}
+
+u8 container_contact(u8 content,ContainerContact *s) {
+ if(content>=6)return CONTAINER_NO_CONTACT;
+ if(content==0 || !s->opened) {
+  if(!s->keys)return CONTAINER_NO_CONTACT;
+  --s->keys;s->opened=1;
+  if(content==0) {s->collected=1;return CONTAINER_TRAP;}
+  return CONTAINER_OPEN;
+ }
+ s->collected=1;
+ if(content==5) {s->hp=s->max_hp;s->invincible=0;}
+ else s->coins+=container_coin_values[content-1];
+ return CONTAINER_COLLECT;
+}
