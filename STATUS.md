@@ -457,3 +457,14 @@ retain durability 2/8/16 and rewards 10/15/15. The expanded oracle compares 65,5
 in rounds one, two and six, including initial immunity, splitting and weak/fatal damage.
 A3B6 uses the shared poison-contact-42 handler. Global small-actor pool contention and full
 natural routes remain unverified.
+
+The shared pre-allocation schedule for bank-two 8344/9AF6 is now native: screen bounds,
+byte-wrapped ±48/±32 player proximity, an initial attempt, forty eligible calls of waiting,
+and consumption on the second allocation attempt even if the actor pool is full. Secondary
+row counters survive checkpoint restarts and reset with a new round. A 568-case oracle checks
+24,424 calls including boundaries, nonzero row bytes, full pools and byte overflow. Cartridge
+checks cover actual round-two and round-seven placements, first defeat preserving the second
+attempt, delay pausing out of proximity, and no third appearance. This is constructor coverage
+only: both actors still require their shared movement/attack graphs, layered damage and rewards.
+Their source body callbacks are 83BC/9B6E; initial templates are 8899/A07D, and their six-part
+projectile templates are 88C9/8989 and A0AD/A16D respectively.

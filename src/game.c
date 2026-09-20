@@ -1,4 +1,5 @@
 #include "progress.h"
+#include "reinforcement.h"
 #include "checkpoint.h"
 #include "game.h"
 #include "container.h"
@@ -56,7 +57,7 @@ void game_round(u8 round) {
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
     if(preserve){u16 i;for(i=0;i<160;i++)game.spawned[i]&=254;world_restart();}
-    else {zero(game.spawned,sizeof game.spawned);world_reset();teleporter_reset();eruption_reset();}
+    else {zero(game.spawned,sizeof game.spawned);world_reset();teleporter_reset();eruption_reset();reinforcement_reset();}
     npc_reset();
     skeleton_reset();
     emerge_reset();
@@ -154,7 +155,7 @@ static void actor_hit(Actor *a, u8 damage) {
         return;
     }
     a->active = 0;
-    game.spawned[a->source] = 2;
+    if(!reinforcement_kinds[a->def])game.spawned[a->source] = 2;
     game.kills++;
     progress_score(layered_boss_kinds[a->def] ? layered_boss_score : d->kind == BOSS ? 5000 : 100);
     if (!layered_boss_kinds[a->def])
@@ -183,6 +184,7 @@ static void spawn_actors(void) {
         if (!emerge_spawn_ready(i))
             continue;
         if (eruption_kinds[s->def] && !eruption_prepare(i,sx,sy))continue;
+        if (reinforcement_kinds[s->def] && !reinforcement_prepare(i,sx,sy))continue;
         if (teleporter_kinds[s->def] && !teleporter_prepare(i,&sx,&sy))continue;
         if (pair_kinds[s->def] && !pair_ready(sx,sy))continue;
         if (!npc_spawn_ready(i))
@@ -224,7 +226,7 @@ static void spawn_actors(void) {
                     skeleton_spawn(j);
                 if (actor_defs[s->def].kind == HIDDEN_WALL)
                     hidden_spawn(j);
-                game.spawned[i] = eruption_kinds[s->def]?game.spawned[i]:pair_kinds[s->def]?2:1;
+                game.spawned[i] = (eruption_kinds[s->def] || reinforcement_kinds[s->def])?game.spawned[i]:pair_kinds[s->def]?2:1;
                 if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def])return;
                 break;
             }
