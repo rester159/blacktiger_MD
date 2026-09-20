@@ -11,14 +11,14 @@ assert (s.actors[slot].x,s.actors[slot].y)==xy
 # A pickup processed after the hazard must not override/continue a fatal frame.
 assert slot+1<24
 pickup=s.actors[slot+1];pickup.active=1;pickup.definition=7;pickup.source=159;pickup.x=xy[0];pickup.y=xy[1]
-coins=s.coins
+coins=s.coins;time=s.time
 s.p.x=xy[0]-8*256;s.p.y=xy[1]-8*256;s.p.vx=s.p.vy=0;put(r,s)
 for _ in range(100):
  r.run(1);s=state(r)
  if s.mode==4:break
 assert s.mode==4 and s.p.hp==0 and s.p.armor==4 and s.p.lives==3
 assert s.actors[slot].active and s.spawned[row]!=2
-assert s.coins==coins and s.actors[slot+1].active
+assert s.coins==coins and s.time==time and s.actors[slot+1].active and not s.actors[slot+1].state
 s.mode_timer=0;put(r,s)
 for _ in range(100):
  r.run(1);s=state(r)

@@ -153,3 +153,11 @@ dimensions and enter death directly, bypassing armor and hurt invulnerability. B
 match 126 original-ROM cases; cartridge checks cover weapon immunity, fatal contact, interrupted
 post-death interactions and single-life respawn. Alternate player contact postures and the original
 death presentation/timing remain unfinished.
+
+Placed time-extension and screen-attack pickups (58 source placements) now give their distinct
+rewards instead of flat coins/score, use normal source contact bounds, persist after collection,
+and retire on the following tick. The placed and hidden screen-attack rewards share the source
+small/medium actor target filters, compiled from witnessed constructor pool/contact fields.
+Checks cover 406 item ticks, 192 original target cases, 66 compiled definition filters, and both
+actual cartridge pickup spawns. Unported enemy death callbacks, later contact-type changes and
+shared-pool/projectile effects remain incomplete; this is not full screen-attack fidelity.

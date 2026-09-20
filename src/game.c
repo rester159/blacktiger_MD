@@ -3,6 +3,7 @@
 #include "loot.h"
 #include "sentry.h"
 #include "hazard.h"
+#include "pickup.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -266,6 +267,17 @@ static void player_step(u16 in, u16 pressed) {
         hurt();
     }
 }
+static void screen_attack(void) {
+    u16 j;
+    for (j = 0; j < MAX_ACTORS; j++) {
+        Actor *a = &game.actors[j];
+        if (!a->active || !screen_attack_targets[a->def]) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def])) continue;
+        a->hit = 0;
+        a->hp = 1;
+        actor_hit(a, 200);
+    }
+}
 static void actor_step(u16 i, u16 pressed) {
     Actor *a = &game.actors[i];
     const ActorDef *d = &actor_defs[a->def];
@@ -297,22 +309,12 @@ static void actor_step(u16 i, u16 pressed) {
         return;
     }
     if (d->kind == HIDDEN_WALL) {
-        if (hidden_step(i, close)) {
-            u16 j;
-            for (j = 0; j < MAX_ACTORS; j++)
-                if (actor_defs[game.actors[j].def].kind != HIDDEN_WALL)
-                    actor_hit(&game.actors[j], 200);
-        }
+        if (hidden_step(i, close))
+            screen_attack();
         return;
     }
-    if (d->kind == PICKUP) {
-        if (close) {
-            a->active = 0;
-            game.spawned[a->source] = 2;
-            game.coins += 20;
-            game.score += 100;
-            game.sound = SND_COIN;
-        }
+    if (pickup_kinds[a->def]) {
+        if (pickup_step(i)) screen_attack();
         return;
     }
     if (d->kind == CAPTIVE) {
