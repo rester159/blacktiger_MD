@@ -46,8 +46,8 @@ def load(source):
    assert display[1]&7==f['palette']
    initial.append((f['code'],f['palette'],len(display)//4))
   first=set(initial)
-  categories={a[11] for a in states}
-  c={'contact':dict(zip(('pool','half_width','half_height'),next(iter(contacts)))) if len(contacts)==1 else None,'screen_attack_target':next(iter(screen_targets)) if len(screen_targets)==1 else None,'category':next(iter(categories)) if len(categories)==1 else None,'templates':[{'address':pc,'size':len(raw)} for pc,raw in templates.items()],
+  categories={a[11] for a in states};damages={a[15] for a in states}
+  c={'damage':next(iter(damages)) if len(damages)==1 else None,'contact':dict(zip(('pool','half_width','half_height'),next(iter(contacts)))) if len(contacts)==1 else None,'screen_attack_target':next(iter(screen_targets)) if len(screen_targets)==1 else None,'category':next(iter(categories)) if len(categories)==1 else None,'templates':[{'address':pc,'size':len(raw)} for pc,raw in templates.items()],
      'health':next(iter(hp)) if len(hp)==1 else None,
      'initial_frame':dict(zip(('code','palette','pieces'),next(iter(first)))) if len(first)==1 else None,
      'profile_dependent_graphics':len(first)>1,

@@ -19,6 +19,8 @@ test: all
 	.venv/bin/python tests/test_animation.py
 	.venv/bin/python tests/test_actor_contract.py
 	.venv/bin/python tests/test_contact.py
+	.venv/bin/python tests/test_damage.py
+	.venv/bin/python tests/test_damage_runtime.py
 	.venv/bin/python tests/test_wisp.py
 	.venv/bin/python tests/test_wisp_runtime.py
 	.venv/bin/python tests/test_emerge.py

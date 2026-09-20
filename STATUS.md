@@ -112,3 +112,11 @@ edges and player half sizes 3/8. Host-native C matches 588 original-ROM boundary
 pass, including NPC rescue contact. Hidden-wall rewards retain their separate provisional box;
 large/profile-dependent actors, alternate posture, dynamic bounds and contact scheduling still need
 source matching. This does not establish complete combat fidelity.
+
+Ordinary player damage now uses source constructor attack strength (+0F), consumes armor before
+health, carries excess damage into health, and grants 60 ticks of protection on surviving hits.
+Exact armor depletion does not damage health; lethal overflow enters death. The old unconditional
+one-point loss and artificial upward velocity/climb cancellation are removed. Native C matches
+180 original-ROM cases, and six linked-cartridge projectile cases cover absorption, overflow,
+lethal damage and invulnerability. Special contact effects, source armor-break visuals, skeleton
+weapon attack strength, and full player/death animation still need separate implementation.

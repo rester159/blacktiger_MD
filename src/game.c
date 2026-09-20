@@ -1,4 +1,5 @@
 #include "game.h"
+#include "damage.h"
 #include "assets.h"
 #include "loot.h"
 #include "sentry.h"
@@ -88,26 +89,6 @@ static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
             s->life = 80;
             break;
         }
-}
-static void hurt(void) {
-    Player *p = &game.p;
-    if (p->invincible || game.mode != PLAY)
-        return;
-    game.sound = SND_HIT;
-    p->invincible = 100;
-    p->climb = 0;
-    p->vy = -3 * FX;
-    if (p->armor) {
-        --p->armor;
-        return;
-    }
-    if (p->hp)
-        --p->hp;
-    if (!p->hp) {
-        game.mode = DEAD;
-        game.mode_timer = 120;
-        game.sound = SND_DIE;
-    }
 }
 static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
@@ -275,7 +256,7 @@ static void player_step(u16 in, u16 pressed) {
         p->invincible = 0;
         p->hp = 1;
         p->armor = 0;
-        hurt();
+        player_hurt(1);
     }
 }
 static void screen_attack(void) {
@@ -306,11 +287,11 @@ static void actor_step(u16 i, u16 pressed) {
     }
     if (wisp_kinds[a->def]) {
         wisp_step(i);
-        if ((game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) hurt();
+        if ((game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) player_hurt(actor_damage[a->def]);
         return;
     }
     if (emerge_kinds[a->def]) {
-        if (emerge_step(i)) hurt();
+        if (emerge_step(i)) player_hurt(actor_damage[a->def]);
         return;
     }
     if (hazard_kinds[a->def]) {
@@ -319,13 +300,13 @@ static void actor_step(u16 i, u16 pressed) {
     }
     if (sentry_kinds[a->def]) {
         sentry_step(i);
-        if (a->active && !a->state && close) hurt();
+        if (a->active && !a->state && close) player_hurt(actor_damage[a->def]);
         return;
     }
     if (skeleton_kinds[a->def] != 255) {
         skeleton_step(i);
         if (a->active && !a->state && close)
-            hurt();
+            player_hurt(actor_damage[a->def]);
         return;
     }
     if (d->kind == HIDDEN_WALL) {
@@ -345,7 +326,7 @@ static void actor_step(u16 i, u16 pressed) {
         return;
     if (d->kind == HAZARD) {
         if (close)
-            hurt();
+            player_hurt(actor_damage[a->def]);
         return;
     }
     if (d->kind == FLYER) {
@@ -402,7 +383,7 @@ static void actor_step(u16 i, u16 pressed) {
             shot(x + 16, y + 16, (dx < 0 ? -1 : 1) * 640, 0, 1, 2);
     }
     if (close)
-        hurt();
+        player_hurt(actor_damage[a->def]);
 }
 static void shots_step(void) {
     u16 i, j, wall_count = 65535;
@@ -445,7 +426,7 @@ static void shots_step(void) {
         }
         if (s->enemy) {
             if (absolute(x - PX(game.p.x) - 16) < 12 && absolute(y - PX(game.p.y) - 16) < 14) {
-                hurt();
+                player_hurt(s->damage);
                 s->active = 0;
             }
         } else
@@ -551,7 +532,7 @@ void game_tick(u16 input) {
             s16 x, y;
             if (skeleton_weapon_frame(i, &x, &y) && absolute(x - PX(p->x) - 8) < 16 &&
                 absolute(y - PX(p->y) - 8) < 20)
-                hurt();
+                player_hurt(1);
         }
     }
     if (game.mode != PLAY)
@@ -574,7 +555,7 @@ void game_tick(u16 input) {
         else {
             p->hp = 1;
             p->armor = p->invincible = 0;
-            hurt();
+            player_hurt(1);
         }
     }
     game.cam_x = bound_axis(PX(p->x) - 112, 0, rounds[game.round].width - 256);
