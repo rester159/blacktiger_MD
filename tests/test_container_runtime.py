@@ -15,5 +15,5 @@ for pc in (0xacbe,0xacd3):
  r.run(80);s=state(r);assert (s.actors[slot].x,s.actors[slot].y)==(x,y)
  s.mode=2;put(r,s);r.run(15);r.capture('closed-container-%x.png'%pc)
  checks.append(dict(constructor=pc,round=level+1,row=row,content_index=a.life,stationary_and_weapon_immune=True))
-r.close();report={'passed':True,'cases':checks,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Closed containers and shuffled content selection only. Opening/keys/rewards remain unfinished.'}
+r.close();report={'passed':True,'cases':checks,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Closed containers and shuffled content selection only. Opening/rewards have separate integration checks; key acquisition remains unfinished.'}
 (ROOT/'reports/container-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

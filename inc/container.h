@@ -1,6 +1,18 @@
 #ifndef CONTAINER_H
 #define CONTAINER_H
-#include "game.h"
+#include "animation.h"
+typedef struct {const AnimClip *clip;u16 next;u8 event;} ContainerSegment;
+typedef struct {AnimState animation;u16 segment;s16 x,y;u8 active,left,contact,part;} ContainerTrap;
+#define MAX_CONTAINER_TRAPS 24
+extern ContainerTrap container_traps[MAX_CONTAINER_TRAPS];
+extern u8 container_keys;
+void container_actor_reset(void);
+void container_spawn(u16 slot);
+void container_step(u16 slot,u8 contact);
+const AnimFrame *container_frame(u16 slot);
+void container_traps_tick(void);
+u8 container_trap_contact(u16 slot);
+const AnimFrame *container_trap_frame(u16 slot);
 /* Contact effect only: the animation owner gates contact and fires trap events. */
 typedef struct {
  u16 coins,invincible;

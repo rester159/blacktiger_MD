@@ -17,5 +17,5 @@ with tempfile.TemporaryDirectory() as folder:
   count+=1
  lib.container_new();lib.restart(3,451,out);first=bytes(out);lib.restart(3,12345,out)
  assert bytes(out)==first and C.c_uint16.in_dll(lib,'loot_random').value==12345
- report={'passed':True,'source_shuffle_cases':count,'same_round_contents_preserved':True,'scope':'Eight round tables and eight-swap RNG algorithm, with two original RNG updates per intercepted task yield. Exact global startup scheduling is not covered. Container opening, keys, traps and rewards are not yet implemented.'}
+ report={'passed':True,'source_shuffle_cases':count,'same_round_contents_preserved':True,'scope':'Eight round tables and eight-swap RNG algorithm, with two original RNG updates per intercepted task yield. Exact global startup scheduling is not covered. Opening and traps have separate tests; key acquisition and exact startup scheduling remain unported.'}
  (ROOT/'reports/container-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

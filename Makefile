@@ -48,6 +48,8 @@ test: all
 	.venv/bin/python tests/test_wisp_runtime.py
 	.venv/bin/python tests/test_emerge.py
 	.venv/bin/python tests/test_emerge_runtime.py
+	.venv/bin/python tests/test_container_trap.py
+	.venv/bin/python tests/test_container_open_runtime.py
 	.venv/bin/python tests/test_container_contact.py
 	.venv/bin/python tests/test_container.py
 	.venv/bin/python tests/test_container_runtime.py

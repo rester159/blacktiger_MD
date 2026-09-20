@@ -55,6 +55,7 @@ void game_round(u8 round) {
     missile_reset();
     loot_reset();
     container_round(round);
+    container_actor_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
     game.boss_dead = 0;
@@ -75,6 +76,7 @@ void game_new(void) {
     zero(&game, sizeof game);
     loot_new();
     container_new();
+    container_keys=0;
     game.p.lives = 3;
     game.p.armor = 2;
     game.p.weapon = 1;
@@ -174,7 +176,7 @@ static void spawn_actors(void) {
                 a->y = sy * FX;
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
-                if(actor_defs[a->def].kind==CHEST)a->life=container_content(s->persistent);
+                if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);
                 if(pair_kinds[a->def])pair_spawn(j);
                 if(boulder_kinds[a->def])boulder_spawn(j);
@@ -373,8 +375,9 @@ static void actor_step(u16 i, u16 pressed) {
         npc_step(i, close);
         return;
     }
-    if (d->kind == CHEST)
-        return;
+    if (d->kind == CHEST) {
+        container_step(i,close);return;
+    }
     if (d->kind == HAZARD) {
         if (close)
             player_hurt(actor_damage[a->def]);
@@ -582,6 +585,8 @@ void game_tick(u16 input) {
         return;
     loot_tick();
     missile_tick();
+    container_traps_tick();
+    {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++)if(container_trap_contact(i))player_hurt(1);}
     {
         u16 i;for(i=0;i<MAX_MISSILES;i++) {
             Missile *m=&missiles[i];

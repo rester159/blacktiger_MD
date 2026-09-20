@@ -22,5 +22,5 @@ with tempfile.TemporaryDirectory() as folder:
   assert (mode,remaining,cursor)==((11,1,0xb247) if effect else (9,37,0xb215))
   if effect:assert effect==(2 if c['content']==0 else 3 if c['opened'] else 1)
   count+=1
- report={'passed':True,'source_contact_cases':count,'coin_values':data['coin_values'],'scope':'Six native contact effects compared with original handlers: key debit, opened/collected flags, coin word including wrap, healing and invulnerability clearing. Effect results queue the source animation transition. Kernel not yet integrated with gameplay inventory, animations or traps.'}
+ report={'passed':True,'source_contact_cases':count,'coin_values':data['coin_values'],'scope':'Six native contact effects compared with original handlers: key debit, opened/collected flags, coin word including wrap, healing and invulnerability clearing. Effect results queue the source animation transition. Gameplay integration has separate cartridge tests; natural key acquisition remains unported.'}
  (ROOT/'reports/container-contact-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

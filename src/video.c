@@ -1,4 +1,5 @@
 #include "assets.h"
+#include "container.h"
 #include "loot.h"
 #include "sentry.h"
 #include "emerge.h"
@@ -334,6 +335,7 @@ static void sprites(void) {
         code = d->code + (d->frames > 1 ? ((a->timer / 8) % d->frames) * 2 : 0);
         x = PX(a->x) - game.cam_x;
         y = PX(a->y) - game.cam_y;
+        if(d->kind==CHEST) {const AnimFrame *f=container_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
         if (pair_kinds[a->def]) {
             const AnimFrame *f=pair_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;
         }
@@ -392,6 +394,7 @@ static void sprites(void) {
         if (f)
             piece(f->code, f->palette, wx - game.cam_x, wy - game.cam_y, f->flip);
     }
+    for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     for(i=0;i<MAX_MISSILES;i++){const AnimFrame *f=missile_frame(i);if(f)piece(f->code,f->palette,missiles[i].x-game.cam_x,missiles[i].y-game.cam_y,f->flip);}
     for (i = 0; i < MAX_LOOT; i++) {
         const AnimFrame *f = loot_frame(i);

@@ -271,3 +271,15 @@ The six container contact handlers now also have a shared native effect kernel, 
 score; the source's second update changes the decimal money display. This kernel is deliberately
 not yet called by gameplay: opening animation ownership, inventory acquisition, six-part traps
 and persistent reconstruction must be connected before the closed-container behavior changes.
+
+Container gameplay now uses native closed/opening/reward/empty animation states. Contact consumes
+one key, waits for the source opening callback, then permits a separate coin/heal pickup. Camera
+retirement reconstructs opened and collected states by the original eight persistence IDs. Trap
+contents create six independently animated small parts; movement, delayed contact enable and
+retirement match 2,880 original loader ticks in both directions. Twelve cartridge cases cover
+both constructor variants and all contents, including zero-key refusal and empty reconstruction.
+Keys currently have a separate zero-initialized inventory; source starting keys, pickups, shop
+acquisition and HUD are still unported. Healing uses the provisional native maximum of four HP.
+Trap ground placement follows the source six-height search but is not yet oracle-checked; the
+native trap pool is separate from other small actors, and death/restart persistence needs an
+original lifecycle comparison. These tests do not establish natural chest progression or a full port.
