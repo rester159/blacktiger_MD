@@ -1,5 +1,6 @@
 #include "game.h"
 #include "assets.h"
+#include "loot.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -39,6 +40,7 @@ void game_round(u8 round) {
     npc_reset();
     world_reset();
     skeleton_reset();
+    loot_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
     game.boss_dead = 0;
@@ -57,6 +59,7 @@ void game_round(u8 round) {
 }
 void game_new(void) {
     zero(&game, sizeof game);
+    loot_new();
     game.p.lives = 3;
     game.p.armor = 2;
     game.p.weapon = 1;
@@ -122,7 +125,10 @@ static void actor_hit(Actor *a, u8 damage) {
     game.spawned[a->source] = 2;
     game.kills++;
     game.score += d->kind == BOSS ? 5000 : d->kind == CHEST ? 200 : 100;
-    game.coins += d->kind == CHEST ? 50 : 5;
+    if (d->kind == CHEST)
+        game.coins += 50;
+    else
+        loot_spawn(drop_categories[a->def], loot_random >> 8, PX(a->x), PX(a->y));
     game.sound = SND_KILL;
     if (d->kind == BOSS) {
         game.boss_dead = 1;
@@ -426,6 +432,7 @@ void game_tick(u16 input) {
     game.previous_input = input;
     game.sound = 0;
     game.frame++;
+    loot_random_tick();
     if (game.mode == TITLE) {
         if (pressed & IN_START)
             game_new();
@@ -495,6 +502,7 @@ void game_tick(u16 input) {
     }
     world_tick();
     player_step(input, pressed);
+    loot_tick();
     skeleton_weapons_tick();
     {
         u16 i;

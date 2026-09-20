@@ -61,6 +61,7 @@ Files:
 - `src/game.c`: native game systems, independent of SGDK rendering.
 - `src/animation.c`, `src/npc.c`: shared source-derived animation and eight NPC variants.
 - `src/video.c`: scrolling, tile/sprite caches, hardware sprite limits, HUD.
+- `src/loot.c`: common source drop tables, coin pickup animation/rewards, and random recurrence.
 - `src/skeleton.c`: shared skeleton movement, weapons, blocks, durability, and death.
 - `src/world.c`: sparse terrain changes, hidden walls, reveal effects, and rewards.
 - `src/audio.c`: native PSG effects.
@@ -131,5 +132,11 @@ Three skeleton variants now use native state machines with 12/36/48 durability, 
 blocking, original animation timing, obstacle jumps, falling, independent weapon actors, and death
 sequences. Thirty controlled original-ROM scenarios match 2,190 native ticks and 822 weapon frames.
 Linked-cartridge tests verify their actual source spawns, damage, guard behavior, scores, and
-retirement. Random death drops and exact player/body/weapon collision bounds remain unimplemented
-or provisional; these checks do not establish a complete natural playthrough.
+retirement. Exact player/body/weapon collision bounds remain provisional; these checks do not
+establish a complete natural playthrough.
+
+The common loot routine uses 28 original drop tables, seven coin denominations, pickup animations,
+and the original random recurrence. Host checks match 896 original selections, 1,687 animation
+ticks, seven rewards, pool exhaustion, and 448 random updates. Cartridge checks exercise skeleton
+death drops, collection and expiry. Its dedicated 33-slot pool does not yet reproduce competition
+with other source small actors; contact geometry and exact random update phase remain provisional.

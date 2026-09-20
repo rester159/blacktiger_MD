@@ -1,4 +1,5 @@
 #include "assets.h"
+#include "loot.h"
 #include "npc.h"
 #include "world.h"
 #include <genesis.h>
@@ -298,6 +299,11 @@ static void sprites(void) {
         const AnimFrame *f = skeleton_weapon_frame(i, &wx, &wy);
         if (f)
             piece(f->code, f->palette, wx - game.cam_x, wy - game.cam_y, f->flip);
+    }
+    for (i = 0; i < MAX_LOOT; i++) {
+        const AnimFrame *f = loot_frame(i);
+        if (f)
+            piece(f->code, f->palette, loot[i].x - game.cam_x, loot[i].y - game.cam_y, f->flip);
     }
     for (i = 0; i < rounds[game.round].patch_count; i++) {
         const AnimFrame *f = world_effect(i);

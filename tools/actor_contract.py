@@ -41,7 +41,8 @@ def load(source):
    assert display[1]&7==f['palette']
    initial.append((f['code'],f['palette'],len(display)//4))
   first=set(initial)
-  c={'templates':[{'address':pc,'size':len(raw)} for pc,raw in templates.items()],
+  categories={a[11] for a in states}
+  c={'category':next(iter(categories)) if len(categories)==1 else None,'templates':[{'address':pc,'size':len(raw)} for pc,raw in templates.items()],
      'health':next(iter(hp)) if len(hp)==1 else None,
      'initial_frame':dict(zip(('code','palette','pieces'),next(iter(first)))) if len(first)==1 else None,
      'profile_dependent_graphics':len(first)>1,

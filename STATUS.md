@@ -15,7 +15,8 @@ reports and `dist/build.json`.
 
 Resolved during this build: wrong-CPU libgcc, sprite-cache lookup cost, full-view cache pinning cost,
 repeated HUD formatting cost, disappearing/stale background tiles caused by DMA queue overflow,
-hero/font palette interference, and redraw batching on large camera changes.
+hero/font palette interference, redraw batching on large camera changes, and a GCC 16 optimization that widened the loot RNG
+high-byte read into a 68000-invalid odd-address longword read (now an explicit volatile word load).
 
 Verified progress: the common actor animation loader is now a native typed routine with original-ROM
 trace comparisons. All eight petrified NPC variants use source-derived constructors, idle frames,
@@ -49,7 +50,11 @@ routine and source-compiled animation segments. Durability is 12/36/48 rather th
 callback trigger; shield variants block directionally. Walking, approach/swing, separate weapon
 actors, obstacle jumps, falling, damage, persistence and death match 2,190 original-ROM ticks across
 30 controlled scenarios, plus 822 weapon frame comparisons. Cartridge tests cover each actual
-source constructor, nonfatal/fatal projectiles, shields, score, and retirement. Random death drops
-remain missing; body/weapon/player hitboxes still use provisional native geometry. Next shared
-work should include the common drop/reward system and remaining enemy families, followed by
-compound boss composition and natural progression validation.
+source constructor, nonfatal/fatal projectiles, shields, score, and retirement. Body/weapon/player hitboxes still use provisional native geometry.
+
+The common death-drop system now uses all 28 source selection tables, seven coin values, the source
+random recurrence, and pickup animations. Original-ROM comparisons cover 896 selections, 1,687
+animation ticks, seven rewards, full-pool refusal and 448 random updates. Cartridge checks cover
+three actual skeleton death callbacks, collection and expiry. Native loot currently has its own
+33-slot pool; source competition with other small actors, exact random update phase and player
+contact bounds remain gaps. Remaining enemy families and compound bosses are still required.

@@ -31,7 +31,7 @@ void tick(int damage,int *out) {
 }
 ''')
  (tmp/'stubs.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'sk.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'sk.dylib')],check=True)
  lib=C.CDLL(str(tmp/'sk.dylib'));out=(C.c_int*23)();current=-1;comparisons=0;weapon_frames=0
  for line in (ROOT/'reference/skeleton_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break
