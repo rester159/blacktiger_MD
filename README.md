@@ -10,7 +10,7 @@ background maps are converted, but having their data does not establish a comple
 
 Open `dist/blacktiger_astra.bin` in a Genesis emulator.
 
-- D-pad: move; Up/Down: climb.
+- D-pad: move; Down: crouch; Up/Down on ladders: climb.
 - A: attack; B: jump; C: limited screen attack.
 - Start: begin, pause, resume.
 - Contact a petrified NPC to rescue it. Merchant rescues open the shop; A buys, B/Start exits.
@@ -60,6 +60,7 @@ with a fallback to individual pieces when needed. DMA queue capacity is 192; ful
 Files:
 
 - `src/game.c`: native game systems, independent of SGDK rendering.
+- `src/player_motion.c`: source-derived walking, crouching, climbing, jumps and falls.
 - `src/animation.c`, `src/npc.c`: shared source-derived animation and eight NPC variants.
 - `src/video.c`: scrolling, tile/sprite caches, hardware sprite limits, HUD.
 - `src/loot.c`: common source drop tables, coin pickup animation/rewards, and random recurrence.
@@ -73,17 +74,14 @@ Files:
 
 ## Known gaps — required before calling this a finished port
 
-- Most enemy families, attacks, and boss mappings remain provisional; the three skeleton variants
-  now have source-derived shared state machines. Initial health is now checked
-  against witnessed constructor states for 65 definitions; initial graphics are checked for 51.
-  Remaining graphics use explicit fallbacks. Later animation, difficulty-dependent state, and
-  multi-piece boss composition still need source-derived implementations.
-- Spawn parsing is not complete. Scanner control records, hidden-container semantics outside the verified wall family, and one irregular
-  round-one stream are unresolved. The converter reports rather than silently repairs that row.
-- Player movement/combat is reimplemented, but its detailed timing, weapon reach, equipment states,
-  animation selection, and collisions have not been matched against the arcade.
-- Shop contents/prices, rescue contact bounds and cutscene waits, magic, score, drops, and round-clear conditions need arcade
-  verification. Some provisional actor classifications may prevent a natural full playthrough.
+- Shared enemy and boss routines have source comparisons and cartridge fixtures, but
+  global scanner timing, pool contention, difficulty interactions and full-game routes
+  remain unverified. Actor-specific evidence is in `STATUS.md` and `reports/`.
+- Walking, crouching, ladders, jumps and falls now match controlled arcade traces.
+  Attack/chain behavior, attacking jump variants, player hurt/death, alternate collision
+  postures and global camera limits remain unfinished. See `reference/player_audit.md`.
+- Shops, rewards, progression and restarts have subsystem checks; complete rescue,
+  round-clear and ending presentation and natural progression still need validation.
 - Background priority groups, palette changes during play, arcade title presentation, original
   music, and original sound effects are not implemented. PSG effects are newly authored placeholders.
 - NTSC performance is not consistently 60 Hz. See per-round cadence in `reports/runtime-tests.json`.

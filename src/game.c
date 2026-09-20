@@ -1,4 +1,5 @@
 #include "progress.h"
+#include "player_motion.h"
 #include "reinforcement.h"
 #include "edge_spawn.h"
 #include "checkpoint.h"
@@ -22,6 +23,12 @@
 #include "skeleton.h"
 #include "world.h"
 Game game;
+PlayerMotion player_motion;
+static void motion_reset(void) {
+    Player *p=&game.p;
+    player_motion=(PlayerMotion){.scroll_x=PX(p->x)-128,.scroll_y=PX(p->y)-144,
+        .screen_x=128,.screen_y=144,.selector=p->face?4:0,.previous=p->face?4:0,.ladder=p->climb};
+}
 static s16 absolute(s16 x) {
     return x < 0 ? -x : x;
 }
@@ -82,6 +89,7 @@ void game_round(u8 round) {
     p->invincible = 120;
     p->face = 0;
     p->hp = progress_max_hp;
+    motion_reset();
 }
 void game_new(void) {
     restart_pending=0;loaded_round=255;
@@ -242,71 +250,30 @@ static void spawn_actors(void) {
 }
 static void player_step(u16 in, u16 pressed) {
     Player *p = &game.p;
-    status_tick();in=status_controls(in);pressed=status_controls(pressed);
-    s16 x = PX(p->x), y = PX(p->y), nx, ny, feet;
-    u8 ladder = terrain(x + 16, y + 16) == 1 || terrain(x + 16, y + 28) == 1;
-    if (p->invincible)
-        --p->invincible;
-    if (p->attack)
-        --p->attack;
-    if ((pressed & IN_JUMP) && (p->grounded || p->climb)) {
-        p->vy = -1408;
-        p->grounded = p->climb = 0;
-        game.sound = SND_JUMP;
-    }
-    if ((in & (IN_UP | IN_DOWN)) && ladder) {
-        p->climb = 1;
-        p->x = ((x + 16) & ~15) * FX - 8 * FX;
-        p->vx = p->vy = 0;
-    }
-    if (p->climb) {
-        p->vy = (in & IN_UP) ? -384 : (in & IN_DOWN) ? 384 : 0;
-        if ((in & (IN_LEFT | IN_RIGHT)) || (!ladder && !(in & IN_UP)))
-            p->climb = 0;
-    }
-    if (!p->climb) {
-        p->vx = (in & IN_LEFT) ? -512 : (in & IN_RIGHT) ? 512 : 0;
-        if (in & IN_LEFT)
-            p->face = 1;
-        if (in & IN_RIGHT)
-            p->face = 0;
-        p->vy += 48;
-        if (p->vy > 1536)
-            p->vy = 1536;
-    }
-    nx = PX(p->x + p->vx);
-    if (p->vx && (terrain(nx + (p->vx > 0 ? 25 : 6), y + 9) == 3 ||
-                  terrain(nx + (p->vx > 0 ? 25 : 6), y + 24) == 3))
-        p->vx = 0;
-    p->x += p->vx;
-    x = PX(p->x);
-    ny = PX(p->y + p->vy);
-    feet = y + 32;
-    p->grounded = 0;
-    if (!p->climb && p->vy >= 0) {
-        s16 row;
-        for (row = feet >> 4; row <= (ny + 32) >> 4; row++) {
-            s16 top = row * 16;
-            if (top >= feet && (support(x + 7, top) || support(x + 24, top))) {
-                p->y = (top - 32) * FX;
-                p->vy = 0;
-                p->grounded = 1;
-                break;
-            }
-        }
-    }
-    if (!p->grounded) {
-        if (!p->climb && p->vy < 0 &&
-            (terrain(x + 8, ny + 2) == 3 || terrain(x + 23, ny + 2) == 3)) {
-            p->vy = 0;
-        } else
-            p->y += p->vy;
-    }
-    if (p->climb && p->vy < 0 && terrain(x + 16, PX(p->y) + 32) != 1) {
-        p->climb = 0;
-        p->vy = 0;
-    }
-    p->x = bound_axis(PX(p->x), 0, rounds[game.round].width - 32) * FX;
+    u8 raw=0,was_jumping=player_motion.jumping;
+    s16 x,y;
+    status_tick();
+    /* A restart/teleport establishes a fresh logical camera origin. */
+    if ((s16)(player_motion.scroll_x+player_motion.screen_x)!=PX(p->x) ||
+        (s16)(player_motion.scroll_y+player_motion.screen_y)!=PX(p->y)) motion_reset();
+    if(in&IN_RIGHT)raw|=1;
+    if(in&IN_LEFT)raw|=2;
+    if(in&IN_DOWN)raw|=4;
+    if(in&IN_UP)raw|=8;
+    if(in&IN_JUMP)raw|=32;
+    player_motion_step(&player_motion,raw,status_reverse);
+    p->x=(s32)(s16)(player_motion.scroll_x+player_motion.screen_x)*FX;
+    p->y=(s32)(s16)(player_motion.scroll_y+player_motion.screen_y)*FX;
+    p->vx=player_motion.vx*FX;p->vy=player_motion.vy*FX+player_motion.fraction;
+    p->climb=player_motion.ladder;
+    p->grounded=!player_motion.jumping && !player_motion.falling && !p->climb;
+    p->face=((player_motion.selector+1)&4)!=0;
+    reinforcement_player_low=player_motion.low;
+    if(!was_jumping && player_motion.jumping)game.sound=SND_JUMP;
+    if(p->invincible)--p->invincible;
+    if(p->attack)--p->attack;
+    p->x=bound_axis(PX(p->x),0,rounds[game.round].width-32)*FX;
+    x=PX(p->x);y=PX(p->y);
     if ((in & IN_ATTACK) && !p->attack) {
         s16 dir = p->face ? -1 : 1;
         p->attack = 20;

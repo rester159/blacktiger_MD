@@ -3,15 +3,15 @@
 Deliverable: an SGDK development cartridge and a reproducible new repository.
 User's requested complete native Black Tiger port: **not achieved**.
 
-The most important next work is source-derived actor/constructor coverage, not implementing another
-round-specific runtime. The eight maps already use one renderer and game loop. Replace the remaining provisional
-actor family behavior in `tools/extract.py` and `src/game.c` with verified animation,
-attack, hitbox, reward, and transition data. In particular, do not count the current boss assignments
-or injected ending test as proof that any round is naturally completable.
+The main remaining shared systems are the source attack/chain weapon, attacking
+jump variants, player hurt/death, complete collision postures, global camera/scanner
+cadence, presentation and audio. All eight maps use one renderer and game loop;
+normal locomotion and the known major enemy/boss families now have native routines.
+Injected actor/ending tests do not establish natural full-game completion.
 
-Known native issues: frame overruns on denser routes; unverified PAL timing; placeholder audio;
-provisional player and shop rules. Exact cadence, cartridge hash, and test counts live in the JSON
-reports and `dist/build.json`.
+Known native issues: frame overruns on denser routes; unverified PAL timing;
+placeholder audio; provisional attacks, death and parts of presentation. Exact
+cadence, cartridge hash, and test counts live in JSON reports and `dist/build.json`.
 
 Resolved during this build: wrong-CPU libgcc, sprite-cache lookup cost, full-view cache pinning cost,
 repeated HUD formatting cost, disappearing/stale background tiles caused by DMA queue overflow,
@@ -572,3 +572,16 @@ For the upcoming player work, the prior repository has partial native walk/fall 
 in game/src/player.c and source ownership evidence under reference/arcade/oracles/
 BT-RE-006: fixed1E17 selects bank7 and enters8000. Those older routines are source leads,
 not evidence of a completed player port.
+
+Shared native player locomotion now replaces the provisional Q8 movement in the
+cartridge across all eight rounds. It implements source input history and reversed
+controls, walk/crouch selectors, ladder attachment/detachment, seven jump directions,
+one-time air steering, pre-movement collision probes, quarter-pixel velocity gravity,
+integer position integration, landing and logical camera-return state. Comparisons
+match 24,620 source updates across 309 cases. All 960 armored/unarmored gameplay
+frame records are compiled, including crouched selectors; 48 hardware-sprite checks
+and real input checks verify the cartridge path. Reinforcement aiming now sees the
+player's low-posture state. Global camera clamps, attack/jump-attack timing and chain,
+other alternate collision postures, movement sounds, hurt/death and presentation
+remain unfinished. `reference/player_audit.md` records the implemented scope and
+already-audited attack/chain source to avoid repeating that work.

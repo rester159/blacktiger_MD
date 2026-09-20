@@ -1,3 +1,4 @@
+#include "player_motion.h"
 #include "assets.h"
 #include "container.h"
 #include "shop.h"
@@ -301,12 +302,11 @@ static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
 static void sprites(void) {
     Player *p = &game.p;
     u16 i;
-    u8 pose = p->climb ? 6 : p->attack ? 1 : !p->grounded ? 3 : 0;
-    u8 f = p->climb    ? (game.frame / 8) & 3
-           : p->attack ? (20 - p->attack) / 3
-           : p->vx     ? (game.frame / 7) & 7
-                       : 0;
-    const HeroFrame *h = &hero_frames[pose][(p->face ? 0 : 8) + (f & 7)];
+    u8 pose=player_motion.pose/2;
+    u8 f=player_motion.frame&7;
+    /* Attack timing is still provisional; locomotion uses the source selector. */
+    if(p->attack) {pose=p->climb?7:player_motion.jumping?4:1;f=(20-p->attack)/3;}
+    const HeroFrame *h=&hero_frames[p->armor!=0][pose][player_motion.selector*8+(f&7)];
     s16 x = PX(p->x) - game.cam_x, y = PX(p->y) - game.cam_y;
     sprite_count = sprite_uploads = 0;
     if (++epoch == 0) {
@@ -317,7 +317,7 @@ static void sprites(void) {
     memset(line_count, 0, sizeof line_count);
     if (!p->invincible || (game.frame & 4)) {
         body(h->code[0] - (h->flip ? 1 : 0), 0, x, y, h->flip);
-        piece(h->code[4], 0, x + h->dx, y + h->dy, h->weapon_flip);
+        piece(h->code[4]+p->weapon-1, 0, x + h->dx, y + h->dy, h->weapon_flip);
     }
     for (i = 0; i < MAX_SHOTS; i++) {
         Shot *s = &game.shots[i];

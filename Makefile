@@ -13,6 +13,8 @@ res/generated/object_patterns.bin: tools/extract.py tools/arcade_source.py tools
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
 test: all
+	.venv/bin/python tests/test_player_motion.py
+	.venv/bin/python tests/test_player_motion_runtime.py
 	.venv/bin/python tests/test_assets.py
 	.venv/bin/python tests/test_runtime.py
 	.venv/bin/python tools/check_sprite_render.py

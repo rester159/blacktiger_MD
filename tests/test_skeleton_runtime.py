@@ -37,6 +37,8 @@ def fire(r,slot,damage,face):
  s=state(r);a=s.actors[slot];s.mode=1;s.p.face=face;s.p.invincible=10000;s.clock=0
  q=s.shots[0];q.active=1;q.enemy=0;q.life=30;q.damage=damage;q.kind=0;q.vx=q.vy=0;q.x=a.x+16*256;q.y=a.y+16*256
  start=s.frame;put(r,s)
+ # Facing now belongs to the shared native input/controller state.
+ r.write("player_motion",25,bytes((face*4,face*4)))
  for _ in range(100):
   r.run(1);s=state(r)
   if ((s.frame-start)&65535)>=3 and not s.shots[0].active:return s
@@ -52,6 +54,7 @@ def weapon_edges(r):
    for i in range(160):s.spawned[i]=2
    s.actors[0].definition=definition
    start=s.frame;put(r,s)
+   r.write("player_motion",0,struct.pack(">5H20B",0,752,128,144,0,*([0]*20)))
    raw=bytearray(30*24)
    struct.pack_into('>H',raw,10,100)
    struct.pack_into('>Hhh',raw,18,profile['roots'][7],136-dx,904-dy)

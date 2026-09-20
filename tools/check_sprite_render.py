@@ -40,7 +40,7 @@ for level in range(8):
  s=state(r);s.round=level;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(100)
  for phase in range(6):
   flip=phase&1
-  s=state(r);s.mode=2;s.cam_x=128;s.cam_y=128;s.p.x=240*256;s.p.y=188*256;s.p.vx=s.p.vy=0;s.p.grounded=1;s.p.climb=s.p.invincible=0;s.p.attack=(0,5,12,17,8,20)[phase];s.p.face=flip
+  s=state(r);s.mode=2;s.cam_x=128;s.cam_y=128;s.p.x=-1024*256;s.p.y=-1024*256;s.p.vx=s.p.vy=0;s.p.grounded=1;s.p.climb=s.p.invincible=0;s.p.attack=(0,5,12,17,8,20)[phase];s.p.face=flip
   s.p.hp=4;s.p.armor=2;s.p.weapon=1;s.p.lives=3;s.score=0;s.coins=123;s.time=160
   for a in s.actors:a.active=0
   for q in s.shots:q.active=0
@@ -53,6 +53,8 @@ for level in range(8):
    d=meta['actor_definitions'][s.actors[i].definition]
    if (d['bank']==2 and d['address'] in (0x8000,0x81a2,0xa6f8)) or (d['bank']==0 and d['address'] in (0x8000,0x8389)):s.actors[i].face=-1
   put(r,s)
+  # Hero poses now use source selectors and armor variants, checked separately by
+  # test_player_motion_runtime. Keep the hero offscreen in both pinned and new ROMs.
   # Ported families have private animation state. Initialize their source first
   # frame for this paused renderer fixture, without advancing their gameplay state.
   if 'emerging' in r.symbols:
@@ -83,5 +85,5 @@ r.close();out=ROOT/'reports/sprite-render-baseline.json'
 if '--record' in sys.argv:out.write_text(json.dumps(checks,indent=2)+'\n')
 else:
  expected=json.loads(out.read_text());assert checks==expected,[(a,b) for a,b in zip(checks,expected) if a!=b]
- report={'passed':True,'pixel_fixtures':len(checks),'mean_sprite_subticks':sum(costs)/len(costs),'crowded_drops_in_20_frames':crowded_drops,'sprite_cache_vram_and_scanlines_checked':not baseline,'rom_sha256':hashlib.sha256(((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin')).read_bytes()).hexdigest(),'baseline_rom_sha256':'308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','scope':'Paused playfield pixel equivalence (HUD rows excluded) across all rounds, flips, six hero poses, changing actor textures, clipping and mixed sprite sizes. A crowded fixture checks hardware scanline limits and removal of old false-positive drops; active cache textures are compared directly with VRAM.'}
+ report={'passed':True,'pixel_fixtures':len(checks),'mean_sprite_subticks':sum(costs)/len(costs),'crowded_drops_in_20_frames':crowded_drops,'sprite_cache_vram_and_scanlines_checked':not baseline,'rom_sha256':hashlib.sha256(((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin')).read_bytes()).hexdigest(),'baseline_rom_sha256':'308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','scope':'Paused playfield pixel equivalence (HUD rows excluded) across all rounds, flips, changing actor textures, clipping and mixed sprite sizes. A crowded fixture checks hardware scanline limits and removal of old false-positive drops; active cache textures are compared directly with VRAM.'}
  (ROOT/('reports/sprite-render-before.json' if baseline else 'reports/sprite-render-tests.json')).write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
