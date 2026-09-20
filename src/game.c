@@ -7,6 +7,7 @@
 #include "pickup.h"
 #include "emerge.h"
 #include "wisp.h"
+#include "zombie.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -47,6 +48,7 @@ void game_round(u8 round) {
     world_reset();
     skeleton_reset();
     emerge_reset();
+    zombie_reset();
     loot_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
@@ -94,6 +96,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (zombie_hit(a-game.actors,damage)) return;
     if (wisp_hit(a - game.actors))
         return;
     if (emerge_hit(a - game.actors, damage))
@@ -135,11 +138,13 @@ static void spawn_actors(void) {
     u16 i, j;
     for (i = game.frame & 3; i < r->spawn_count; i += 4) {
         const Spawn *s = &r->spawns[i];
-        if (game.spawned[i])
+        s16 sx=s->x,sy=s->y;
+        if (game.spawned[i] && !(game.spawned[i]==1 && zombie_kinds[s->def]))
             continue;
         if (absolute((s16)s->x - (s16)game.cam_x - 128) > 176 ||
             absolute((s16)s->y - (s16)game.cam_y - 112) > 152)
             continue;
+        if (zombie_kinds[s->def] && !zombie_prepare(i,&sx,&sy)) continue;
         if (!emerge_spawn_ready(i))
             continue;
         if (!npc_spawn_ready(i))
@@ -152,11 +157,12 @@ static void spawn_actors(void) {
                 a->source = i;
                 a->def = s->def;
                 a->hp = actor_defs[s->def].hp;
-                a->x = s->x * FX;
-                a->y = s->y * FX;
+                a->x = sx * FX;
+                a->y = sy * FX;
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
                 npc_spawn(j);
+                if (zombie_kinds[a->def]) zombie_spawn(j);
                 if (wisp_kinds[a->def]) wisp_spawn(j);
                 if (emerge_kinds[a->def]) emerge_spawn(j);
                 if (sentry_kinds[a->def])
@@ -264,7 +270,7 @@ static void screen_attack(void) {
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
-        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def])) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
         actor_hit(a, 200);
@@ -283,6 +289,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (zombie_kinds[a->def]) {
+        zombie_step(i);
+        if ((game.frame&1) && zombie_vulnerable(i) && actor_contact(i)) player_hurt(actor_damage[a->def]);
         return;
     }
     if (wisp_kinds[a->def]) {
@@ -437,6 +448,7 @@ static void shots_step(void) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
+                    if (zombie_kinds[a->def] && !zombie_vulnerable(j)) continue;
                     if (emerge_kinds[a->def] && !emerge_vulnerable(j))
                         continue;
                     actor_hit(a, s->damage);

@@ -127,3 +127,14 @@ weapon templates are verified at their actual copy instructions and against obse
 Checks retain 2,190 body ticks and 822 weapon frames, and add 147 native boundary cases plus 15
 linked-cartridge edge cases. Variant 1's special contact type 42 is recorded but its additional
 status effect remains unported; alternate posture and source collision scheduling remain gaps.
+
+The recurring bank-zero walker (constructor 8000) now uses native typed animation transitions
+for emergence, vulnerable walking, obstacle turns, fractional falling, natural disappearance and
+death/drop handling. It no longer uses the generic chasing/shooting placeholder. Its constructor
+counts 30 attempts, caps the family at three active actors, chooses among eight source random
+horizontal positions, and searches five candidate ground heights. Death permits later spawning.
+Checks compare 1,280 original behavior ticks and 1,920 constructor attempts, plus an actual cartridge
+spawn through emergence, projectile death, score and recurring retirement. The port's global spawn
+scanner still differs in cadence and viewport gating, and shared arcade pool contention is not
+modeled. Renderer fixtures explicitly initialize its source first frame; their reference pixels
+were regenerated from the pinned pre-optimization cartridge.
