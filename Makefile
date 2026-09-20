@@ -55,6 +55,7 @@ test: all
 	.venv/bin/python tests/test_restart_runtime.py
 	.venv/bin/python tests/test_status.py
 	.venv/bin/python tests/test_wave.py
+	.venv/bin/python tests/test_large_contact.py
 	.venv/bin/python tests/test_waveboss.py
 	.venv/bin/python tests/test_waveboss_seed.py
 	.venv/bin/python tests/test_waveboss_runtime.py

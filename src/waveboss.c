@@ -77,11 +77,10 @@ void waveboss_seeds_tick(void){
  }
 }
 const AnimFrame *waveboss_seed_frame(u16 slot){WaveBossSeed *p=&waveboss_seeds[slot];return p->active && p->animation.remaining?animation_current(&p->animation,waveboss_segments[p->segment].clip):0;}
-static u8 overlap(s16 dx,s16 dy,u8 w,u8 h){return (dx<0?1-dx:dx)<=w && (dy<0?1-dy:dy)<=h;}
-u8 waveboss_player_contact(u16 slot){Actor *a=&game.actors[slot];return overlap((u8)(PX(game.p.x)-game.cam_x)-16-(PX(a->x)-game.cam_x),(u8)(PX(game.p.y)-game.cam_y)-16-(PX(a->y)-game.cam_y),16+contact_player_width,28+contact_player_height);}
-u8 waveboss_weapon_contact(u16 slot,s16 x,s16 y){
- Actor *a=&game.actors[slot];s16 dx=x-24-PX(a->x),dy=y-24-PX(a->y);
- if(!waveboss_vulnerable(slot))return 0;
- if(overlap(dx,dy+28,16+dagger_width,8+dagger_height))return 2;
- return overlap(dx,dy,16+dagger_width,28+dagger_height);
+u8 waveboss_player_contact(u16 slot){
+ Actor *a=&game.actors[slot];return large_player_contact(&waveboss_shapes[wavebosses[slot].profile],PX(a->x)-game.cam_x,PX(a->y)-game.cam_y,PX(game.p.x)-game.cam_x,PX(game.p.y)-game.cam_y,contact_player_width,contact_player_height,0);
+}
+u8 waveboss_weapon_contact(u16 slot,s16 x,s16 y,u8 dagger){
+ Actor *a=&game.actors[slot];if(!waveboss_vulnerable(slot))return 0;
+ return large_weapon_contact(&waveboss_shapes[wavebosses[slot].profile],PX(a->x)-game.cam_x,PX(a->y)-game.cam_y,x-game.cam_x,y-game.cam_y,dagger_width,dagger_height,dagger);
 }

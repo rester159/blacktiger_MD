@@ -415,5 +415,14 @@ terrain branches and retirement. Native seeds dispatch the existing ordinary/spe
 six-part wave engine. Cartridge tests verify actual boss rows, natural seed/wave attacks,
 all health layers through head hits, rewards, persistence and cleanup before round clear.
 The renderer draws all sixteen original sprite pieces with the native palette conversion.
-Boss health display, the separate death-flash task, full weapon-contact geometry/posture
-validation, exact shared-pool contention and the complete clear presentation remain gaps.
+Boss health display, the separate death-flash task, full player/chain animation integration, exact shared-pool contention and the complete clear presentation remain gaps.
+
+Large-actor collision now has a reusable native geometry routine sourced from the original
+chain, dagger and player-contact handlers. Source probes cover 2,340 main-weapon cases,
+2,340 dagger cases and 4,680 normal/alternate player-posture cases for both wave-boss
+profiles, including offscreen/wrapped coordinates and asymmetric bounds. The dagger's
+weak-point calculation preserves its distinct one-pixel boundary. The boss adapter now
+uses screen coordinates and extracted template dimensions. Cartridge tests confirm head
+damage and non-damaging body blocks for both weapon kinds and both bosses. The native
+player still uses normal posture and provisional main-weapon animation/extents; this check
+does not establish full player attack fidelity or the entire original collision schedule.

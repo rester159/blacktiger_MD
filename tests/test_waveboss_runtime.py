@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json,hashlib
+import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
 cases=[]
 for profile,constructor in enumerate((0x98a3,0x98e8)):
@@ -15,6 +15,24 @@ for profile,constructor in enumerate((0x98a3,0x98e8)):
   if seeds and waves:break
  else:raise AssertionError(('boss attack missing',profile,seeds,waves))
  s=state(r);s.mode=2;put(r,s);r.run(20);r.capture('waveboss-%d.png'%profile)
+ # Freeze the active body while probing the actual cartridge collision dispatch.
+ for kind,dy,damage in ((1,-4,4),(1,24,0),(0,-4,8),(0,24,0)):
+  s=state(r);s.mode=2;put(r,s);r.run(20)
+  s=state(r);a=s.actors[slot];a.hp=80;a.state=0;a.hit=0;a.vx=a.vy=0
+  raw=bytearray(r.read('wavebosses',16*24));at=slot*16
+  struct.pack_into('>H',raw,at+2,1000);raw[at+4]=raw[at+5]=0;raw[at+10]=24;raw[at+11]=0
+  r.write('wavebosses',0,raw)
+  for q in s.shots:q.active=0
+  q=s.shots[0];q.active=1;q.enemy=0;q.life=10;q.damage=8;q.kind=kind;q.vx=q.vy=0;q.x=a.x+24*256;q.y=a.y+dy*256
+  s.mode=1;s.p.invincible=10000;put(r,s)
+  for _ in range(20):
+   r.run(1)
+   if not state(r).shots[0].active:break
+  else:raise AssertionError(('collision did not consume weapon',profile,kind,dy))
+  assert state(r).actors[slot].hp==80-damage,(profile,kind,dy,state(r).actors[slot].hp)
+ # Restore natural animation timing after the controlled collision probes.
+ s=state(r);s.mode=2;put(r,s);r.run(20)
+ raw=bytearray(r.read('wavebosses',16*24));struct.pack_into('>H',raw,slot*16+2,1);r.write('wavebosses',0,raw)
  # Aim at the head, above the body that blocks daggers without losing health.
  initial=s.actors[slot].life
  for layer in range(initial):
@@ -31,7 +49,7 @@ for profile,constructor in enumerate((0x98a3,0x98e8)):
   if s.mode==5:break
  else:raise AssertionError(('clear callback missing',profile))
  assert not any(a.active for a in s.actors)
- cases.append(dict(profile=profile,round=level+1,row=row,layers=initial,seeds=seeds,waves=waves,reward=s.score-score,round_clear=True))
+ cases.append(dict(profile=profile,round=level+1,row=row,layers=initial,seeds=seeds,waves=waves,reward=s.score-score,round_clear=True,head_damage_and_body_block=True))
  r.close()
 report={'passed':True,'cases':cases,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest()}
 (ROOT/'reports/waveboss-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

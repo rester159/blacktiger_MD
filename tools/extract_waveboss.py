@@ -16,7 +16,7 @@ def extract(s):
    if event in (0,1,3,4,5,7):nxt[0]=intern(e['record']+3)
    if event==5:nxt[1]=intern(e['record']+6)
   segments[indices[pc]]=dict(source=pc,clip=clip,event=event,next=nxt)
- return dict(source_set=s.lock['aggregate_sha256'],templates=[t.hex() for t in templates],roots=roots,segments=segments,choices=[list(s.read(1,pc,16)) for pc in (0x9f63,0x9f73)],health=[t[14] for t in templates[:2]],layers=[t[21] for t in templates[:2]],scores=[int(''.join(map(str,s.read(None,0x15bc+score-7,8)))) for score in (0x90,0xa8)],witnesses=list(s.witnesses.values()))
+ return dict(source_set=s.lock['aggregate_sha256'],templates=[t.hex() for t in templates],contact_shapes=[[t[32] if t[32]<128 else t[32]-256,t[33] if t[33]<128 else t[33]-256,t[34],t[35],t[16],t[17]] for t in templates[:2]],roots=roots,segments=segments,choices=[list(s.read(1,pc,16)) for pc in (0x9f63,0x9f73)],health=[t[14] for t in templates[:2]],layers=[t[21] for t in templates[:2]],scores=[int(''.join(map(str,s.read(None,0x15bc+score-7,8)))) for score in (0x90,0xa8)],witnesses=list(s.witnesses.values()))
 if __name__=='__main__':
  import json
  from arcade_source import Source,ROOT

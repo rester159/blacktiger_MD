@@ -562,7 +562,7 @@ static void shots_step(void) {
             for (j = 0; j < MAX_ACTORS; j++) {
                 Actor *a = &game.actors[j];
                 if(a->active && waveboss_kinds[a->def]){
-                    u8 contact=waveboss_weapon_contact(j,x,y);
+                    u8 contact=waveboss_weapon_contact(j,x,y,s->kind==1);
                     if(contact){if(contact==2)actor_hit(a,s->kind==1?(s->damage>1?s->damage>>1:1):s->damage);s->active=0;break;}
                     continue;
                 }

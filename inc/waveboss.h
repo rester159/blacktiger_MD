@@ -6,7 +6,7 @@ typedef struct {AnimState animation;u16 segment;s16 x,y;u8 active,left,profile;}
 #define MAX_WAVEBOSS_SEEDS 8
 extern WaveBossSeed waveboss_seeds[MAX_WAVEBOSS_SEEDS];
 u8 waveboss_player_contact(u16 slot);
-u8 waveboss_weapon_contact(u16 slot,s16 x,s16 y);
+u8 waveboss_weapon_contact(u16 slot,s16 x,s16 y,u8 dagger);
 void waveboss_reset(void);
 void waveboss_spawn(u16 slot);
 void waveboss_step(u16 slot);
