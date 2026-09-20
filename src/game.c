@@ -1,0 +1,459 @@
+#include "game.h"
+#include "assets.h"
+Game game;
+static s16 absolute(s16 x) {
+    return x < 0 ? -x : x;
+}
+static s16 bound_axis(s16 x, s16 lo, s16 hi) {
+    return x < lo ? lo : x > hi ? hi : x;
+}
+static void zero(void *p, u16 n) {
+    u8 *b = p;
+    while (n--)
+        *b++ = 0;
+}
+u8 terrain(s16 x, s16 y) {
+    const Round *r = &rounds[game.round];
+    if (x < 0 || x >= r->width || y < 0)
+        return 3;
+    if (y >= r->height)
+        return 0;
+    return r->collision[((y >> 4) << (r->width == 2048 ? 7 : 6)) + (x >> 4)];
+}
+static u8 support(s16 x, s16 y) {
+    return terrain(x, y) >= 2;
+}
+void game_round(u8 round) {
+    Player *p = &game.p;
+    const Round *r = &rounds[round];
+    game.round = round;
+    zero(game.actors, sizeof game.actors);
+    zero(game.shots, sizeof game.shots);
+    zero(game.spawned, sizeof game.spawned);
+    game.mode = PLAY;
+    game.mode_timer = 0;
+    game.boss_dead = 0;
+    game.rescued = 0;
+    game.time = 180;
+    game.clock = 0;
+    game.cam_x = r->start_x;
+    game.cam_y = r->start_y;
+    p->x = (r->start_x + 128) * FX;
+    p->y = (r->start_y + 144) * FX;
+    p->vx = p->vy = 0;
+    p->climb = p->grounded = p->attack = 0;
+    p->invincible = 120;
+    p->face = 0;
+    p->hp = 4;
+}
+void game_new(void) {
+    zero(&game, sizeof game);
+    game.p.lives = 3;
+    game.p.armor = 2;
+    game.p.weapon = 1;
+    game.p.magic = 2;
+    game_round(0);
+}
+static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
+    u16 i;
+    for (i = 0; i < MAX_SHOTS; i++)
+        if (!game.shots[i].active) {
+            Shot *s = &game.shots[i];
+            s->active = 1;
+            s->x = x * FX;
+            s->y = y * FX;
+            s->vx = vx;
+            s->vy = vy;
+            s->enemy = enemy;
+            s->kind = kind;
+            s->damage = enemy ? 1 : game.p.weapon;
+            s->life = 80;
+            break;
+        }
+}
+static void hurt(void) {
+    Player *p = &game.p;
+    if (p->invincible || game.mode != PLAY)
+        return;
+    game.sound = SND_HIT;
+    p->invincible = 100;
+    p->climb = 0;
+    p->vy = -3 * FX;
+    if (p->armor) {
+        --p->armor;
+        return;
+    }
+    if (p->hp)
+        --p->hp;
+    if (!p->hp) {
+        game.mode = DEAD;
+        game.mode_timer = 120;
+        game.sound = SND_DIE;
+    }
+}
+static void actor_hit(Actor *a, u8 damage) {
+    const ActorDef *d = &actor_defs[a->def];
+    if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
+        return;
+    a->hit = 10;
+    if (a->hp > damage) {
+        a->hp -= damage;
+        game.sound = SND_HIT;
+        return;
+    }
+    a->active = 0;
+    game.spawned[a->source] = 2;
+    game.kills++;
+    game.score += d->kind == BOSS ? 5000 : d->kind == CHEST ? 200 : 100;
+    game.coins += d->kind == CHEST ? 50 : 5;
+    game.sound = SND_KILL;
+    if (d->kind == BOSS) {
+        game.boss_dead = 1;
+        game.mode = CLEAR;
+        game.mode_timer = 180;
+        game.sound = SND_CLEAR;
+    }
+}
+static void spawn_actors(void) {
+    const Round *r = &rounds[game.round];
+    u16 i, j;
+    for (i = game.frame & 3; i < r->spawn_count; i += 4) {
+        const Spawn *s = &r->spawns[i];
+        if (game.spawned[i])
+            continue;
+        if (absolute((s16)s->x - (s16)game.cam_x - 128) > 176 ||
+            absolute((s16)s->y - (s16)game.cam_y - 112) > 152)
+            continue;
+        for (j = 0; j < MAX_ACTORS; j++)
+            if (!game.actors[j].active) {
+                Actor *a = &game.actors[j];
+                zero(a, sizeof *a);
+                a->active = 1;
+                a->source = i;
+                a->def = s->def;
+                a->hp = actor_defs[s->def].hp;
+                a->x = s->x * FX;
+                a->y = s->y * FX;
+                a->face = PX(game.p.x) < s->x ? -1 : 1;
+                a->timer = i * 7;
+                game.spawned[i] = 1;
+                break;
+            }
+    }
+}
+static void player_step(u16 in, u16 pressed) {
+    Player *p = &game.p;
+    s16 x = PX(p->x), y = PX(p->y), nx, ny, feet;
+    u8 ladder = terrain(x + 16, y + 16) == 1 || terrain(x + 16, y + 28) == 1;
+    if (p->invincible)
+        --p->invincible;
+    if (p->attack)
+        --p->attack;
+    if ((pressed & IN_JUMP) && (p->grounded || p->climb)) {
+        p->vy = -1408;
+        p->grounded = p->climb = 0;
+        game.sound = SND_JUMP;
+    }
+    if ((in & (IN_UP | IN_DOWN)) && ladder) {
+        p->climb = 1;
+        p->x = ((x + 16) & ~15) * FX - 8 * FX;
+        p->vx = p->vy = 0;
+    }
+    if (p->climb) {
+        p->vy = (in & IN_UP) ? -384 : (in & IN_DOWN) ? 384 : 0;
+        if ((in & (IN_LEFT | IN_RIGHT)) || (!ladder && !(in & IN_UP)))
+            p->climb = 0;
+    }
+    if (!p->climb) {
+        p->vx = (in & IN_LEFT) ? -512 : (in & IN_RIGHT) ? 512 : 0;
+        if (in & IN_LEFT)
+            p->face = 1;
+        if (in & IN_RIGHT)
+            p->face = 0;
+        p->vy += 48;
+        if (p->vy > 1536)
+            p->vy = 1536;
+    }
+    nx = PX(p->x + p->vx);
+    if (p->vx && (terrain(nx + (p->vx > 0 ? 25 : 6), y + 9) == 3 ||
+                  terrain(nx + (p->vx > 0 ? 25 : 6), y + 24) == 3))
+        p->vx = 0;
+    p->x += p->vx;
+    x = PX(p->x);
+    ny = PX(p->y + p->vy);
+    feet = y + 32;
+    p->grounded = 0;
+    if (!p->climb && p->vy >= 0) {
+        s16 row;
+        for (row = feet >> 4; row <= (ny + 32) >> 4; row++) {
+            s16 top = row * 16;
+            if (top >= feet && (support(x + 7, top) || support(x + 24, top))) {
+                p->y = (top - 32) * FX;
+                p->vy = 0;
+                p->grounded = 1;
+                break;
+            }
+        }
+    }
+    if (!p->grounded) {
+        if (!p->climb && p->vy < 0 &&
+            (terrain(x + 8, ny + 2) == 3 || terrain(x + 23, ny + 2) == 3)) {
+            p->vy = 0;
+        } else
+            p->y += p->vy;
+    }
+    if (p->climb && p->vy < 0 && terrain(x + 16, PX(p->y) + 32) != 1) {
+        p->climb = 0;
+        p->vy = 0;
+    }
+    p->x = bound_axis(PX(p->x), 0, rounds[game.round].width - 32) * FX;
+    if ((in & IN_ATTACK) && !p->attack) {
+        s16 dir = p->face ? -1 : 1;
+        p->attack = 20;
+        game.sound = SND_ATTACK;
+        shot(x + 16 + dir * 16, y + 14, dir * 1280, 0, 0, 0);
+        shot(x + 16, y + 12, dir * 1024, -128, 0, 1);
+        shot(x + 16, y + 20, dir * 1024, 128, 0, 1);
+    }
+    if ((pressed & IN_MAGIC) && p->magic) {
+        u16 i;
+        p->magic--;
+        game.sound = SND_KILL;
+        for (i = 0; i < MAX_ACTORS; i++)
+            actor_hit(&game.actors[i], 8);
+    }
+    if (PX(p->y) > rounds[game.round].height + 32) {
+        p->invincible = 0;
+        p->hp = 1;
+        p->armor = 0;
+        hurt();
+    }
+}
+static void actor_step(u16 i, u16 pressed) {
+    Actor *a = &game.actors[i];
+    const ActorDef *d = &actor_defs[a->def];
+    Player *p = &game.p;
+    s16 x = PX(a->x), y = PX(a->y), dx = PX(p->x) - x, dy = PX(p->y) - y;
+    u8 close = absolute(dx) < 24 && absolute(dy) < 30;
+    if (a->hit)
+        --a->hit;
+    a->timer++;
+    if (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300) {
+        game.spawned[a->source] = 0;
+        a->active = 0;
+        return;
+    }
+    if (d->kind == PICKUP) {
+        if (close) {
+            a->active = 0;
+            game.spawned[a->source] = 2;
+            game.coins += 20;
+            game.score += 100;
+            game.sound = SND_COIN;
+        }
+        return;
+    }
+    if (d->kind == CAPTIVE) {
+        if (close && !a->state) {
+            a->state = 1;
+            game.rescued++;
+            game.score += 500;
+            game.time += 20;
+            game.sound = SND_RESCUE;
+        }
+        if (a->state && close && (pressed & IN_UP)) {
+            game.mode = SHOP;
+            game.shop_item = 0;
+        }
+        return;
+    }
+    if (d->kind == CHEST)
+        return;
+    if (d->kind == HAZARD) {
+        if (close)
+            hurt();
+        return;
+    }
+    if (d->kind == FLYER) {
+        a->vx = dx < 0 ? -256 : 256;
+        a->vy = dy < 0 ? -128 : 128;
+        a->x += a->vx;
+        a->y += a->vy;
+    } else if (d->kind == TURRET) {
+        if (a->timer % 100 == 0) {
+            a->face = dx < 0 ? -1 : 1;
+            shot(x + 16, y + 12, a->face * 640, 0, 1, 2);
+        }
+    } else if (d->kind == ROCK) {
+        if (absolute(dx) < 64)
+            a->state = 1;
+        if (a->state) {
+            a->vy += 48;
+            a->y += a->vy;
+            if (support(x + 8, PX(a->y) + 16)) {
+                a->active = 0;
+                game.spawned[a->source] = 2;
+            }
+        }
+    } else {
+        s16 speed = d->kind == BOSS ? 256 : 128;
+        s16 oldfeet = y + 32, newfeet;
+        u8 edge;
+        if (d->kind == BOSS) {
+            a->face = dx < 0 ? -1 : 1;
+            if (a->timer % 75 == 0) {
+                shot(x + 16, y + 16, a->face * 768, -64, 1, 2);
+                shot(x + 16, y + 16, a->face * 640, 128, 1, 2);
+            }
+            if (a->timer % 120 == 0)
+                a->vy = -1024;
+        } else if (a->timer % 64 == 0)
+            a->face = dx < 0 ? -1 : 1;
+        edge = terrain(x + (a->face > 0 ? 28 : 3), y + 20) == 3;
+        if (edge || (support(x + 16, y + 33) && !support(x + 16 + a->face * 18, y + 34)))
+            a->face = -a->face;
+        a->vx = a->face * speed;
+        a->x += a->vx;
+        a->vy += 48;
+        if (a->vy > 1280)
+            a->vy = 1280;
+        newfeet = PX(a->y + a->vy) + 32;
+        if (a->vy >= 0 && ((oldfeet & 15) == 0 || newfeet / 16 != oldfeet / 16) &&
+            support(PX(a->x) + 16, newfeet)) {
+            a->y = ((newfeet & ~15) - 32) * FX;
+            a->vy = 0;
+        } else
+            a->y += a->vy;
+        if (d->kind == WALKER && absolute(dx) < 80 && absolute(dy) < 24 && a->timer % 95 == 0)
+            shot(x + 16, y + 16, (dx < 0 ? -1 : 1) * 640, 0, 1, 2);
+    }
+    if (close)
+        hurt();
+}
+static void shots_step(void) {
+    u16 i, j;
+    for (i = 0; i < MAX_SHOTS; i++) {
+        Shot *s = &game.shots[i];
+        s16 x, y;
+        if (!s->active)
+            continue;
+        s->x += s->vx;
+        s->y += s->vy;
+        x = PX(s->x);
+        y = PX(s->y);
+        if (!--s->life || absolute(x - (s16)game.cam_x - 128) > 176 ||
+            absolute(y - (s16)game.cam_y - 112) > 152 || terrain(x, y) == 3) {
+            s->active = 0;
+            continue;
+        }
+        if (s->enemy) {
+            if (absolute(x - PX(game.p.x) - 16) < 12 && absolute(y - PX(game.p.y) - 16) < 14) {
+                hurt();
+                s->active = 0;
+            }
+        } else
+            for (j = 0; j < MAX_ACTORS; j++) {
+                Actor *a = &game.actors[j];
+                if (a->active && absolute(x - PX(a->x) - 16) < 20 &&
+                    absolute(y - PX(a->y) - 16) < 20) {
+                    u8 k = actor_defs[a->def].kind;
+                    if (k == CAPTIVE || k == PICKUP || k == HAZARD)
+                        continue;
+                    actor_hit(a, s->damage);
+                    s->active = 0;
+                    break;
+                }
+            }
+    }
+}
+void game_tick(u16 input) {
+    u16 pressed = input & ~game.previous_input;
+    Player *p = &game.p;
+    game.previous_input = input;
+    game.sound = 0;
+    game.frame++;
+    if (game.mode == TITLE) {
+        if (pressed & IN_START)
+            game_new();
+        return;
+    }
+    if (game.mode == PAUSED) {
+        if (pressed & IN_START)
+            game.mode = PLAY;
+        return;
+    }
+    if (game.mode == SHOP) {
+        static const u16 prices[] = {100, 150, 75, 50};
+        if (pressed & IN_DOWN)
+            game.shop_item = (game.shop_item + 1) & 3;
+        if (pressed & IN_UP)
+            game.shop_item = (game.shop_item + 3) & 3;
+        if (pressed & IN_ATTACK) {
+            u16 cost = prices[game.shop_item];
+            if (game.coins >= cost) {
+                game.coins -= cost;
+                game.sound = SND_BUY;
+                if (game.shop_item == 0 && p->weapon < 4)
+                    p->weapon++;
+                if (game.shop_item == 1)
+                    p->armor = 4;
+                if (game.shop_item == 2)
+                    p->hp = 4;
+                if (game.shop_item == 3)
+                    p->magic++;
+            }
+        }
+        if (pressed & (IN_START | IN_JUMP))
+            game.mode = PLAY;
+        return;
+    }
+    if (game.mode == DEAD) {
+        if (game.mode_timer)
+            --game.mode_timer;
+        else if (p->lives > 1) {
+            p->lives--;
+            game_round(game.round);
+        } else
+            game.mode = GAMEOVER;
+        return;
+    }
+    if (game.mode == CLEAR) {
+        if (game.mode_timer)
+            --game.mode_timer;
+        else if (game.round < 7)
+            game_round(game.round + 1);
+        else
+            game.mode = ENDING;
+        return;
+    }
+    if (game.mode == GAMEOVER || game.mode == ENDING) {
+        if (pressed & IN_START)
+            game_new();
+        return;
+    }
+    if (pressed & IN_START) {
+        game.mode = PAUSED;
+        return;
+    }
+    player_step(input, pressed);
+    spawn_actors();
+    {
+        u16 i;
+        for (i = 0; i < MAX_ACTORS; i++)
+            if (game.actors[i].active)
+                actor_step(i, pressed);
+    }
+    shots_step();
+    if (++game.clock == 60) {
+        game.clock = 0;
+        if (game.time)
+            game.time--;
+        else {
+            p->hp = 1;
+            p->armor = p->invincible = 0;
+            hurt();
+        }
+    }
+    game.cam_x = bound_axis(PX(p->x) - 112, 0, rounds[game.round].width - 256);
+    game.cam_y = bound_axis(PX(p->y) - 144, 0, rounds[game.round].height - 224);
+}

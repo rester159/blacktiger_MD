@@ -1,0 +1,10 @@
+.venv/
+out/
+__pycache__/
+assets/source/
+res/generated/
+reports/*.png
+reports/*.wav
+reports/*.log
+reports/test-output.txt
+res/assets.h
