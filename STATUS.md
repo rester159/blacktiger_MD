@@ -3,7 +3,7 @@
 Deliverable: an SGDK development cartridge and a reproducible new repository.
 User's requested complete native Black Tiger port: **not achieved**.
 
-The main remaining shared systems are armor-break presentation, compound-boss contact
+The main remaining shared systems are compound-boss contact
 geometry and screen-edge behavior, global camera/scanner
 cadence, presentation and audio. All eight maps use one renderer and game loop;
 normal locomotion and the known major enemy/boss families now have native routines.
@@ -620,3 +620,16 @@ Twenty arcade oracle fixtures compare 6,580 updates, including coordinate wrappi
 Cartridge fixtures verify both ordinary directions, every frame, hazard selection,
 and exactly one life deducted after the animation finishes. Armor-break fragments,
 source hardware edge hiding and full continue presentation remain unfinished.
+
+## Shared armor-break fragments
+
+The four armor fragments now use the common native animation loader, with source
+frames compiled offline. Exact armor depletion, damage overflow, hazard death and
+timeout all create the effect; remaining armor is cleared on hazard/time death.
+Twenty original-ROM fixtures compare 3,600 updates including offscreen retirement.
+Six cartridge fixtures cover triggering/non-triggering hits, invulnerability and
+timeout; rendered capture confirms four separated fragments. Source small-pool
+allocation competition remains separate from this dedicated four-slot effect pool.
+The hazard oracle previously addressed F3B0/E919 for armor/invulnerability; it now
+uses the audited F3AD/F424 and its 126 observations were regenerated and passed.
+Audio remains placeholder; this implements sprite behavior, not original sound.

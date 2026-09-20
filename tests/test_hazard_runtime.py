@@ -16,10 +16,11 @@ s.p.x=xy[0]-8*256;s.p.y=xy[1]-8*256;s.p.vx=s.p.vy=0;put(r,s)
 for _ in range(100):
  r.run(1);s=state(r)
  if s.mode==4:break
-assert s.mode==4 and s.p.hp==0 and s.p.armor==4 and s.p.lives==3
+assert s.mode==4 and s.p.hp==0 and s.p.armor==0 and s.p.lives==3
 assert s.actors[slot].active and s.spawned[row]!=2
 assert s.coins==coins and s.time==time and s.actors[slot+1].active and not s.actors[slot+1].state
 assert r.read('player_death',9)[4] == 2 + bool(s.p.face)
+assert [r.read('armor_fragments',56)[i*14+12] for i in range(4)]==[1]*4
 for _ in range(1500):
  r.run(1);s=state(r)
  if s.mode==1:break

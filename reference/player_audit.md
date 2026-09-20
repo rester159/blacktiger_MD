@@ -209,3 +209,15 @@ fixtures compare every sprite byte and duration over 6,580 updates. Runtime chec
 exercise lethal missiles and hazards through the production life/restart path.
 This supersedes the earlier pending-death notes, but does not establish source
 hardware hiding at wrapped edges, armor-break fragments or complete continue UI.
+
+### Armor-break implementation
+
+Fixed 7A09 clears armor F3AD and attempts four common small-object allocations,
+copying 32-byte templates at 7A6B/7A8B/7AAB/7ACB. Coordinates are player+8 on each
+axis. Each clip has four stationary four-update frames, then four one-update
+frames cycling signed velocities until the standard small-object edge retirement.
+Native armor_break.c reuses animation_tick and small_actor_axis_active; clip data
+is compiled by extract_armor_break.py. Original 2FE7 observations cover all four
+profiles and five starting positions (3,600 updates). The source allocation pool
+is not reproduced here; native effects reserve four slots. Original sound 17 and
+palette/task side effects remain part of the broader audio/presentation work.

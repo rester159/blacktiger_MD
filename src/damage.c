@@ -1,3 +1,4 @@
+#include "armor_break.h"
 #include "damage.h"
 #include "player_death.h"
 #include "assets.h"
@@ -7,13 +8,13 @@ void player_hurt_from(u8 damage,s16 source_x) {
     if (p->invincible || game.boss_dead || game.mode != PLAY) return;
     if (p->armor) {
         if (p->armor >= damage) {
-            p->armor -= damage;
+            if(p->armor==damage)armor_break_start();else p->armor -= damage;
             p->invincible = 60;
             game.sound = SND_HIT;
             return;
         }
         damage -= p->armor;
-        p->armor = 0;
+        armor_break_start();
     }
     if (p->hp > damage) {
         p->hp -= damage;

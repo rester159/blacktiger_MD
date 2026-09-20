@@ -1,3 +1,4 @@
+#include "armor_break.h"
 #include "player_motion.h"
 #include "player_death.h"
 #include "player_dagger.h"
@@ -327,6 +328,11 @@ static void sprites(void) {
         s16 cy=y+(player_motion.jumping || player_motion.ladder || !(player_motion.selector&3)?6:14);
         piece(i+1==player_attack.count?0x6f+p->weapon-1:1,p->weapon==5?6:0,
               x+(left?-16-16*i:32+16*i),cy,!left);
+    }
+    for(i=0;i<4;i++){
+        const AnimFrame *f=armor_break_frame(i);ArmorFragment *a=&armor_fragments[i];
+        s16 sy=a->y-game.cam_y;
+        if(f && sy>=0 && sy<256)piece(f->code,f->palette,a->x-game.cam_x,sy,f->flip);
     }
     for(i=0;i<PLAYER_DAGGERS;i++) {
         const AnimFrame *f=player_dagger_frame(i);PlayerDagger *d=&player_daggers[i];

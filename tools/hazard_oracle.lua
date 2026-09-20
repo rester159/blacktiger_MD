@@ -27,8 +27,8 @@ for id,c in ipairs(cases) do
  call(0xb2a9)
  p:write_u8(0xf400,0x80);be(0xf401,120+c.dx);be(0xf403,88+c.dy)
  p:write_u8(0xf40b,3);p:write_u8(0xf40c,8)
- p:write_u8(0xf3b0,c.armor);p:write_u8(0xe919,c.invincible)
+ p:write_u8(0xf3ad,c.armor);le(0xf424,c.invincible)
  cpu.state.IX.value=0xf520;call(0x2fe7)
- emit(string.format('CONTACT|%d|%d|%d|%d|%d|%d',id-1,p:read_u8(0xf400),p:read_u8(0xf41e),p:read_u8(0xf3b0),p:read_u8(0xf520),p:read_u8(0xec58)))
+ emit(string.format('CONTACT|%d|%d|%d|%d|%d|%d',id-1,p:read_u8(0xf400),p:read_u8(0xf41e),p:read_u8(0xf3ad),p:read_u8(0xf520),p:read_u8(0xec58)))
 end
 emit('COMPLETE');out:close();m:exit()

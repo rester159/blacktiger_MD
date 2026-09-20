@@ -146,6 +146,8 @@ def main():
             poses.append('{'+','.join(frames)+'}')
         armors.append('{'+',\n'.join(poses)+'}')
     body.append('const HeroFrame hero_frames[2][10][48]={'+',\n'.join(armors)+'};')
+    from extract_armor_break import generate as generate_armor_break
+    generate_armor_break(Source(args.source))
     from extract_player_death import generate as generate_player_death
     generate_player_death(Source(args.source))
     from extract_player_dagger import generate as generate_player_dagger

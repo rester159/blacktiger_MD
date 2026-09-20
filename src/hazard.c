@@ -1,3 +1,4 @@
+#include "armor_break.h"
 #include "hazard.h"
 #include "player_death.h"
 #include "assets.h"
@@ -24,6 +25,7 @@ void hazard_step(u16 slot) {
     Actor *a = &game.actors[slot];
     if (game.mode == PLAY && !game.boss_dead && player_contact(PX(a->x), PX(a->y), hazard_width, hazard_height)) {
         /* Source contact 39 enters death directly, bypassing armor and hurt invulnerability. */
+        armor_break_start();
         game.p.hp = 0;
         game.p.climb = 0;
         game.p.vx = game.p.vy = 0;

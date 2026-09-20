@@ -10,7 +10,7 @@ with tempfile.TemporaryDirectory() as folder:
  int tick(unsigned char *out){int done=player_death_step();const PlayerDeathFrame *f=player_death_frame();if(f)for(int i=0;i<2;i++)for(int n=0;n<4;n++){int k=i*16+n*4;int col=n%2;out[k]=(f->code[i]&255)+(col^f->flip[i])+(n/2)*8;out[k+1]=((f->code[i]>>3)&224)|f->palette[i]|(f->flip[i]<<3);out[k+2]=player_death.y[i]+(n/2)*16;out[k+3]=player_death.x[i]+col*16;}return done;}
  int remaining(void){return player_death.remaining;}
  ''')
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(ROOT/'inc'),str(ROOT/'src/player_death.c'),str(tmp/'stub.c'),'-o',str(tmp/'death.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(ROOT/'inc'),str(ROOT/'src/player_death.c'),str(ROOT/'src/armor_break.c'),str(ROOT/'src/animation.c'),str(tmp/'stub.c'),'-o',str(tmp/'death.dylib')],check=True)
  lib=C.CDLL(str(tmp/'death.dylib'));out=(C.c_uint8*32)();current=-1;count=0
  for line in (ROOT/'reference/player_death_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break

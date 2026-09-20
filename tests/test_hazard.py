@@ -18,7 +18,7 @@ with tempfile.TemporaryDirectory() as temp:
  int armor(void){return game.p.armor;} int active(void){return game.actors[0].active;}
  int lives(void){return game.p.lives;} int health(void){return game.p.hp;}
 ''');(tmp/'stubs.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/hazard.c'),str(ROOT/'src/player_death.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'hazard.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/hazard.c'),str(ROOT/'src/player_death.c'),str(ROOT/'src/armor_break.c'),str(ROOT/'src/animation.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'hazard.dylib')],check=True)
  lib=C.CDLL(str(tmp/'hazard.dylib'));count=0;deaths=0
  for line in (ROOT/'reference/hazard_oracle_events.txt').read_text().splitlines():
   v=line.split('|')

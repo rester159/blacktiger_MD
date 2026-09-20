@@ -79,8 +79,8 @@ Files:
   global scanner timing, pool contention, difficulty interactions and full-game routes
   remain unverified. Actor-specific evidence is in `STATUS.md` and `reports/`.
 - Walking, crouching, ladders, jumps and falls now match controlled arcade traces.
-  Chain and dagger attacks now also have source comparisons. Armor-break presentation,
-  screen-edge collision behavior, some compound-boss geometry and global camera limits
+  Chain and dagger attacks now also have source comparisons. Armor-break fragments and death animations are integrated.
+  Screen-edge collision behavior, some compound-boss geometry and global camera limits
   remain unfinished. See `reference/player_audit.md`.
 - Shops, rewards, progression and restarts have subsystem checks; complete rescue,
   round-clear and ending presentation and natural progression still need validation.

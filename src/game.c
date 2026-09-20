@@ -1,3 +1,4 @@
+#include "armor_break.h"
 #include "progress.h"
 #include "player_motion.h"
 #include "player_death.h"
@@ -92,7 +93,7 @@ void game_round(u8 round) {
     p->invincible = 120;
     p->face = 0;
     p->hp = progress_max_hp;
-    motion_reset();game.player_low=0;player_death_reset();
+    motion_reset();game.player_low=0;player_death_reset();armor_break_reset();
     player_attack=(PlayerAttack){0};player_daggers_reset();
 }
 void game_new(void) {
@@ -701,6 +702,7 @@ void game_tick(u16 input) {
             game.mode = PLAY;
         return;
     }
+    if (game.mode == PLAY || game.mode == DEAD)armor_break_step();
     if (game.mode == DEAD) {
         if(player_death.active) {
             player_attack=(PlayerAttack){0};
@@ -799,7 +801,7 @@ void game_tick(u16 input) {
             game.time--;
         else {
             p->hp = 1;
-            p->armor = p->invincible = 0;
+            armor_break_start();p->invincible = 0;
             player_hurt(1);
         }
     }
