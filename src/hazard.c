@@ -30,3 +30,15 @@ void hazard_step(u16 slot) {
         game.sound = SND_DIE;
     }
 }
+
+u8 actor_dagger_contact(u16 slot,s16 x,s16 y) {
+ const Actor *a=&game.actors[slot];u8 pool=actor_contact_pool[a->def];s16 ax,ay,dx,dy;
+ if(pool!=32 && pool!=48)return (x-PX(a->x)-16)>-20 && (x-PX(a->x)-16)<20 && (y-PX(a->y)-16)>-20 && (y-PX(a->y)-16)<20;
+ if((game.frame&1)!=(pool==48))return 0;
+ ax=PX(a->x)-game.cam_x;ay=PX(a->y)-game.cam_y;x-=game.cam_x;y-=game.cam_y;
+ if((u16)ax>=256 || (u16)x>=256 || (pool==48 && (u16)ay>=256))return 0;
+ dx=(u8)(x-(pool==48?8:0))-(u8)ax;
+ dy=(u8)(y-(pool==48?8:0))-(u8)ay;
+ return dx>=-(actor_contact_half_width[a->def]+dagger_width) && dx<=actor_contact_half_width[a->def]+dagger_width &&
+        dy>=-(actor_contact_half_height[a->def]+dagger_height) && dy<=actor_contact_half_height[a->def]+dagger_height;
+}

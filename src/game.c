@@ -482,8 +482,8 @@ static void shots_step(void) {
         else
             for (j = 0; j < MAX_ACTORS; j++) {
                 Actor *a = &game.actors[j];
-                if (a->active && absolute(x - PX(a->x) - 16) < 20 &&
-                    absolute(y - PX(a->y) - 16) < 20) {
+                if (a->active && (s->kind==1?actor_dagger_contact(j,x,y):
+                    (absolute(x - PX(a->x) - 16) < 20 && absolute(y - PX(a->y) - 16) < 20))) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
@@ -492,7 +492,7 @@ static void shots_step(void) {
                     if (zombie_kinds[a->def] && !zombie_vulnerable(j)) continue;
                     if (emerge_kinds[a->def] && !emerge_vulnerable(j))
                         continue;
-                    actor_hit(a, s->damage);
+                    actor_hit(a, s->kind==1?(s->damage>1?s->damage>>1:1):s->damage);
                     s->active = 0;
                     break;
                 }

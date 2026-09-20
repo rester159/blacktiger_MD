@@ -229,3 +229,12 @@ small-pool contact and POW eligibility. Movement/death/render frames match 58,00
 across both parts and all random selections. A real round-one spawn passes cartridge checks for
 both actors, immunity, rewards and retirement. Generic player weapon rectangles and shared
 small-pool contention remain unported; controlled tests do not establish natural full-game play.
+
+Player daggers now use source small/medium actor bounds, the eight-pixel medium origin offset,
+even/odd pool cadence, screen-coordinate gates and inclusive edges instead of the generic
+40-by-40 rectangle. Dagger damage is half the stored attack strength, minimum one; chain shots
+retain their existing behavior. Comparisons cover 1,306 original loader cases across all twelve
+compiled contact shapes, including screen edges and all weapon strengths. Cartridge cases use
+a dagger surviving exactly one collision tick to verify both parities, boundary hits/misses and
+half damage. Chain geometry, large-actor geometry and exact weapon-state update timing remain
+unported; these changes do not establish full player/combat fidelity.
