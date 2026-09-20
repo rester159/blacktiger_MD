@@ -1,3 +1,4 @@
+#include "ending.h"
 #include "round_clear.h"
 #include "game_over.h"
 #include "actor_dispatch.h"
@@ -124,6 +125,7 @@ void game_bonus_transition(void) {
  game.cam_y=bound_axis(PX(game.p.y)-144,0,rounds[game.round].height-224);
 }
 void game_new(void) {
+    ending_reset();
     restart_pending=0;loaded_round=255;
     zero(&game, sizeof game);
     loot_new();
@@ -779,13 +781,16 @@ void game_tick(u16 input) {
         }
         if(round_clear_step()) {
             if(game.round<7)game_round(game.round+1);
-            else game.mode=ENDING;
+            else {game.mode=ENDING;ending_start();ending_step();}
         }
         return;
     }
     if (game.mode == GAMEOVER) {
         u8 action;
         if(!game_over.phase)game_over_start();
+        if(ending.complete && game_over.phase==1 && game_over.remaining==1) {
+            game_over_reset();game.mode=TITLE;return;
+        }
         action=game_over_step(input);
         if(action==1) {
             game.score=0;p->lives=progress_initial_lives;
@@ -797,9 +802,8 @@ void game_tick(u16 input) {
         return;
     }
     if (game.mode == ENDING) {
-        if (pressed & IN_START) {
-            game_new();game.previous_input=input;
-        }
+        if(!ending.active)ending_start();
+        if(ending_step()){game.p.lives=0;game.mode=GAMEOVER;game_over_start();}
         return;
     }
     if (pressed & IN_START) {

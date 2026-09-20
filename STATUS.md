@@ -835,3 +835,20 @@ Zenny balance. Gameplay sprites are hidden and the next round rebuilds its
 terrain cache and palettes. Original-ROM setup captures and cartridge VRAM,
 pattern, palette, balance and transition checks cover all seven screens.
 Fades, original HUD, final cutscene and natural full-game completion remain open.
+
+## Native final story and credits
+
+Replaced the static prototype ending with the original timed story, credits and
+final backdrop. A native sequencer handles 560 character writes, page holds,
+clears, palette steps and scene changes across 4,515 source-observed updates.
+The opening terrain colors are adapted through the existing Genesis palette
+mapping; credits artwork and lettering retain their RGB333 colors. Shared glyphs
+occupy previously unused VRAM, preserving the preceding victory picture during
+the story. Only dirty text rows are uploaded.
+
+After the ending, game over runs without a continue offer, matching the source's
+completed-round branch. Host checks compare every observed update; cartridge
+checks cover all pages, actual VRAM/palettes, music, repeated Start, terminal flow
+and starting a new game. Original HUD, high-score entry, whole-board sprite and
+scheduler comparison, natural full-game completion and hardware timing remain
+unfinished. See `reference/ending_audit.md`.

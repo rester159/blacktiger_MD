@@ -1,3 +1,4 @@
+#include "ending.h"
 #include "actor_dispatch.h"
 #include "bonus.h"
 #include "armor_break.h"
@@ -8,6 +9,7 @@
 #include "player_dagger.h"
 #include "assets.h"
 #include "clear_screen_data.inc"
+#include "ending_visual_data.inc"
 #include "container.h"
 #include "shop.h"
 #include "progress.h"
@@ -33,7 +35,7 @@ static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
 static u8 line_count[28], sprite_slot_for_key[16384];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
-static u8 clear_screen_active;
+static u8 clear_screen_active,ending_screen_active,ending_screen_scene,ending_screen_palette;
 static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
@@ -469,7 +471,7 @@ static void overlay(void) {
     char b[40];
     u16 stats = (game.p.hp << 12) | (game.p.armor << 8) | (game.p.weapon << 4) | game.p.lives;
     if (changed) {
-        if(!clear_screen_active)VDP_clearPlane(BG_A, TRUE);
+        if(!clear_screen_active && !ending_screen_active)VDP_clearPlane(BG_A, TRUE);
         last_mode = m;
     }
     VDP_setTextPlane(WINDOW);
@@ -531,9 +533,7 @@ static void overlay(void) {
             text(8,14,"START TO CONTINUE");
         }
     } else if (m == ENDING) {
-        text(6, 9, "THE DARKNESS IS BROKEN");
-        text(8, 12, "THANK YOU FOR PLAYING");
-        text(9, 16, "PRESS START");
+        /* Source timed lettering is rendered by ending_screen. */
     }
 }
 void video_init(void) {
@@ -553,7 +553,7 @@ void video_init(void) {
     VDP_setBackgroundColor(0);
 }
 void video_round(void) {
-    clear_screen_active=0;
+    clear_screen_active=ending_screen_active=0;
     terrain_state();
     u16 i;
     SYS_disableInts();
@@ -608,10 +608,53 @@ static void bonus_screen(void) {
     VDP_setEnable(TRUE);
     SYS_enableInts();
 }
+static void ending_screen(void) {
+    u16 y;
+    if(!ending_screen_active) {
+        SYS_disableInts();VDP_setEnable(FALSE);DMA_flushQueue();
+        VDP_clearPlane(BG_A,TRUE);
+        VDP_loadTileData(ending_font,1408,ENDING_FONT_TILES>32?32:ENDING_FONT_TILES,DMA);
+#if ENDING_FONT_TILES > 32
+        VDP_loadTileData(ending_font+32*8,1072,ENDING_FONT_TILES-32,DMA);
+#endif
+        PAL_setColors(48,ending_text_palette,4,CPU);
+        ending_screen_active=1;ending_screen_scene=ending_screen_palette=255;
+        VDP_setEnable(TRUE);SYS_enableInts();
+    }
+    if(ending_screen_scene!=ending.scene) {
+        if(ending.scene) {
+            SYS_disableInts();VDP_setEnable(FALSE);DMA_flushQueue();
+            VDP_clearPlane(BG_B,TRUE);
+            VDP_setHorizontalScroll(BG_B,0);VDP_setVerticalScroll(BG_B,0);
+            VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);VDP_updateSprites(1,DMA);
+            if(ending.scene==1) {
+                VDP_loadTileData(ending_patterns,16,ENDING_TILES,DMA);
+                VDP_setTileMapDataRect(BG_B,ending_map,0,0,32,28,32,DMA);
+                PAL_setColors(0,ending_palette,32,CPU);
+            }
+            VDP_setEnable(TRUE);SYS_enableInts();
+        }
+        ending_screen_scene=ending.scene;
+    }
+    if(ending.scene==0 && ending.palette!=ending_screen_palette && ending.palette<10) {
+        PAL_setColors(0,ending_fades+ending.palette*32,32,DMA_QUEUE);
+        video_dma_bytes+=64;ending_screen_palette=ending.palette;
+    }
+    for(y=0;y<28;y++)if(ending_dirty_rows&(1UL<<y)) {
+        u16 row[32],x;for(x=0;x<32;x++)row[x]=ending_glyphs[ending_text[y*32+x]];
+        VDP_setTileMapDataRow(BG_A,row,y,0,32,DMA_QUEUE_COPY);video_dma_bytes+=64;
+    }
+    ending_dirty_rows=0;
+}
 volatile u16 video_cost[3];
 void video_frame(void) {
     u32 t = getSubTick();
     video_dma_bytes = 0;
+    if(game.mode==ENDING || (game.mode==GAMEOVER && ending.complete)) {
+        ending_screen();overlay();
+        video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;return;
+    }
+    if(ending_screen_active)video_round();
     if(game.mode==CLEAR && round_clear.phase==2 && game.round<7) {
         if(clear_screen_active!=game.round+1)bonus_screen();
         overlay();
