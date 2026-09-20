@@ -24,7 +24,7 @@ s=state(r);s.mode=4;s.mode_timer=300;put(r,s);r.run(20)
 assert r.read('music_active',1)[0]==1
 s=state(r);s.mode=1;put(r,s);r.run(3);assert int.from_bytes(r.read('music_tick'),'big')<20
 s=state(r);s.mode=7;put(r,s);r.run(8);assert r.read('music_command',1)[0]==0x31 and r.read('music_active',1)[0]==1
-r.run(550);assert r.read('music_active',1)[0]==0
-r.run(120);assert r.read('music_active',1)[0]==0
-r.close();report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='All eight round-entry selections, non-silent FM audio after effects expire, wall-clock tempo while paused, and finite game-over jingle without restarting. Original PSG effects and full presentation remain incomplete.')
+r.run(550);assert r.read('music_command',1)[0]==0x34
+r.run(120);assert r.read('music_command',1)[0]==0x34
+r.close();report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='All eight round-entry selections, non-silent FM audio after effects expire, wall-clock tempo while paused, and game-over cue followed by the source continue cue. Original PSG effects and full presentation remain incomplete.')
 (ROOT/'reports/music-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

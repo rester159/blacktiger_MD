@@ -1,4 +1,5 @@
 #include "round_clear.h"
+#include "game_over.h"
 #include "actor_dispatch.h"
 #include "bonus.h"
 #include "music.h"
@@ -65,7 +66,7 @@ static u8 support(s16 x, s16 y) {
 }
 static u8 restart_pending,loaded_round=255;
 void game_round(u8 round) {
-    round_clear_reset();
+    round_clear_reset();game_over_reset();
     music_request=0x21+(round&7);
     Player *p = &game.p;
     const Round *r = &rounds[round];
@@ -771,7 +772,7 @@ void game_tick(u16 input) {
             p->armor=progress_initial_armor;shop_poison=0;status_reverse=0;
             if(p->lives)p->lives--;
             if(p->lives) {restart_pending=1;game_round(game.round);restart_pending=0;}
-            else game.mode=GAMEOVER;
+            else {game.mode=GAMEOVER;game_over_start();}
         }
         return;
     }
@@ -792,10 +793,15 @@ void game_tick(u16 input) {
         return;
     }
     if (game.mode == GAMEOVER) {
-        if (pressed & IN_START) {
+        u8 action;
+        if(!game_over.phase)game_over_start();
+        action=game_over_step(input);
+        if(action==1) {
             game.score=0;p->lives=progress_initial_lives;
             restart_pending=1;game_round(game.round);restart_pending=0;
             game.previous_input=input;
+        } else if(action==2) {
+            game_over_reset();game.mode=TITLE;
         }
         return;
     }

@@ -782,3 +782,16 @@ contact processing reuses an active-slot mask from its update pass. The same
 180-display-frame entry test improves all eight rounds to 131–176 logic
 updates, compared with 118–175 before these changes. Full-route 60 Hz remains
 unachieved; exact measurements and limits are in `reference/dispatch_audit.md`.
+
+## Timed game-over and console continues
+
+Last-life exhaustion now shows the seven-second game-over notice followed by
+a 9-to-0 continue offer (75 updates per digit). The original continue FM cue
+34 plays during the offer. Start accepts a free console continue, retaining
+world/inventory progress and resetting score/lives; holding Start does not
+pause the resumed game. Expiry returns to the title, where starting a new game
+clears progression. Source waits and polling instructions are hash-witnessed;
+host tests cover exact durations and the last poll, and cartridge tests cover
+real last-life entry, both outcomes, music and inventory. Arcade coin handling
+is replaced by free continues. Original artwork, fades, and high-score initials
+are still unfinished.

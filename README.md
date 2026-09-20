@@ -12,7 +12,7 @@ Open `dist/blacktiger_astra.bin` in a Genesis emulator.
 
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
 - A: chain attack and dagger volley (release to attack again); B: jump; C: limited screen attack.
-- Start: begin, pause, resume.
+- Start: begin, pause, resume; accept a free continue during the timed continue offer.
 - Contact a petrified NPC to rescue it. Merchant rescues open the shop; A buys, B/Start exits.
 
 ## Build

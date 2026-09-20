@@ -25,6 +25,8 @@ test: all
 	.venv/bin/python tools/profile_runtime.py
 	.venv/bin/python tests/test_armor_break.py
 	.venv/bin/python tests/test_armor_break_runtime.py
+	.venv/bin/python tests/test_game_over.py
+	.venv/bin/python tests/test_game_over_runtime.py
 	.venv/bin/python tests/test_round_clear.py
 	.venv/bin/python tests/test_round_clear_runtime.py
 	.venv/bin/python tests/test_player_death.py

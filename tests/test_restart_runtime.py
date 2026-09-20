@@ -45,6 +45,10 @@ for _ in range(120):
 assert state(r).mode==7 and state(r).p.lives==0
 # Continue preserves the round, inventory, health progression and world; only score/lives reset.
 old_round=state(r).round;old_opened=r.read('world_opened',1)
+for _ in range(1000):
+ r.run(1)
+ if r.read('game_over',4)[2]==2:break
+assert r.read('game_over',4)[2]==2
 r.run(10,8);s=state(r)
 assert (s.mode,s.round,s.p.lives,s.score,s.coins,s.p.weapon,s.p.armor,s.p.hp)==(1,old_round,3,0,444,5,2,5)
 assert r.read('progress_max_hp',1)==b'\x05' and r.read('container_keys',1)==b'\x07' and r.read('shop_antidotes',1)==b'\x09'
@@ -53,5 +57,5 @@ assert r.read('world_opened',1)==old_opened and r.read('container_collected',8)[
 r.run(3);s=state(r);s.mode=0;s.previous_input=0;put(r,s);r.run(10,8);r.run(3);s=state(r)
 assert s.mode==1 and s.p.lives==3 and s.coins==200 and r.read('world_opened',1)==b'\0',(s.mode,s.p.lives,s.coins,r.read('world_opened',1))
 assert r.read('container_opened',8)==bytes(8) and r.read('container_collected',8)==bytes(8)
-r.close();report={'passed':True,'equipment_and_inventory_retained':True,'armor_restored_and_poison_cleared':True,'consumed_rows_retained_active_rows_released':True,'collected_chest_and_hidden_wall_retained':True,'last_life_consumed':True,'continue_retains_progress_and_resets_score':True,'held_start_does_not_pause':True,'new_game_clears_persistence':True,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Native life-loss integration with actual chest and hidden-wall rows, backed by source death resource writes and four-byte persistence-copy loop. Original continue countdown/credits and death presentation timing remain unported.'}
+r.close();report={'passed':True,'equipment_and_inventory_retained':True,'armor_restored_and_poison_cleared':True,'consumed_rows_retained_active_rows_released':True,'collected_chest_and_hidden_wall_retained':True,'last_life_consumed':True,'continue_retains_progress_and_resets_score':True,'held_start_does_not_pause':True,'new_game_clears_persistence':True,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Native life-loss integration with actual chest and hidden-wall rows, backed by source death resource writes and four-byte persistence-copy loop. Native continue timing checked separately; console continues are free. Complete arcade presentation remains unfinished.'}
 (ROOT/'reports/restart-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

@@ -4,6 +4,7 @@
 #include "player_motion.h"
 #include "player_death.h"
 #include "round_clear.h"
+#include "game_over.h"
 #include "player_dagger.h"
 #include "assets.h"
 #include "container.h"
@@ -32,7 +33,7 @@ static u8 line_count[28], sprite_slot_for_key[16384];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
 static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
-static u8 last_bonus_entered,last_bonus_phases[4];
+static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
 static u16 word_at(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
@@ -321,6 +322,10 @@ static void sprites(void) {
     const HeroFrame *h=&hero_frames[(clear && clear->hold?round_clear.original_armor:p->armor)!=0][pose][player_motion.selector*8+(f&7)];
     s16 x = PX(p->x) - game.cam_x, y = PX(p->y) - game.cam_y;
     sprite_count = sprite_uploads = 0;
+    if(game.mode==GAMEOVER) {
+        VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);
+        VDP_updateSprites(1,DMA_QUEUE);return;
+    }
     if (++epoch == 0) {
         epoch = 1;
         memset(sprite_stamp, 0, sizeof sprite_stamp);
@@ -456,6 +461,8 @@ static void digits(char *p, u16 v, u16 count) {
 }
 static void overlay(void) {
     u8 m = game.mode, changed = m != last_mode || (m==CLEAR && last_clear_phase!=round_clear.phase);
+    if(m==GAMEOVER && (last_game_over_phase!=game_over.phase || last_continue_digit!=game_over.digit))changed=1;
+    last_game_over_phase=game_over.phase;last_continue_digit=game_over.digit;
     last_clear_phase=round_clear.phase;
     char b[40];
     u16 stats = (game.p.hp << 12) | (game.p.armor << 8) | (game.p.weapon << 4) | game.p.lives;
@@ -519,7 +526,10 @@ static void overlay(void) {
         text(10, 11, "TRY AGAIN...");
     else if (m == GAMEOVER) {
         text(11, 10, "GAME OVER");
-        text(8, 14, "START TO CONTINUE");
+        if(game_over.phase==2) {
+            text(10,12,"CONTINUE? 0");b[0]='0'+game_over.digit;b[1]=0;text(20,12,b);
+            text(8,14,"START TO CONTINUE");
+        }
     } else if (m == ENDING) {
         text(6, 9, "THE DARKNESS IS BROKEN");
         text(8, 12, "THANK YOU FOR PLAYING");
