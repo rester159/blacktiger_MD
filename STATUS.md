@@ -448,3 +448,12 @@ Native chain geometry and global contact scheduling remain separately scoped lim
 Shared offscreen actor cleanup now clears only the active bit, preserving the consumed bit
 when a defeated actor leaves the view before its death animation finishes. A cartridge
 regression moves a dying flail-wielder offscreen and verifies that it stays consumed.
+
+Bank-three B153 and bank-seven A3B6 now reuse the AAB3 crawler controller. The three
+falling-seed families share proximity activation, quarter-pixel gravity, three-body splitting,
+terrain walking, facing, weak-hit retirement and fatal-hit animation. Their extracted profiles
+retain durability 2/8/16 and rewards 10/15/15. The expanded oracle compares 65,520 ticks in
+279 cases and 54 split events against the arcade. Cartridge tests exercise actual placements
+in rounds one, two and six, including initial immunity, splitting and weak/fatal damage.
+A3B6 uses the shared poison-contact-42 handler. Global small-actor pool contention and full
+natural routes remain unverified.

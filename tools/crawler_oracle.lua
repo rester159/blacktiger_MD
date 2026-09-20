@@ -15,7 +15,7 @@ local data=dofile('cases.lua');assert(dbg and cpu.state.PC.value==0);dbg.visible
 for id,c in ipairs(data.cases) do
  for a=0xe000,0xffff do p:write_u8(a,0) end
  for _,r in ipairs({'AF','BC','DE','HL','IX','IY'}) do cpu.state[r].value=0 end
- ports:write_u8(1,3);p:write_u8(0xe0e3,3);ports:write_u8(14,1);p:write_u8(0xe0e7,1)
+ ports:write_u8(1,c.bank);p:write_u8(0xe0e3,c.bank);ports:write_u8(14,1);p:write_u8(0xe0e7,1)
  le(0xe160,0xe150);le(0xe140,0xe100);p:write_u8(0xe010,1);p:write_u8(0xe022,4)
  for bank=0,3 do
   ports:write_u8(13,bank)
@@ -39,13 +39,13 @@ for id,c in ipairs(data.cases) do
    p:write_u8(0xf40d,1) -- Normal player template attack strength, restored by the screen effect.
    ports:write_u8(1,4);p:write_u8(0xe0e3,4)
    p:write_u8(0xfba0,0x80);le(0xfbb8,0xeca0);cpu.state.IX.value=0xfba0;call(0xb57b)
-   ports:write_u8(1,3);p:write_u8(0xe0e3,3)
+   ports:write_u8(1,c.bank);p:write_u8(0xe0e3,c.bank)
   end
   if c.hit_tick==tick and p:read_u8(0xf520)==0x80 and (p:read_u8(0xf52c)&1)==0 then p:write_u8(0xf40d,c.damage);cpu.state.IX.value=0xf520;call(0x321a) end
   if c.hit2_tick==tick and p:read_u8(0xf520)==0x80 and (p:read_u8(0xf52c)&1)==0 then p:write_u8(0xf40d,c.damage2);cpu.state.IX.value=0xf520;call(0x321a) end
   if not finished and p:read_u8(0xf520)~=0 then cpu.state.IX.value=0xf520;finished=not call(0x2fe7) end
-  local reward=false;for at=0xe100,0xe13e,2 do if p:read_u8(at)==5 and p:read_u8(at+1)==0x10 then reward=true end end
-  emit(string.format('TICK|%d|%d|%s|%s|%s|%s|%s',id-1,tick,hex(0xf520,32),hex(0xfe28,16),finished and '1' or '0',hex(0xec58,1),reward and '0510' or '0000'))
+  local reward=false;for at=0xe100,0xe13e,2 do if p:read_u8(at)==5 and p:read_u8(at+1)==c.score then reward=true end end
+  emit(string.format('TICK|%d|%d|%s|%s|%s|%s|%s',id-1,tick,hex(0xf520,32),hex(0xfe28,16),finished and '1' or '0',hex(0xec58,1),reward and string.format('05%02x',c.score) or '0000'))
   if not split and p:read_u8(0xf540)~=0 then
    split=true;emit(string.format('SPLIT|%d|%d|%s|%s',id-1,tick,hex(0xf540,32),hex(0xf560,32)))
   end

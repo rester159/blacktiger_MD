@@ -397,7 +397,9 @@ static void actor_step(u16 i, u16 pressed) {
     }
     if (crawler_kinds[a->def]) {
         crawler_step(i);
-        if(a->active && crawler_contact(i) && !(game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
+        if(a->active && crawler_contact(i) && !(game.frame&1) && actor_contact(i)) {
+            if(crawler_kinds[a->def]!=3 || status_poison_cloud_contact())player_hurt(actor_damage[a->def]);
+        }
         return;
     }
     if (statue_kinds[a->def]) {
