@@ -1,3 +1,4 @@
+from extract_actor_dispatch import emit as emit_actor_dispatch
 from extract_bonus import extract as extract_bonus
 #!/usr/bin/env python3
 """Offline arcade-data to native Genesis conversion. No arcade code is shipped.
@@ -425,7 +426,7 @@ def main():
         spawns.append(sorted(rows.values()))
     ds=[]
     for d in defs.values():ds.append('{'+','.join(map(str,[d['code'],d['kind'],d['palette'],d['hp'],d['pieces'],d['frames'],d['npc_kind']]))+'}')
-    body.append('const ActorDef actor_defs[]={'+','.join(ds)+'};');report['actor_definitions']=list(defs.values())
+    body.append('const ActorDef actor_defs[]={'+','.join(ds)+'};');report['actor_definitions']=list(defs.values());emit_actor_dispatch(list(defs.values()),skeleton)
     body.append('const u8 container_left[]={'+','.join('1' if d['bank']==1 and d['address']==0xacd3 else '0' for d in defs.values())+'};')
     body.append('const u8 flailer_kinds[]={'+','.join(str({0xab33:1,0xab4a:2,0xb1c1:3,0xb1d8:4}.get(d['address'],0)) if d['bank']==0 else '0' for d in defs.values())+'};')
     body.append('const u8 dragon_kinds[]={'+','.join(str({(3,0x8000):1,(3,0x991d):2,(3,0x9b24):3}.get((d['bank'],d['address']),0)) for d in defs.values())+'};')

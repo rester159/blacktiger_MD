@@ -748,3 +748,12 @@ Animation updates now reject unchanged banks and offscreen patches before tile
 lookups. The current 180-frame entry profile spans 99–168 logic updates across
 rounds; sustained 60 Hz remains unfinished. Paused rendering fixtures drain the
 active gameplay frame before replacing actors and private animation state.
+
+## Shared actor dispatch
+
+Replaced repeated render-family scans with a generated native function/layout
+table for all 66 actor definitions. Common actor updates use the same table's
+behavior selector, preserving movement/contact ordering and early boss paths.
+The 180-frame entry benchmark improves in all eight rounds (119–173 updates),
+with the existing pixel fixtures unchanged. See `reference/dispatch_audit.md`.
+Sustained 60 Hz and full natural routes remain unverified.

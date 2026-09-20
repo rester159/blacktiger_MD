@@ -1,3 +1,4 @@
+#include "actor_dispatch.h"
 #include "bonus.h"
 #include "music.h"
 #include "armor_break.h"
@@ -389,27 +390,28 @@ static void actor_step(u16 i, u16 pressed) {
         a->active = 0;
         return;
     }
-    if (edge_spawn_kinds[a->def]) {
+    switch(actor_dispatch[a->def].behavior) {
+    case BEHAVIOR_EDGE: {
         edge_actor_step(i);
         if(a->active && (game.frame&1) && actor_contact(i) && edge_actor_contact(i))player_hurt_from(2,PX(a->x));
         return;
     }
-    if (reinforcement_kinds[a->def]) {
+    case BEHAVIOR_REINFORCEMENT: {
         reinforcement_body_step(i);
         if(a->active && reinforcement_body_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (flailer_kinds[a->def]) {
+    case BEHAVIOR_FLAILER: {
         flailer_step(i);
         if(a->active && flailer_vulnerable(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (waveboss_kinds[a->def]) {
+    case BEHAVIOR_WAVEBOSS: {
         waveboss_step(i);
         if(a->active && waveboss_contact(i) && waveboss_player_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (eruption_kinds[a->def]) {
+    case BEHAVIOR_ERUPTION: {
         eruption_step(i);
         if(a->active && eruption_contact(i) && (game.frame&1) && actor_contact(i)){
             if(eruption_kinds[a->def]>=3)status_poison_contact();
@@ -417,55 +419,57 @@ static void actor_step(u16 i, u16 pressed) {
         }
         return;
     }
-    if (teleporter_kinds[a->def]) {
+    case BEHAVIOR_TELEPORTER: {
         teleporter_step(i);
         if(a->active && teleporter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (hunter_kinds[a->def]) {
+    case BEHAVIOR_HUNTER: {
         hunter_step(i);
         if(a->active && hunter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (crawler_kinds[a->def]) {
+    case BEHAVIOR_CRAWLER: {
         crawler_step(i);
         if(a->active && crawler_contact(i) && !(game.frame&1) && actor_contact(i)) {
             if(crawler_kinds[a->def]!=3 || status_poison_cloud_contact())player_hurt_from(actor_damage[a->def],PX(a->x));
         }
         return;
     }
-    if (statue_kinds[a->def]) {
+    case BEHAVIOR_STATUE: {
         statue_step(i);
         if(a->active && statue_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (boulder_kinds[a->def]) {
+    case BEHAVIOR_BOULDER: {
         boulder_step(i);
         if (a->active && boulder_damage(i) && (game.frame&1) && actor_contact(i)) player_hurt_from(boulder_damage(i),PX(a->x));
         return;
     }
-    if (stone_kinds[a->def]) {
+    case BEHAVIOR_STONE: {
         boss_step(i);
         if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt_from(boss_contact_damage(i),PX(a->x));
         return;
     }
-    if (zombie_kinds[a->def]) {
+    case BEHAVIOR_ZOMBIE: {
         zombie_step(i);
         if ((game.frame&1) && zombie_vulnerable(i) && actor_contact(i)) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (wisp_kinds[a->def]) {
+    case BEHAVIOR_WISP: {
         wisp_step(i);
         if ((game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (emerge_kinds[a->def]) {
+    case BEHAVIOR_EMERGE: {
         if (emerge_step(i)) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if (hazard_kinds[a->def]) {
+    case BEHAVIOR_HAZARD: {
         hazard_step(i);
         return;
+    }
+    default:break;
     }
     /* These families use pre-movement contact. Earlier native families perform
        their own contact checks after movement and need no duplicate query. */

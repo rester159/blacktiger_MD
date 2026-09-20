@@ -1,3 +1,4 @@
+#include "actor_dispatch.h"
 #include "bonus.h"
 #include "armor_break.h"
 #include "player_motion.h"
@@ -362,75 +363,25 @@ static void sprites(void) {
         if (!a->active || (a->hit && (game.frame & 2)))
             continue;
         d = &actor_defs[a->def];
-        code = d->code + (d->frames > 1 ? ((a->timer / 8) % d->frames) * 2 : 0);
         x = PX(a->x) - game.cam_x;
         y = PX(a->y) - game.cam_y;
-        if(d->kind==CHEST) {const AnimFrame *f=container_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
-        if (pair_kinds[a->def]) {
-            const AnimFrame *f=pair_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;
+        {
+            const ActorDispatch *visual=&actor_dispatch[a->def];
+            if(visual->frame){
+                const AnimFrame *f=visual->frame(i);
+                if(f){
+                    if(visual->layout==DRAW_PIECE)piece(f->code,f->palette,x,y,f->flip);
+                    else if(visual->layout==DRAW_BODY)body(f->code,f->palette,x,y,f->flip);
+                    else{
+                        u16 col,row,columns=visual->layout==DRAW_DRAGON?8:4;
+                        for(row=0;row<4;row++)for(col=0;col<columns;col++)
+                            piece(f->code+row*8+(f->flip?columns-1-col:col),f->palette,x+col*16,y+row*16,f->flip);
+                    }
+                }
+                continue;
+            }
         }
-        if (edge_spawn_kinds[a->def]){const AnimFrame *f=edge_actor_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
-        if (reinforcement_kinds[a->def]){const AnimFrame *f=reinforcement_body_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
-        if (flailer_kinds[a->def]){const AnimFrame *f=flailer_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
-        if(dragon_kinds[a->def]){
-            const AnimFrame *f=dragon_frame(i);u16 col,row;
-            if(f)for(row=0;row<4;row++)for(col=0;col<8;col++)piece(f->code+row*8+(f->flip?7-col:col),f->palette,x+col*16,y+row*16,f->flip);
-            continue;
-        }
-        if (waveboss_kinds[a->def]) {
-            const AnimFrame *f=waveboss_frame(i);u16 col,row;
-            if(f)for(row=0;row<4;row++)for(col=0;col<4;col++)piece(f->code+row*8+(f->flip?3-col:col),f->palette,x+col*16,y+row*16,f->flip);
-            continue;
-        }
-        if (eruption_kinds[a->def]) {const AnimFrame *f=eruption_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
-        if (teleporter_kinds[a->def]) {const AnimFrame *f=teleporter_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
-        if (hunter_kinds[a->def]) {const AnimFrame *f=hunter_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
-        if (crawler_kinds[a->def]) {const AnimFrame *f=crawler_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;}
-        if (statue_kinds[a->def]) {const AnimFrame *f=statue_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
-        if (boulder_kinds[a->def]) {
-            const AnimFrame *f=boulder_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;
-        }
-        if (layered_boss_kinds[a->def] || stone_kinds[a->def]) {
-            const AnimFrame *f=boss_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;
-        }
-        if (zombie_kinds[a->def]) {
-            const AnimFrame *f=zombie_frame(i);
-            if (f) body(f->code,f->palette,x,y,f->flip);
-            continue;
-        }
-        if (wisp_kinds[a->def]) {
-            const AnimFrame *f=wisp_frame(i);
-            if (f) body(f->code,f->palette,x,y,f->flip);
-            continue;
-        }
-        if (emerge_kinds[a->def]) {
-            const AnimFrame *f=emerge_frame(i);
-            if (f) body(f->code,f->palette,x,y,f->flip);
-            continue;
-        }
-        if (sentry_kinds[a->def]) {
-            const AnimFrame *f = sentry_frame(i);
-            if (f) body(f->code, f->palette, x, y, f->flip);
-            continue;
-        }
-        if (skeleton_kinds[a->def] != 255) {
-            const AnimFrame *f = skeleton_frame(i);
-            if (f)
-                body(f->code, f->palette, x, y, f->flip);
-            continue;
-        }
-        if (d->kind == HIDDEN_WALL) {
-            const AnimFrame *f = hidden_frame(i);
-            if (f)
-                piece(f->code, f->palette, x, y, f->flip);
-            continue;
-        }
-        if (d->npc_kind) {
-            const AnimFrame *f = npc_frame(i);
-            if (f)
-                body(f->code, f->palette, x, y, f->flip);
-            continue;
-        }
+        code = d->code + (d->frames > 1 ? ((a->timer / 8) % d->frames) * 2 : 0);
         if (d->pieces == 4)
             body(code, d->palette, x, y, a->face > 0);
         else
