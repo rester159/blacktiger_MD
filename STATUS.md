@@ -706,3 +706,16 @@ audio samples from all25 tracks are non-silent and unclipped. Additional catalog
 cues remain unwired pending their source event/presentation ports. The prototype
 CLEAR duration can still interrupt its full jingle; full cutscene timing, continue
 flow, source priority/resume rules and original PSG effects remain unfinished.
+
+## Alternate-area source audit
+
+Located the 12 omitted invisible transition triggers in rounds 1–6 and extracted
+all destination cameras, return offsets, and normal/alternate background update
+lists (`reference/bonus.json`). These are gameplay transitions, not optional
+hidden-item decorations. Native integration remains required. The has-entered
+latch persists after exit; return X adjustment wraps within its low byte. See
+`reference/bonus_audit.md` for the source contracts and remaining integration.
+
+The isolated original-ROM oracle passed 225 contact-gate and camera-policy cases.
+The cartridge is unchanged in this audit; these results do not prove native
+alternate-area gameplay.
