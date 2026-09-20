@@ -85,3 +85,6 @@ reports/flailer-weapon-oracle/
 /reports/reinforcement-shot-oracle/
 
 /reports/edge-spawn-oracle/
+
+/reports/edge-actor-oracle/
+/reports/edge-shot-oracle/

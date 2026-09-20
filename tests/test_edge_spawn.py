@@ -22,5 +22,5 @@ with tempfile.TemporaryDirectory() as folder:
   if out[0] or out[1]!=c['primary']:assert list(out)[2:]==expected[2:4],(case,list(out),expected)
   assert expected[4]==out[0]
   count+=1
-report=dict(passed=True,constructor_cases=count,scope='Screen bounds, byte-wrapped proximity, both edge directions, six floor-search heights, full-pool refusal, persistent row suppression, and consumed active flag on failed ground search. Body behavior remains provisional.')
+report=dict(passed=True,constructor_cases=count,scope='Screen bounds, byte-wrapped proximity, both edge directions, six floor-search heights, full-pool refusal, persistent row suppression, and consumed active flag on failed ground search. Body behavior is checked separately.')
 (ROOT/'reports/edge-spawn-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

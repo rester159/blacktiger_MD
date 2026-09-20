@@ -498,3 +498,17 @@ provisional. The source uses player direction/posture byte E901; native facing c
 normal 0/4 directions, with the wider player-posture port still outstanding. Body template
 AA0C and callbacks A564 onward are the next actor work; projectile templates AA3C/AA5C
 use direction tables AEEE/B0DA.
+
+The bank-four A4D0 caster now has a native body and two aimed projectile profiles. Its 107
+body segments cover five weighted jump patterns, dash/contact-triggered strike, fractional
+gravity, single/double shots, two 64-health layers, recoil, screen-relative relocation,
+100-point defeat and persistent retirement. The original medium-actor collision loop gates
+hits by mode, not the actor's 80/40 state byte: this enemy remains hittable after first-layer
+recovery without restoring that byte. The native implementation and body oracle preserve
+that distinction. The source's unconditional relocation animation branch is also retained.
+A 768-case oracle compares 368,640 body ticks, including available/full projectile pools.
+Both projectile types use the shared aim routine and 17 source direction clips each;
+9,792 source ticks check motion, terrain impact, weak/fatal hits, animation and retirement.
+Cartridge fixtures exercise the actual round-seven placement, a natural aimed attack,
+first-layer recovery, final reward/consumption, and projectile damage 1/3 and destruction.
+Original global actor-pool contention, alternate player postures, and full routes remain gaps.

@@ -11,5 +11,5 @@ for face in (0,1):
  assert 80<=y<=192,(face,x,y)
  assert a.face==(1 if face else -1)
  cases.append(dict(player_face=face,round=level+1,row=row,screen_x=x,screen_y=y));r.close()
-report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Actual trigger row spawns from either screen edge on supported ground. Movement, attacks and final persistence behavior still require the actor body port.')
+report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Actual trigger row spawns from either screen edge on supported ground. Movement, attacks and defeat persistence are checked separately.')
 (ROOT/'reports/edge-spawn-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
