@@ -16,3 +16,15 @@ reports and `dist/build.json`.
 Resolved during this build: wrong-CPU libgcc, sprite-cache lookup cost, full-view cache pinning cost,
 repeated HUD formatting cost, disappearing/stale background tiles caused by DMA queue overflow,
 hero/font palette interference, and redraw batching on large camera changes.
+
+Verified progress: the common actor animation loader is now a native typed routine with original-ROM
+trace comparisons. All eight petrified NPC variants use source-derived constructors, idle frames,
+rescue visuals, and distinct reward dispatch; actual-cartridge tests cover their persistence.
+This does not validate other actor families, hint text, complete cutscene timing, or shop economics.
+
+Remaining work order (shared systems, not sequential levels):
+1. Prove constructor/template ownership and replace all heuristic enemy/boss definitions.
+2. Implement source-derived player/combat, enemy families, containers, drops, and boss composition.
+3. Match progression, shops, score, equipment, cutscenes, and natural round completion.
+4. Replace placeholder audio, match presentation/palette behavior, and meet frame budgets.
+5. Validate natural full-game routes and PAL/NTSC behavior; package only the tested cartridge.

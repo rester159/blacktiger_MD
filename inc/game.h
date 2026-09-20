@@ -24,7 +24,7 @@ typedef int32_t s32;
 #define FX 256
 #define PX(v) ((v) / FX)
 enum { WALKER, FLYER, TURRET, ROCK, HAZARD, CHEST, CAPTIVE, PICKUP, BOSS };
-enum { TITLE, PLAY, PAUSED, SHOP, DEAD, CLEAR, ENDING, GAMEOVER };
+enum { TITLE, PLAY, PAUSED, SHOP, DEAD, CLEAR, ENDING, GAMEOVER, RESCUE };
 enum {
     SND_NONE,
     SND_ATTACK,
@@ -44,7 +44,7 @@ typedef struct {
 } HeroFrame;
 typedef struct {
     u16 code;
-    u8 kind, palette, hp, pieces, frames;
+    u8 kind, palette, hp, pieces, frames, npc_kind;
 } ActorDef;
 typedef struct {
     u16 x, y, def, persistent;
@@ -84,6 +84,7 @@ typedef struct {
     u16 coins, time, clock, frame, cam_x, cam_y, previous_input, mode_timer;
     u8 round, mode, sound, shop_item, rescued, boss_dead;
     u16 kills;
+    u8 rescue_actor, rescue_kind;
 } Game;
 extern Game game;
 void game_new(void);

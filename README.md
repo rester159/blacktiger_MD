@@ -13,7 +13,7 @@ Open `dist/blacktiger_astra.bin` in a Genesis emulator.
 - D-pad: move; Up/Down: climb.
 - A: attack; B: jump; C: limited screen attack.
 - Start: begin, pause, resume.
-- Up near a rescued captive: shop. A buys; B/Start exits.
+- Contact a petrified NPC to rescue it. Merchant rescues open the shop; A buys, B/Start exits.
 
 ## Build
 
@@ -59,6 +59,7 @@ sprite cache. DMA queue capacity is 192; full round loading is batched with the 
 Files:
 
 - `src/game.c`: native game systems, independent of SGDK rendering.
+- `src/animation.c`, `src/npc.c`: shared source-derived animation and eight NPC variants.
 - `src/video.c`: scrolling, tile/sprite caches, hardware sprite limits, HUD.
 - `src/audio.c`: native PSG effects.
 - `tools/extract.py`: source verification and asset conversion.
@@ -75,7 +76,7 @@ Files:
   round-one stream are unresolved. The converter reports rather than silently repairs that row.
 - Player movement/combat is reimplemented, but its detailed timing, weapon reach, equipment states,
   animation selection, and collisions have not been matched against the arcade.
-- Shop contents/prices, rescue behavior, magic, score, drops, and round-clear conditions need arcade
+- Shop contents/prices, rescue contact bounds and cutscene waits, magic, score, drops, and round-clear conditions need arcade
   verification. Some provisional actor classifications may prevent a natural full playthrough.
 - Background priority groups, palette changes during play, arcade title presentation, original
   music, and original sound effects are not implemented. PSG effects are newly authored placeholders.
@@ -102,3 +103,9 @@ Graphics layout/topology reference: the previously pinned MAME Black Tiger drive
 project's `board_graphics_contract.json`, copied here as `assets/board.json`. Supplied ROM identities
 and extracted-data provenance are recorded in `reports/assets.json`. Arcade graphics remain Capcom's
 assets. The emulator and SGDK retain their respective licenses; neither source tree is copied here.
+
+The shared five-byte actor animation format and eight NPC constructors/reward paths now have
+source witnesses in `reference/animation.json`. `tools/run_npc_oracle.py` executes the original
+constructors and animation loaders in development-only MAME; its trace is checked against the
+native C animator (235 observations). Cartridge tests cover all eight NPC variants, rewards, and
+persistence. Hint text, complete rescue timing, and arcade maximum-health progression remain gaps.

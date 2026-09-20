@@ -7,6 +7,8 @@ from pathlib import Path
 from collections import Counter
 import numpy as np
 from PIL import Image, ImageDraw
+from arcade_source import Source
+from extract_animation import extract as extract_animation
 ROOT=Path(__file__).resolve().parents[1]
 OLD=ROOT.parent/'_capcom/black tiger'
 DEFAULT=OLD/'assets/source_packages/arcade/blktiger_supplied_romset_e54221c17ce6b5ee'
@@ -110,10 +112,24 @@ def main():
                 frames.append('{{'+','.join(map(str,[*[c|((attr&0xe0)<<3) for c in codes],weapon|((wa&0xe0)<<3)]))+'},'+','.join(map(str,[flip,(wa>>3)&1,dx if dx<128 else dx-256,dy if dy<128 else dy-256]))+'}')
         poses.append('{'+','.join(frames)+'}')
     body.append('const HeroFrame hero_frames[10][16]={'+',\n'.join(poses)+'};')
+    # Proven shared NPC clips are compiled into native frame structs.
+    animation=extract_animation(Source(args.source))
+    (ROOT/'reference/animation.json').write_text(json.dumps(animation,indent=2)+'\n')
+    report['npc_source_contract']=animation['npc']
+    def native_clip(name,frames,loop=None):
+        rows=[]
+        for f in frames:
+            hold=(1 if f['vx'] is None else 0)|(2 if f['vy'] is None else 0)
+            rows.append('{'+','.join(map(str,[f['code'],f['duration'],f['palette'],int(f['flip']),hold,f['vx'] or 0,f['vy'] or 0]))+'}')
+        body.append('static const AnimFrame '+name+'_frames[]={'+','.join(rows)+'};')
+        body.append('const AnimClip '+name+'={'+name+'_frames,'+str(len(rows))+','+str(65535 if loop is None else loop)+'};')
+    for name in ('idle','released'):
+        clip=animation['npc'][name];native_clip('npc_'+name,clip['frames'],clip['loop'])
+    native_clip('npc_rescue',[{'code':f['code'],'duration':f['ticks'],'palette':4,'flip':False,'vx':0,'vy':0} for f in animation['npc']['rescue_cutscene'] if 'code' in f])
     # Constructors identified by bank/address. Keep identity only in conversion report.
     # Families: walker, flyer, turret, falling rock, hazard, chest, captive, pickup, boss.
     family={(0,0x93ed):0,(0,0x8000):0,(0,0x8389):0,(0,0x89c6):1,(0,0x9b85):1,(0,0xa35c):0,
-      (0,0xab33):6,(0,0xab4a):6,(0,0xb84f):2,(1,0xb2a9):4,(1,0xacbe):3,(1,0xacd3):3,
+      (0,0xab33):0,(0,0xab4a):0,(0,0xb84f):2,(1,0xb2a9):4,(1,0xacbe):3,(1,0xacd3):3,
       (2,0xacac):5,(2,0xb67f):2,(2,0x8000):0,(2,0x8344):0,(3,0xaab3):0,(4,0xb338):1,
       (4,0xb4af):7,(4,0xb515):7,(2,0xa6f8):2,(1,0x8a03):1,(1,0x8a5d):1,(1,0x8d33):1}
     defs={};spawns=[]
@@ -157,17 +173,19 @@ def main():
                                     candidates.append((score,-off,off))
                             if candidates:
                                 off=max(candidates)[2];code=anim[off+1]|((anim[off+2]&0xe0)<<3);attr=anim[off+2]
-                    if 0x5e32<=pc<=0x5eb0:kind=7;code=0x20+(pc-0x5e32)//18;attr=0x03
+                    npc_kind=0
+                    if 0x5e32<=pc<=0x5eb0 and (pc-0x5e32)%18==0:
+                        npc_kind=1+(pc-0x5e32)//18;kind=6;code=0x300;attr=0x64;hp=0
                     if key in ((2,0x8ef4),(3,0x8000),(3,0x991d),(3,0x9b24),(3,0xb7f3),(0,0xb1c1),(4,0x9eb1),(4,0x9f16)):kind=8;hp=48+r*8
                     if key==(0,0x93ed):code=0x280;attr=0x45;frames=3
                     if key==(0,0x8000):code=0x240;attr=0x42;frames=3
                     if key==(2,0x8000):code=0x3c0;attr=0x63;frames=3
                     size=1 if kind in (4,7) else 4
-                    defs[key]={'id':len(defs),'bank':key[0],'address':pc,'kind':kind,'code':code,'palette':attr&7,'hp':hp,'pieces':size,'frames':frames,'behavior_verified':False}
+                    defs[key]={'id':len(defs),'bank':key[0],'address':pc,'kind':kind,'code':code,'palette':attr&7,'hp':hp,'pieces':size,'frames':frames,'npc_kind':npc_kind,'behavior_verified':False}
                 rows[(x,y,k)]=(x,y,defs[key]['id'],k)
         spawns.append(sorted(rows.values()))
     ds=[]
-    for d in defs.values():ds.append('{'+','.join(map(str,[d['code'],d['kind'],d['palette'],d['hp'],d['pieces'],d['frames']]))+'}')
+    for d in defs.values():ds.append('{'+','.join(map(str,[d['code'],d['kind'],d['palette'],d['hp'],d['pieces'],d['frames'],d['npc_kind']]))+'}')
     body.append('const ActorDef actor_defs[]={'+','.join(ds)+'};');report['actor_definitions']=list(defs.values())
     collision=files['bdu-03a.8e'][0x363a:0x3e3a]
     for r in range(8):
@@ -213,7 +231,7 @@ def main():
         report['rounds'].append({'round':r+1,'width':w*16,'height':h*16,'camera':[cx,cy],'layout':layout,'patterns':len(unique),'spawns':len(spawn),'collision_codes':dict(Counter(coll))})
     body.append('const Round rounds[8]={'+',\n'.join('{bg%d,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d}'%(r,r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera']) for r,d in enumerate(report['rounds']))+'};')
     (ROOT/'res/assets.res').write_text('\n'.join(resources)+'\n')
-    (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[10][16];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
+    (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "animation.h"\nextern const AnimClip npc_idle, npc_released, npc_rescue;\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[10][16];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
     (ROOT/'src/data.c').write_text('/* Generated by tools/extract.py. */\n#include <genesis.h>\n#include "assets.h"\n'+'\n'.join(body)+'\n')
     report['outputs']={p.name:{'bytes':p.stat().st_size,'sha256':sha(p.read_bytes())} for p in OUT.glob('*.bin')}
     (ROOT/'reports/assets.json').write_text(json.dumps(report,indent=2)+'\n')

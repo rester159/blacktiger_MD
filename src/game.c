@@ -1,5 +1,6 @@
 #include "game.h"
 #include "assets.h"
+#include "npc.h"
 Game game;
 static s16 absolute(s16 x) {
     return x < 0 ? -x : x;
@@ -30,6 +31,7 @@ void game_round(u8 round) {
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
     zero(game.spawned, sizeof game.spawned);
+    npc_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
     game.boss_dead = 0;
@@ -124,6 +126,8 @@ static void spawn_actors(void) {
         if (absolute((s16)s->x - (s16)game.cam_x - 128) > 176 ||
             absolute((s16)s->y - (s16)game.cam_y - 112) > 152)
             continue;
+        if (!npc_spawn_ready(i))
+            continue;
         for (j = 0; j < MAX_ACTORS; j++)
             if (!game.actors[j].active) {
                 Actor *a = &game.actors[j];
@@ -136,6 +140,7 @@ static void spawn_actors(void) {
                 a->y = s->y * FX;
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
+                npc_spawn(j);
                 game.spawned[i] = 1;
                 break;
             }
@@ -254,17 +259,7 @@ static void actor_step(u16 i, u16 pressed) {
         return;
     }
     if (d->kind == CAPTIVE) {
-        if (close && !a->state) {
-            a->state = 1;
-            game.rescued++;
-            game.score += 500;
-            game.time += 20;
-            game.sound = SND_RESCUE;
-        }
-        if (a->state && close && (pressed & IN_UP)) {
-            game.mode = SHOP;
-            game.shop_item = 0;
-        }
+        npc_step(i, close);
         return;
     }
     if (d->kind == CHEST)
@@ -382,6 +377,10 @@ void game_tick(u16 input) {
             game.mode = PLAY;
         return;
     }
+    if (game.mode == RESCUE) {
+        npc_rescue_tick();
+        return;
+    }
     if (game.mode == SHOP) {
         static const u16 prices[] = {100, 150, 75, 50};
         if (pressed & IN_DOWN)
@@ -439,9 +438,12 @@ void game_tick(u16 input) {
     spawn_actors();
     {
         u16 i;
-        for (i = 0; i < MAX_ACTORS; i++)
+        for (i = 0; i < MAX_ACTORS; i++) {
             if (game.actors[i].active)
                 actor_step(i, pressed);
+            if (game.mode == RESCUE)
+                return;
+        }
     }
     shots_step();
     if (++game.clock == 60) {

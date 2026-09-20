@@ -1,4 +1,5 @@
 #include "assets.h"
+#include "npc.h"
 #include <genesis.h>
 #define BG_SLOTS 1056
 #define SPR_BASE 1088
@@ -222,6 +223,12 @@ static void sprites(void) {
         code = d->code + (d->frames > 1 ? ((a->timer / 8) % d->frames) * 2 : 0);
         x = PX(a->x) - game.cam_x;
         y = PX(a->y) - game.cam_y;
+        if (d->npc_kind) {
+            const AnimFrame *f = npc_frame(i);
+            if (f)
+                body(f->code, f->palette, x, y, f->flip);
+            continue;
+        }
         if (d->pieces == 4)
             body(code, d->palette, x, y, a->face > 0);
         else
@@ -288,6 +295,8 @@ static void overlay(void) {
         text(10, 14, "PRESS START");
         text(4, 18, "A ATTACK  B JUMP  C MAGIC");
         text(6, 20, "UP: CLIMB / ENTER SHOP");
+    } else if (m == RESCUE) {
+        text(9, 5, "THANK YOU!");
     } else if (m == PAUSED)
         text(13, 12, "PAUSED");
     else if (m == SHOP) {

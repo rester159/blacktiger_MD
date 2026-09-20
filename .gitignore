@@ -8,3 +8,4 @@ reports/*.wav
 reports/*.log
 reports/test-output.txt
 res/assets.h
+reports/npc-oracle/
