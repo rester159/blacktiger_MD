@@ -344,3 +344,13 @@ weapon hits and contact-triggered placement. Linked cartridge checks exercise a 
 row, natural firing, all four layers, independent shell lifetime and one-point blast damage.
 Source shared small/medium pool contention is not reproduced: native effects use dedicated
 bounded pools. Chain geometry, exact scheduling and complete natural routes remain gaps.
+
+Bank 3 AAB3 (19 seed placements) now uses a shared native falling/splitting crawler family.
+The seed waits for the original byte-wrapped proximity interval, falls under quarter-pixel
+acceleration, opens, and spawns two independent bodies. All three use the source terrain,
+facing, walking and damage transitions, including the source's unusual weak-hit retirement
+without score and ten-point strong-hit reward. Ninety-three controlled cases compare 21,840 source
+loader ticks; 18 split observations check child positions. The linked cartridge verifies a
+real placement, dormant immunity, the three-body split and both damage paths. Screen-attack
+pickups bypass weapon immunity for seeds and casters, matching source forced-death handling. Shared source
+small-pool contention, exact scheduling and full natural routes remain unverified.

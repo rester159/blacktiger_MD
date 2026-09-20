@@ -49,9 +49,12 @@ def test():
  for a in s.actors:a.active=0
  for q in s.shots:q.active=0
  for i in range(160):s.spawned[i]=2
- a=s.actors[0];a.active=1;a.definition=8;a.hp=1;a.hit=0;a.source=0;a.x=176*256;a.y=896*256;a.vx=a.vy=0;a.face=-1
+ a=s.actors[0];a.active=1;a.definition=8;a.hp=1;a.life=1;a.state=0;a.hit=0;a.source=0;a.x=176*256;a.y=912*256;a.vx=a.vy=0;a.face=-1
+ roots=json.loads((ROOT/'reference/crawler.json').read_text())['roots']
+ crawler_state=bytes(8)+roots[10].to_bytes(2,'big')+bytes((0,0,8,0))
+ r.write('crawlers',0,crawler_state)
  kills=s.kills;put(r,s);r.run(90,1<<1);s=state(r);check('projectile defeats enemy',s.kills>kills)
- s.p.invincible=0;s.p.armor=2;a=s.actors[0];a.active=1;a.hp=12;a.hit=0;a.x=s.p.x;a.y=s.p.y;a.vy=0;put(r,s);r.run(8);s=state(r);check('armor absorbs contact',s.p.armor==1 and s.p.hp==1)
+ s.p.invincible=0;s.p.armor=2;a=s.actors[0];a.active=1;a.hp=12;a.state=0;a.life=2;a.hit=0;a.x=s.p.x;a.y=s.p.y;a.vy=0;r.write('crawlers',0,crawler_state);put(r,s);r.run(8);s=state(r);check('armor absorbs contact',s.p.armor==1 and s.p.hp==1)
   # Shop purchase uses the same public input path after state injection.
  s.mode=3;s.coins=300;s.shop_item=0;s.previous_input=0;s.p.weapon=1;put(r,s);r.run(2);r.run(3,1<<1);s=state(r);check('shop weapon purchase',s.coins==100 and s.p.weapon==2);r.run(2);r.run(3,1<<0);r.run(2);check('shop exits',state(r).mode==1)
  # Death must take a life and restore the round through the production entry path.

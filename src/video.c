@@ -342,6 +342,7 @@ static void sprites(void) {
         if (pair_kinds[a->def]) {
             const AnimFrame *f=pair_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;
         }
+        if (crawler_kinds[a->def]) {const AnimFrame *f=crawler_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;}
         if (statue_kinds[a->def]) {const AnimFrame *f=statue_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
         if (boulder_kinds[a->def]) {
             const AnimFrame *f=boulder_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;

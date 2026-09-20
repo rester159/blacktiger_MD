@@ -24,6 +24,10 @@ u8 statue_hit(u16 slot,u8 damage) {
  return 1;
 }
 
+void statue_screen_attack(u16 slot) {
+ Actor *a=&game.actors[slot];StatueState *s=&statues[slot];
+ if(!a->state){a->life=1;s->pending=1;s->vulnerable=0;a->state=1;}
+}
 void statue_step(u16 slot) {
  Actor *a=&game.actors[slot];StatueState *s=&statues[slot];u16 tries;
  if(s->pending){s->pending=0;select_segment(s,statue_roots[9]);}
