@@ -184,3 +184,13 @@ rendered in the emulator. Additional upper components are still absent: these bo
 complete, and arena setup, shared collision scheduling and the full victory presentation remain
 unverified. Old generic boss images are excluded from pinned-renderer equivalence fixtures;
 source animation frames have their own direct comparisons.
+
+The stacked bosses now instantiate all two/four components. Their upper sections reuse the main
+movement kernel with separate source animation graphs and random-choice weights, four damage
+layers (initial 6/4 HP, then 2 HP), one-point contact damage, and independent 15-point defeat.
+Main defeat forces surviving upper sections into death animations without extra rewards or
+changing their main row's persistence. Boss entry clears ordinary actor/projectile pools; spawning
+remains suspended during the encounter. Upper motion/damage/retirement matches 4,840 source
+ticks; cartridge checks cover both compositions, independent upper defeat, and forced cleanup.
+Arena gates/camera setup, the remaining boss families, and full victory presentation still require
+work. These controlled checks do not establish natural round completion.

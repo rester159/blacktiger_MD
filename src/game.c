@@ -140,6 +140,7 @@ static void actor_hit(Actor *a, u8 damage) {
 static void spawn_actors(void) {
     const Round *r = &rounds[game.round];
     u16 i, j;
+    if(boss_present())return;
     for (i = game.frame & 3; i < r->spawn_count; i += 4) {
         const Spawn *s = &r->spawns[i];
         s16 sx=s->x,sy=s->y;
@@ -153,6 +154,10 @@ static void spawn_actors(void) {
             continue;
         if (!npc_spawn_ready(i))
             continue;
+        if(layered_boss_kinds[s->def]) {
+            zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
+            missile_reset();loot_reset();skeleton_reset();
+        }
         for (j = 0; j < MAX_ACTORS; j++)
             if (!game.actors[j].active) {
                 Actor *a = &game.actors[j];
@@ -177,6 +182,7 @@ static void spawn_actors(void) {
                 if (actor_defs[s->def].kind == HIDDEN_WALL)
                     hidden_spawn(j);
                 game.spawned[i] = 1;
+                if(layered_boss_kinds[s->def])return;
                 break;
             }
     }
@@ -291,15 +297,15 @@ static void actor_step(u16 i, u16 pressed) {
     if (a->hit)
         --a->hit;
     a->timer++;
+    if (layered_boss_kinds[a->def]) {
+        boss_step(i);
+        if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt(boss_contact_damage(i));
+        return;
+    }
     if (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
-        return;
-    }
-    if (layered_boss_kinds[a->def]) {
-        boss_step(i);
-        if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt(actor_damage[a->def]);
         return;
     }
     if (zombie_kinds[a->def]) {

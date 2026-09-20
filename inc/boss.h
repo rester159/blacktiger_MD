@@ -6,6 +6,8 @@ u8 boss_hit(u16 slot,u8 damage);
 void boss_step(u16 slot);
 u8 boss_vulnerable(u16 slot);
 u8 boss_locked(void);
+u8 boss_present(void);
+u8 boss_contact_damage(u16 slot);
 const AnimFrame *boss_frame(u16 slot);
 void boss_spawn(u16 slot);
 u8 boss_break_layer(Actor *actor);

@@ -30,7 +30,9 @@ test: all
 	.venv/bin/python tests/test_missile_runtime.py
 	.venv/bin/python tests/test_boss_layers.py
 	.venv/bin/python tests/test_boss_motion.py
+	.venv/bin/python tests/test_boss_motion.py --upper
 	.venv/bin/python tests/test_boss_layers_runtime.py
+	.venv/bin/python tests/test_boss_upper_runtime.py
 	.venv/bin/python tests/test_wisp.py
 	.venv/bin/python tests/test_wisp_runtime.py
 	.venv/bin/python tests/test_emerge.py
