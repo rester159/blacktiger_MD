@@ -334,6 +334,9 @@ static void sprites(void) {
         code = d->code + (d->frames > 1 ? ((a->timer / 8) % d->frames) * 2 : 0);
         x = PX(a->x) - game.cam_x;
         y = PX(a->y) - game.cam_y;
+        if (boulder_kinds[a->def]) {
+            const AnimFrame *f=boulder_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;
+        }
         if (layered_boss_kinds[a->def] || stone_kinds[a->def]) {
             const AnimFrame *f=boss_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;
         }

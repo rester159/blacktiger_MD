@@ -201,3 +201,10 @@ two-HP damage layers, worn form, 15-point defeat, random coin drop, and persiste
 are native. The common movement suite now compares 7,260 source ticks including the ordinary
 variant. A real round-four row passes cartridge checks for immunity, damage, drops and retirement.
 This ordinary actor does not clear pools, suspend spawns, lock the player, or clear the round.
+
+The falling boulder (bank 4 B338) now has a native proximity/fall/bounce/break routine, replacing
+generic flying pursuit. The source's low-byte proximity/direction comparisons, fractional gravity,
+three impacts, 50-to-2 contact damage change, 255 HP and no-score/no-drop destruction match
+2,800 original-ROM ticks. Triggering the fall consumes the placement; destroying it beforehand
+allows respawning. A real round-two placement passes linked-cartridge fall/bounce, dynamic contact
+damage, nonfatal/fatal hit and persistence checks. Original sound effects remain placeholders.

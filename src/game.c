@@ -99,6 +99,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (boulder_hit(a-game.actors,damage)) return;
     if (boss_hit(a-game.actors,damage)) return;
     if (zombie_hit(a-game.actors,damage)) return;
     if (wisp_hit(a - game.actors))
@@ -171,6 +172,7 @@ static void spawn_actors(void) {
                 a->face = PX(game.p.x) < s->x ? -1 : 1;
                 a->timer = i * 7;
                 boss_spawn(j);
+                if(boulder_kinds[a->def])boulder_spawn(j);
                 npc_spawn(j);
                 if (zombie_kinds[a->def]) zombie_spawn(j);
                 if (wisp_kinds[a->def]) wisp_spawn(j);
@@ -282,7 +284,7 @@ static void screen_attack(void) {
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
-        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def])) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
         actor_hit(a, 200);
@@ -306,6 +308,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (boulder_kinds[a->def]) {
+        boulder_step(i);
+        if (a->active && boulder_damage(i) && (game.frame&1) && actor_contact(i)) player_hurt(boulder_damage(i));
         return;
     }
     if (stone_kinds[a->def]) {
