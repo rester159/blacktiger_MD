@@ -28,10 +28,10 @@ def extract(s):
    if event in ('disable_contact','enable_contact','walk_step'):nxt=intern(clip['event']['record']+3)
   else:assert clip['terminal']=='retire'
   segments[indices[pc]]={'source':pc,'clip':clip,'event':event,'next':nxt}
- return {'source_set':s.lock['aggregate_sha256'],'status':'source contract; native variant implementation pending',
+ return {'source_set':s.lock['aggregate_sha256'],'status':'typed source contract for native variant',
          'constructor':0x8389,'roots':roots,'segments':segments,
          'actor':{'template':actor.hex(),'health':actor[14],'damage':actor[15],'width':actor[16],'height':actor[17],'cycles':actor[32],'category':actor[11]},
          'projectile':{'template':weapon.hex(),'health':weapon[14],'damage':weapon[15],'width':weapon[16],'height':weapon[17],'contact':weapon[13]&127},
-         'spawn_x':list(s.read(0,0x8410,8)),'witnesses':list(s.witnesses.values())}
+         'score':int(''.join(map(str,s.read(None,0x15bc+actor[23]-7,8)))),'spawn_x':list(s.read(0,0x8410,8)),'witnesses':list(s.witnesses.values())}
 if __name__=='__main__':
  result=extract(Source());(ROOT/'reference/thrower.json').write_text(json.dumps(result,indent=2)+'\n');print(len(result['segments']),'typed segments')

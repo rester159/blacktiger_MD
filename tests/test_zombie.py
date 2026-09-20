@@ -12,11 +12,11 @@ with tempfile.TemporaryDirectory() as folder:
  stubs.append('''void setup(int root,int px,int y,int obstacle) {
  game=(Game){0};wall=obstacle;game.p.x=px*256;game.p.y=16*256;
  game.actors[0]=(Actor){.active=1,.x=128*256,.y=y*256};
- for(int i=0;i<66;i++)if(zombie_kinds[i])game.actors[0].def=i;
+ for(int i=0;i<66;i++)if(zombie_kinds[i]==1)game.actors[0].def=i;
  zombie_spawn(0);zombies[0].segment=zombie_roots[root];}
  void spawn_setup(int cap,int sample) {
  game=(Game){0};wall=0;zombie_reset();loot_random=sample*512;
- for(int i=0;i<cap;i++){game.actors[i].active=1;for(int d=0;d<66;d++)if(zombie_kinds[d])game.actors[i].def=d;}
+ for(int i=0;i<cap;i++){game.actors[i].active=1;for(int d=0;d<66;d++)if(zombie_kinds[d]==1)game.actors[i].def=d;}
  }
  void spawn_attempt(int *out) {s16 x=0,y=0;out[0]=zombie_prepare(0,&x,&y);out[1]=x;out[2]=y;out[3]=spawn_delay[0];}
  void tick(int damage,int *out) {
@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as folder:
  for(int i=0;i<14;i++)out[i]=v[i];}
 ''')
  (tmp/'stub.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/data.c'),str(tmp/'stub.c'),'-o',str(tmp/'z.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/missile.c'),str(ROOT/'src/data.c'),str(tmp/'stub.c'),'-o',str(tmp/'z.dylib')],check=True)
  lib=C.CDLL(str(tmp/'z.dylib'));out=(C.c_int*14)();current=-1;count=0
  for line in (ROOT/'reference/zombie_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE' or line.startswith('SPAWN|'):break

@@ -24,7 +24,9 @@ def validate_sat(r):
   if not link:break
  assert max(counts)<=16 and max(pixels)<=256,(max(counts),max(pixels))
 meta=json.loads((ROOT/'reports/assets.json').read_text())
-chosen=[d['id'] for d in meta['actor_definitions'] if d['pieces']==4 and not d['npc_kind'] and d['kind']!=9 and (d['bank'],d['address']) not in ((0,0x93ed),(0,0x9b85),(0,0xa35c),(2,0xb67f))]
+# The pinned cartridge's thrower used unrelated fallback graphics; its new source
+# frames are checked by test_thrower, not compared to those incorrect old pixels.
+chosen=[d['id'] for d in meta['actor_definitions'] if d['pieces']==4 and not d['npc_kind'] and d['kind']!=9 and (d['bank'],d['address']) not in ((0,0x8389),(0,0x93ed),(0,0x9b85),(0,0xa35c),(2,0xb67f))]
 baseline='--baseline-rom' in sys.argv
 baseline_dir=Path(os.environ.get('BLACKTIGER_RENDER_BASELINE',str(ROOT/'dist')))
 if baseline:assert hashlib.sha256((baseline_dir/'blacktiger_astra.bin').read_bytes()).hexdigest()=='308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','Baseline mode requires the d0b1baf cartridge and its matching symbols.'
@@ -48,7 +50,7 @@ for level in range(8):
    q=s.shots[i];q.active=1;q.enemy=i==2;q.kind=i&1;q.x=(s.cam_x+48+i*64)*256;q.y=(s.cam_y+150)*256
   for i in range(12):
    d=meta['actor_definitions'][s.actors[i].definition]
-   if (d['bank']==2 and d['address'] in (0x8000,0x81a2,0xa6f8)) or (d['bank']==0 and d['address']==0x8000):s.actors[i].face=-1
+   if (d['bank']==2 and d['address'] in (0x8000,0x81a2,0xa6f8)) or (d['bank']==0 and d['address'] in (0x8000,0x8389)):s.actors[i].face=-1
   put(r,s)
   # Ported families have private animation state. Initialize their source first
   # frame for this paused renderer fixture, without advancing their gameplay state.
@@ -60,7 +62,7 @@ for level in range(8):
   if 'zombies' in r.symbols:
    for i in range(12):
     d=meta['actor_definitions'][s.actors[i].definition]
-    if d['bank']==0 and d['address']==0x8000:r.write('zombies',i*16,b'\0\0\0\x18'+bytes(12))
+    if d['bank']==0 and d['address'] in (0x8000,0x8389):r.write('zombies',i*16,b'\0\0\0\x18'+bytes(12))
   if 'wisps' in r.symbols:
    for i in range(12):
     d=meta['actor_definitions'][s.actors[i].definition]

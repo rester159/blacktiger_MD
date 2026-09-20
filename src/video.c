@@ -4,6 +4,7 @@
 #include "emerge.h"
 #include "wisp.h"
 #include "zombie.h"
+#include "missile.h"
 #include "npc.h"
 #include "world.h"
 #include <genesis.h>
@@ -381,6 +382,7 @@ static void sprites(void) {
         if (f)
             piece(f->code, f->palette, wx - game.cam_x, wy - game.cam_y, f->flip);
     }
+    for(i=0;i<MAX_MISSILES;i++){const AnimFrame *f=missile_frame(i);if(f)piece(f->code,f->palette,missiles[i].x-game.cam_x,missiles[i].y-game.cam_y,f->flip);}
     for (i = 0; i < MAX_LOOT; i++) {
         const AnimFrame *f = loot_frame(i);
         if (f)

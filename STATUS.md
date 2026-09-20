@@ -145,11 +145,15 @@ the existing shop permits the fifth tier. Original-ROM attack-entry observations
 input/firing checks cover every tier, with an additional fifth-tier purchase check. Weapon reach,
 attack poses and timing, projectile geometry and source shop pricing remain provisional.
 
-Development evidence for the next recurring walker (bank 0 constructor 8389) is now captured in
-`reference/thrower.json` and `reference/thrower_oracle*`. Its 53 typed animation segments and 2,540
-original-ROM ticks cover emergence, random throw selection, walking, turns, falling, post-throw
-jumps, nonfatal/fatal damage, and independently damageable projectiles. `tools/audit_thrower.py`
-verifies source bytes, trace provenance and observed branch outcomes. This is preparation for the
-native variant extension, not native equivalence or a newly ported cartridge family. Next work:
-share the existing recurring-walker constructor and movement logic through variant profiles, add
-the throw-once/jump callbacks, and give projectiles independent lifetime and hit processing.
+The throwing recurring walker (bank 0 constructor 8389) now extends the shared native walker
+routine with four health, one throw, repeated post-throw jumps and two death/disappearance
+presentations. Its projectiles use an independent native animation pool, survive parent death,
+can be destroyed by player shots, and respond to screen-clear pickups. Native comparisons cover
+4,460 original body/projectile ticks including complete natural lifetimes and 1,920 constructor
+attempts; cartridge checks cover real spawning, nonfatal/fatal hits, score, throwing, projectile
+independence, destruction and retirement. The original walker regressions also pass.
+The native missile pool has twelve dedicated entries rather than sharing the arcade small-actor
+pool. Player-shot collision dimensions, global scanner cadence and viewport gating remain gaps.
+The old cartridge used unrelated fallback graphics for this variant, so it is excluded from
+old-pixel renderer equivalence fixtures; its actual animation frames are compared directly to
+source traces and were visually checked in the emulator.

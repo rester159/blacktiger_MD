@@ -21,6 +21,7 @@ for i,c in enumerate(ref['cases']):
  data=rows[i];assert [t for t,a,p in data]==list(range(1,c['ticks']+1))
  first_throw=next((t for t,a,p in data if a[33]),None)
  if c['name'].startswith('emerge_throw'):assert first_throw==145 and any(a[7]>=128 for t,a,p in data)
+ if c['name'].startswith(('emerge_throw','walk_')):assert data[-1][1][0]==0,'Natural lifetime must retire'
  if c['name'].startswith('walk_'):assert first_throw is None and not any(p for t,a,p in data)
  if c['hit_tick']:
   assert data[c['hit_tick']-1][1][14]==3,'Nonfatal hit must leave three health'
@@ -30,5 +31,5 @@ for i,c in enumerate(ref['cases']):
  for t,a,projectiles in data:
   for w in projectiles:assert tuple(w[15:18])==(1,8,4)
  summary.append({'case':c['name'],'ticks':len(data),'first_throw_tick':first_throw,'projectile_frames':projectile_frames,'upward_motion_ticks':sum(a[7]>=128 for t,a,p in data)})
-report={'source_evidence_verified':True,'native_implementation_complete':False,'source_ticks':sum(len(v) for v in rows.values()),'typed_segments':len(contract['segments']),'cases':summary,'next_implementation':'Extend the recurring walker with a variant profile, throw-once state, jump callbacks, and independently retiring/damageable projectiles. Preserve projectile lifetime after parent death and source family-specific spawn positions/cap.'}
+report={'source_evidence_verified':True,'scope':'Source evidence audit only; native comparisons are in thrower-tests.json.','source_ticks':sum(len(v) for v in rows.values()),'typed_segments':len(contract['segments']),'cases':summary,'remaining_fidelity':'Global spawn scheduling, shared arcade object-pool contention, and complete player projectile collision.'}
 (ROOT/'reports/thrower-source-audit.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

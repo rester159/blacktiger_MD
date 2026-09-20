@@ -8,6 +8,7 @@
 #include "emerge.h"
 #include "wisp.h"
 #include "zombie.h"
+#include "missile.h"
 #include "npc.h"
 #include "skeleton.h"
 #include "world.h"
@@ -49,6 +50,7 @@ void game_round(u8 round) {
     skeleton_reset();
     emerge_reset();
     zombie_reset();
+    missile_reset();
     loot_reset();
     game.mode = PLAY;
     game.mode_timer = 0;
@@ -144,7 +146,7 @@ static void spawn_actors(void) {
         if (absolute((s16)s->x - (s16)game.cam_x - 128) > 176 ||
             absolute((s16)s->y - (s16)game.cam_y - 112) > 152)
             continue;
-        if (zombie_kinds[s->def] && !zombie_prepare(i,&sx,&sy)) continue;
+        if (zombie_kinds[s->def] && !zombie_prepare_variant(i,zombie_kinds[s->def]-1,&sx,&sy)) continue;
         if (!emerge_spawn_ready(i))
             continue;
         if (!npc_spawn_ready(i))
@@ -267,6 +269,7 @@ static void player_step(u16 in, u16 pressed) {
 }
 static void screen_attack(void) {
     u16 j;
+    for(j=0;j<MAX_MISSILES;j++)missile_hit(j,1);
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
@@ -440,7 +443,8 @@ static void shots_step(void) {
                 player_hurt(s->damage);
                 s->active = 0;
             }
-        } else
+        } else if(missile_hit_at(x,y,s->damage))s->active=0;
+        else
             for (j = 0; j < MAX_ACTORS; j++) {
                 Actor *a = &game.actors[j];
                 if (a->active && absolute(x - PX(a->x) - 16) < 20 &&
@@ -537,6 +541,13 @@ void game_tick(u16 input) {
     if (game.mode != PLAY)
         return;
     loot_tick();
+    missile_tick();
+    {
+        u16 i;for(i=0;i<MAX_MISSILES;i++) {
+            Missile *m=&missiles[i];
+            if(m->active && !m->dying && player_contact(m->x,m->y,m->width,m->height))player_hurt(m->damage);
+        }
+    }
     skeleton_weapons_tick();
     {
         u16 i;
