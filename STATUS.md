@@ -173,3 +173,14 @@ random drop. Twenty original hit-callback observations and cartridge cases for b
 cover nonfatal hits, exact/overkill breaks and the no-premature-clear invariant. This is a damage
 progression correction, not a complete boss port: two/four-part construction, movement, vulnerable
 windows, phase graphics and source death/clear timing remain unimplemented or provisional.
+
+The main controller for both stacked bosses now uses source-compiled animation and native C
+movement instead of generic chasing/shooting. The proximity vulnerability gate, weighted random
+idle/toward/away/high jumps, fractional acceleration, ground bounce, wall/ceiling response,
+second damage form, death animation and clear callback match 3,840 original-ROM body ticks.
+Cartridge checks now require the final death animation to finish before CLEAR, and verify that
+a normal projectile cannot damage the player during that sequence. Both body phases were
+rendered in the emulator. Additional upper components are still absent: these bosses are not
+complete, and arena setup, shared collision scheduling and the full victory presentation remain
+unverified. Old generic boss images are excluded from pinned-renderer equivalence fixtures;
+source animation frames have their own direct comparisons.

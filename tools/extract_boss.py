@@ -6,6 +6,7 @@ def extract(s):
  s.expect(4,0xa0c6,'dd360080dd360e10dd362101')
  s.expect(4,0xa0e1,'1e601605cdd003')
  s.expect(4,0xa15c,'cd385ac9')
+ s.expect(None,0x5a38,'af3215e93218e93e01322fe0')
  a=s.read(4,0xa22b,96);b=s.read(4,0xa28b,192)
  return {'source_set':s.lock['aggregate_sha256'],'constructors':[0x9eb1,0x9f16],
          'initial_health':[a[14],b[14]],'layers':[a[21],b[21]],'reset_health':s.read(4,0xa0cd,1)[0],

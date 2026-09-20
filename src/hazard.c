@@ -20,7 +20,7 @@ u8 actor_contact(u16 slot) {
 }
 void hazard_step(u16 slot) {
     Actor *a = &game.actors[slot];
-    if (game.mode == PLAY && player_contact(PX(a->x), PX(a->y), hazard_width, hazard_height)) {
+    if (game.mode == PLAY && !game.boss_dead && player_contact(PX(a->x), PX(a->y), hazard_width, hazard_height)) {
         /* Source contact 39 enters death directly, bypassing armor and hurt invulnerability. */
         game.p.hp = 0;
         game.p.climb = 0;
