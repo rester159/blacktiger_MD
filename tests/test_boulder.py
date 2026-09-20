@@ -17,16 +17,18 @@ with tempfile.TemporaryDirectory() as folder:
  void tick(int damage,int *out) {
  if(damage)boulder_hit(0,damage);if(game.actors[0].active)boulder_step(0);
  Actor *a=&game.actors[0];BoulderState *s=&boulders[0];const AnimFrame *f=boulder_frame(0);
- int v[]={a->active,PX(a->x),PX(a->y),s->animation.vx,s->animation.vy,s->fraction,s->animation.remaining,s->bounced,s->damage,a->state,f?f->code:-1,f?f->palette:-1,f?f->flip:-1,a->hp,game.spawned[0]};
- for(int i=0;i<15;i++)out[i]=v[i];}
+ int v[]={a->active,PX(a->x),PX(a->y),s->animation.vx,s->animation.vy,s->fraction,s->animation.remaining,s->bounced,s->damage,a->state,f?f->code:-1,f?f->palette:-1,f?f->flip:-1,a->hp,game.spawned[0],game.score};
+ for(int i=0;i<16;i++)out[i]=v[i];}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/data.c'),str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
- lib=C.CDLL(str(tmp/'b.dylib'));out=(C.c_int*15)();current=-1;count=0;retired=[]
+ lib=C.CDLL(str(tmp/'b.dylib'));out=(C.c_int*16)();current=-1;count=0;retired=[]
  for line in (ROOT/'reference/boulder_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break
-  _,case,tick,a,display,clear,persist=line.split('|');case=int(case);tick=int(tick);a=bytes.fromhex(a);display=bytes.fromhex(display);c=ref['cases'][case]
+  _,case,tick,a,display,clear,persist,task=line.split('|');case=int(case);tick=int(tick);a=bytes.fromhex(a);display=bytes.fromhex(display);c=ref['cases'][case]
   if current!=case:lib.setup(c['root_index'],c['px'],c['y']);current=case
   lib.tick(c['damage'] if c['hit_tick']==tick else 0,out)
+  assert task in ('0000','0558'),task
+  assert out[15]==(300 if task=='0558' else 0),(c['name'],tick,'score',out[15],task)
   assert out[0]==bool(a[0]),(c['name'],tick,'active',out[0],a[0])
   assert out[14]==(2 if int(persist,16)&2 else int(persist,16)),(c['name'],tick,'persist',out[14],persist)
   if a[0]:
@@ -36,5 +38,5 @@ with tempfile.TemporaryDirectory() as folder:
    assert list(out)[:14]==expected,(c['name'],tick,list(out),expected)
   elif not any(v['case']==case for v in retired):retired.append(dict(case=case,tick=tick))
   count+=1
- report={'passed':True,'source_body_ticks':count,'retire_events':retired,'scope':'Proximity edges, fall acceleration, three impacts, byte-based first-bounce direction, damage change, nonfatal/fatal weapons, animation and persistence.'}
+ report={'passed':True,'source_body_ticks':count,'retire_events':retired,'scope':'Proximity edges, fall acceleration, three impacts, byte-based first-bounce direction, damage change, nonfatal/fatal weapons, animation, persistence and the shared hit-handler score task.'}
  (ROOT/'reports/boulder-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

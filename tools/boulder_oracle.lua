@@ -38,7 +38,7 @@ for id,c in ipairs(data.cases) do
   if c.hit_tick==tick and p:read_u8(0xf940)==0x80 then p:write_u8(0xf40d,c.damage);cpu.state.IX.value=0xf940;call(0x321a) end
   if c.hit2_tick==tick and p:read_u8(0xf940)==0x80 then p:write_u8(0xf40d,c.damage2);cpu.state.IX.value=0xf940;call(0x321a) end
   if not finished and p:read_u8(0xf940)~=0 then cpu.state.IX.value=0xf940;finished=not call(0x32c7) end
-  emit(string.format('TICK|%d|%d|%s|%s|%s|%s',id-1,tick,hex(0xf940,48),hex(0xfeac,16),finished and '1' or '0',hex(0xec58,1)))
+  emit(string.format('TICK|%d|%d|%s|%s|%s|%s|%s',id-1,tick,hex(0xf940,48),hex(0xfeac,16),finished and '1' or '0',hex(0xec58,1),hex(0xe100,2)))
  end
 end
 emit('COMPLETE');out:close();m:exit()

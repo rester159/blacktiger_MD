@@ -11,5 +11,7 @@ def extract(s):
   variants.append({'constructor':pc,'contact':t[13],'half_width':t[16],'half_height':t[17],'clip':clip})
  s.expect(None,0x4d8c,'1130002ab1f3197dd6603802246f22b1f3')
  s.expect(4,0xb5ba,'dd7e0df680ee80a7280afe2a2806fe342802')
+ s.expect(4,0xb601,'dd361501dd360e01')
+ s.expect(None,0x3594,'dd360040dd360a01')
  s.expect(4,0xb5ed,'dd7e0df680ee80a7280afe232806fe262802')
  return {'source_set':s.lock['aggregate_sha256'],'variants':variants,'time_seconds':30,'screen_contacts':{'32':[0,42,52],'48':[0,35,38]},'witnesses':list(s.witnesses.values())}

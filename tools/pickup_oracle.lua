@@ -38,6 +38,23 @@ for _,size in ipairs({32,48,96}) do for contact=0,63 do
  local at=size==32 and 0xf540 or size==48 and 0xf940 or 0xfc10
  p:write_u8(at,0x80);p:write_u8(at+13,contact);p:write_u8(at+14,100);p:write_u8(at+21,100)
  call(0xb57b)
- emit(string.format('TARGET|%d|%d|%d',size,contact,p:read_u8(at)))
+ emit(string.format('TARGET|%d|%d|%d|%d|%d',size,contact,p:read_u8(at),p:read_u8(at+14),p:read_u8(at+21)))
 end end
+for variant,template in ipairs({0xa22b,0xa28b}) do
+ clean(0,0);ports:write_u8(1,4);p:write_u8(0xe0e3,4);p:write_u8(0xe022,4)
+ local count=variant==1 and 2 or 4
+ for i=0,count*48-1 do p:write_u8(0xf940+i,p:read_u8(template+i)) end
+ for i=0,count-1 do
+  local at=0xf940+i*48;le(at+24,0xec58+i);be(at+26,0xfeac+i*16)
+ end
+ cpu.state.IX.value=0xf520;p:write_u8(0xf520,0x80);le(0xf538,0xec68)
+ call(0xb57b)
+ for phase=0,1 do
+  for i=0,count-1 do
+   local at=0xf940+i*48
+   if phase==1 then cpu.state.IX.value=at;call(0x32c7) end
+   emit(string.format('COMPOUND|%d|%d|%d|%s',variant,phase,i,hex(at,48)))
+  end
+ end
+end
 emit('COMPLETE');out:close();m:exit()

@@ -204,7 +204,18 @@ This ordinary actor does not clear pools, suspend spawns, lock the player, or cl
 
 The falling boulder (bank 4 B338) now has a native proximity/fall/bounce/break routine, replacing
 generic flying pursuit. The source's low-byte proximity/direction comparisons, fractional gravity,
-three impacts, 50-to-2 contact damage change, 255 HP and no-score/no-drop destruction match
+three impacts, 50-to-2 contact damage change, 255 HP and no-drop destruction match
 2,800 original-ROM ticks. Triggering the fall consumes the placement; destroying it beforehand
 allows respawning. A real round-two placement passes linked-cartridge fall/bounce, dynamic contact
 damage, nonfatal/fatal hit and persistence checks. Original sound effects remain placeholders.
+
+The POW pickup now collapses remaining damage layers, matching the source's forced health/layer
+writes. Simultaneously hit upper boss parts retain their pending defeat callbacks rather than
+being replaced by unrewarded main-body cleanup. Source checks cover 192 target-filter/field-write
+cases and both stacked compositions before/after their callbacks. Linked-cartridge collection
+cases verify 15 points for an ordinary stone, 515/545 for the two stacked bosses, all layers
+consumed, per-part kill counts, persistence and preservation of the death presentation.
+
+A shared hit-handler audit corrected boulder scoring: lethal weapon/POW damage queues 300
+points immediately, while natural breakage awards zero. The boulder oracle now captures the
+original score task as well as body state; source and cartridge checks cover both outcomes.

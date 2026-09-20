@@ -42,6 +42,7 @@ test: all
 	.venv/bin/python tests/test_emerge_runtime.py
 	.venv/bin/python tests/test_pickup.py
 	.venv/bin/python tests/test_pickup_runtime.py
+	.venv/bin/python tests/test_screen_attack_runtime.py
 	.venv/bin/python tests/test_hazard.py
 	.venv/bin/python tests/test_hazard_runtime.py
 	.venv/bin/python tests/test_sentry.py

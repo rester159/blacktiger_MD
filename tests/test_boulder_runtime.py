@@ -38,6 +38,6 @@ for _ in range(120):
  r.run(1);s=state(r)
  if not s.actors[slot].active:break
 else:raise AssertionError('Destroyed boulder did not retire')
-assert s.spawned[row]==0 and s.score==score and not drops(r)
-r.close();report={'passed':True,'source_round':level+1,'source_row':row,'contact_damage_phases':sorted(phases),'weapon_health':255,'activation_persistence':2,'untriggered_retirement_persistence':0,'no_score_or_drop':True,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest()}
+assert s.spawned[row]==0 and s.score==score+300 and not drops(r)
+r.close();report={'passed':True,'source_round':level+1,'source_row':row,'contact_damage_phases':sorted(phases),'weapon_health':255,'activation_persistence':2,'untriggered_retirement_persistence':0,'natural_score':0,'weapon_score':300,'no_drop':True,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest()}
 (ROOT/'reports/boulder-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

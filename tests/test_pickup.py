@@ -34,9 +34,15 @@ with tempfile.TemporaryDirectory() as temp:
    assert bool(effect)==(kind==2 and tick==202)
    items+=1
   elif v[0]=='TARGET':
-   size,contact,active=map(int,v[1:]);expected=contact in data['screen_contacts'].get(str(size),[])
-   assert (active==64)==expected,(size,contact,active);targets+=1
+   size,contact,active,hp,layers=map(int,v[1:]);expected=contact in data['screen_contacts'].get(str(size),[])
+   assert (active==64)==expected,(size,contact,active)
+   assert layers==(1 if expected else 100)
+   assert hp==(1 if expected and size==48 else 100)
+   targets+=1
+  elif v[0]=='COMPOUND':
+   variant,phase,part=map(int,v[1:4]);a=bytes.fromhex(v[4])
+   assert a[0]==64 and a[14]==1 and a[21]==(1 if phase==0 else 0),(variant,phase,part,a.hex())
  compiled=(C.c_uint8*len(meta['actor_definitions'])).in_dll(lib,'screen_attack_targets');contracts=load(Source())
  for d in meta['actor_definitions']:assert bool(compiled[d['id']])==bool(contracts[(d['bank'],d['address'])]['screen_attack_target'])
-report={'passed':True,'item_ticks':items,'source_target_cases':targets,'compiled_actor_filters':len(compiled),'scope':'Both placed items, time extension, no coin/score reward, retirement/persistence, and source small/medium/large target filters. Unported enemy death effects and shared-pool contention remain gaps.'}
+report={'passed':True,'item_ticks':items,'source_target_cases':targets,'compiled_actor_filters':len(compiled),'scope':'Both placed items, time extension, no coin/score reward, retirement/persistence, and source small/medium/large target filters. Forced health/layer collapse and pending stacked-part death callbacks are also checked; unported enemy death effects and shared-pool contention remain gaps.'}
 (ROOT/'reports/pickup-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

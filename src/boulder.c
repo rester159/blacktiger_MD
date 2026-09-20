@@ -15,7 +15,7 @@ u8 boulder_hit(u16 slot,u8 damage) {
  Actor *a=&game.actors[slot];if(!boulder_kinds[a->def])return 0;
  if(!a->state) {
   if(a->hp>damage)a->hp-=damage;
-  else {a->state=1;boulders[slot].pending=1;}
+  else {a->state=1;boulders[slot].pending=1;game.score+=boulder_weapon_score;}
  }
  return 1;
 }

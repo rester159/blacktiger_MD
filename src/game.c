@@ -287,6 +287,7 @@ static void screen_attack(void) {
         if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
+        a->life = 1;
         actor_hit(a, 200);
     }
 }
