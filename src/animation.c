@@ -1,4 +1,8 @@
 #include "animation.h"
+u8 small_actor_axis_active(s16 coordinate,u8 vertical) {
+    u16 value=(u16)coordinate;
+    return !(value>>8) || (u8)(value-48)>=(vertical?160:161);
+}
 void animation_reset(AnimState *s) {
     s->frame = s->remaining = 0;
     s->vx = s->vy = 0;

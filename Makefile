@@ -32,6 +32,8 @@ test: all
 	.venv/bin/python tests/test_spitter_runtime.py
 	.venv/bin/python tests/test_missile_contact.py
 	.venv/bin/python tests/test_missile_runtime.py
+	.venv/bin/python tests/test_projectile_edges.py
+	.venv/bin/python tests/test_projectile_edge_runtime.py
 	.venv/bin/python tests/test_boss_layers.py
 	.venv/bin/python tests/test_boss_motion.py
 	.venv/bin/python tests/test_boss_motion.py --upper

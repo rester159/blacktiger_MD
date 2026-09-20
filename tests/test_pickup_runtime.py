@@ -14,7 +14,7 @@ for pc in (0xb4af,0xb515):
  start=s.frame;put(r,s)
  if pc==0xb515:
   raw=bytearray(26);struct.pack_into('>H',raw,2,100)
-  struct.pack_into('>IIhh',raw,8,r.symbols['thrower_18'],r.symbols['thrower_21'],a.x//256+96,a.y//256-64)
+  struct.pack_into('>IIhh',raw,8,r.symbols['thrower_18'],r.symbols['thrower_21'],a.x//256,a.y//256-32)
   raw[20:25]=bytes([1,0,1,8,4]);r.write('missiles',0,raw)
  for _ in range(100):
   r.run(1);s=state(r)

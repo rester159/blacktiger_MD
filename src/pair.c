@@ -40,9 +40,9 @@ void pair_step(u16 slot) {
   const PairSegment *seg=&pair_segments[s->segment];u16 target=seg->next;
   if(animation_tick(&s->animation,seg->clip)) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;
-   {u16 x=PX(a->x)-game.cam_x;if((x>>8) && (u8)(x-48)<161){a->active=0;return;}}
+   if(!small_actor_axis_active(PX(a->x)-game.cam_x,0)){a->active=0;return;}
    a->y+=a->vy;
-   {u16 y=PX(a->y)-game.cam_y;if((y>>8) && (u8)(y-48)<160)a->active=0;}
+   if(!small_actor_axis_active(PX(a->y)-game.cam_y,1))a->active=0;
    return;
   }
   switch(seg->event) {

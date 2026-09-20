@@ -248,3 +248,9 @@ weak hit and breaks on the next; POW bypasses that durability. Source comparison
 emergence, nonfatal/fatal body hits, firing, two-hit projectile destruction and independence
 from parent death. Shared pool contention, source spawn scanning cadence and full routes remain
 unverified.
+
+Small projectiles now retire at the source's screen-relative boundaries, releasing their slots
+before their animation would otherwise end. Paired flyers reuse the same axis check. The
+horizontal/vertical one-pixel difference and x-before-y retirement order match 279 source
+loader cases and 837 translated world-coordinate checks. Eight cartridge cases verify removal
+outside all four sides and retention inside them; existing thrower/spitter/pair traces still pass.

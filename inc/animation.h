@@ -18,6 +18,7 @@ typedef struct {
     s8 vx, vy;
     u8 finished;
 } AnimState;
+u8 small_actor_axis_active(s16 coordinate,u8 vertical);
 void animation_reset(AnimState *state);
 const AnimFrame *animation_tick(AnimState *state, const AnimClip *clip);
 const AnimFrame *animation_current(const AnimState *state, const AnimClip *clip);
