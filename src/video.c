@@ -434,25 +434,27 @@ static void sprites(void) {
         if (f)
             piece(f->code, f->palette, wx - game.cam_x, wy - game.cam_y, f->flip);
     }
-    for(i=0;i<24;i++){const AnimFrame *f=edge_shot_frame(i);if(f)piece(f->code,f->palette,edge_shots[i].x-game.cam_x,edge_shots[i].y-game.cam_y,f->flip);}
-    for(i=0;i<24;i++){const AnimFrame *f=reinforcement_shot_frame(i);if(f)piece(f->code,f->palette,reinforcement_shots[i].x-game.cam_x,reinforcement_shots[i].y-game.cam_y,f->flip);}
-    for(i=0;i<MAX_ACTORS;i++){const AnimFrame *f=flailer_weapon_frame(i);if(f)piece(f->code,f->palette,flailer_weapons[i].x-game.cam_x,flailer_weapons[i].y-game.cam_y,f->flip);}
-    for(i=0;i<24;i++){const AnimFrame *f=dragon_shot_frame(i);DragonShot *p=&dragon_shots[i];if(f){if(p->kind==2)body(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);else piece(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);}}
-    for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){const AnimFrame *f=waveboss_seed_frame(i);if(f)piece(f->code,f->palette,waveboss_seeds[i].x-game.cam_x,waveboss_seeds[i].y-game.cam_y,f->flip);}
-    for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
+    for(i=0;i<24;i++){const AnimFrame *f;if(!edge_shots[i].active)continue;f=edge_shot_frame(i);if(f)piece(f->code,f->palette,edge_shots[i].x-game.cam_x,edge_shots[i].y-game.cam_y,f->flip);}
+    for(i=0;i<24;i++){const AnimFrame *f;if(!reinforcement_shots[i].active)continue;f=reinforcement_shot_frame(i);if(f)piece(f->code,f->palette,reinforcement_shots[i].x-game.cam_x,reinforcement_shots[i].y-game.cam_y,f->flip);}
+    for(i=0;i<MAX_ACTORS;i++){const AnimFrame *f;if(!flailer_weapons[i].active)continue;f=flailer_weapon_frame(i);if(f)piece(f->code,f->palette,flailer_weapons[i].x-game.cam_x,flailer_weapons[i].y-game.cam_y,f->flip);}
+    for(i=0;i<24;i++){const AnimFrame *f;if(!dragon_shots[i].active)continue;f=dragon_shot_frame(i);DragonShot *p=&dragon_shots[i];if(f){if(p->kind==2)body(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);else piece(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);}}
+    for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){const AnimFrame *f;if(!waveboss_seeds[i].active)continue;f=waveboss_seed_frame(i);if(f)piece(f->code,f->palette,waveboss_seeds[i].x-game.cam_x,waveboss_seeds[i].y-game.cam_y,f->flip);}
+    for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     for(i=0;i<MAX_STATUE_SHELLS;i++) {
-        const AnimFrame *f=hunter_shell_frame(&hunter_shells[i]);
+        const AnimFrame *f=hunter_shells[i].active?hunter_shell_frame(&hunter_shells[i]):0;
         if(f)piece(f->code,f->palette,hunter_shells[i].x-game.cam_x,hunter_shells[i].y-game.cam_y,f->flip);
-        f=hunter_shell_frame(&hunter_blasts[i]);
+        f=hunter_blasts[i].active?hunter_shell_frame(&hunter_blasts[i]):0;
         if(f)body(f->code,f->palette,hunter_blasts[i].x-game.cam_x,hunter_blasts[i].y-game.cam_y,f->flip);
-        f=statue_shell_frame(&statue_shells[i]);
+        f=statue_shells[i].active?statue_shell_frame(&statue_shells[i]):0;
         if(f)piece(f->code,f->palette,statue_shells[i].x-game.cam_x,statue_shells[i].y-game.cam_y,f->flip);
-        f=statue_shell_frame(&statue_blasts[i]);
+        f=statue_blasts[i].active?statue_shell_frame(&statue_blasts[i]):0;
         if(f)body(f->code,f->palette,statue_blasts[i].x-game.cam_x,statue_blasts[i].y-game.cam_y,f->flip);
     }
-    for(i=0;i<MAX_MISSILES;i++){const AnimFrame *f=missile_frame(i);if(f)piece(f->code,f->palette,missiles[i].x-game.cam_x,missiles[i].y-game.cam_y,f->flip);}
+    for(i=0;i<MAX_MISSILES;i++){const AnimFrame *f;if(!missiles[i].active)continue;f=missile_frame(i);if(f)piece(f->code,f->palette,missiles[i].x-game.cam_x,missiles[i].y-game.cam_y,f->flip);}
     for (i = 0; i < MAX_LOOT; i++) {
-        const AnimFrame *f = loot_frame(i);
+        const AnimFrame *f;
+        if(!loot[i].active)continue;
+        f=loot_frame(i);
         if (f)
             piece(f->code, f->palette, loot[i].x - game.cam_x, loot[i].y - game.cam_y, f->flip);
     }

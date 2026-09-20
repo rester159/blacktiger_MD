@@ -649,3 +649,20 @@ and both cartridge hashes are in reports/performance-comparison.json. Faster
 simulation changes distance traveled during this video-frame window, so this is
 an approximate route sample, not a matched-state microbenchmark. Full-rate play,
 worst-case loads, PAL and hardware performance remain unfinished.
+
+## Contact/render overhead and bounded VBlank scheduling
+
+Native actor families no longer compute an unused pre-movement contact box before
+their own post-movement contact check. Rendering skips inactive projectile slots
+before calling frame getters. Existing pre-movement contact semantics for sentries,
+skeletons and pickups are retained.
+
+On NTSC, a transfer queue of at most 1,024 bytes may use the current VBlank only
+when it is still within raw scanlines 224–230 and has not already been presented.
+Other cases retain SGDK's strict next-VBlank-start path; PAL is unchanged. Counters
+record opportunistic flushes and any finish outside blanking. Eight 600-frame route
+samples verify no such overruns and no double-step on any sampled video frame;
+600 paused frames produce exactly 600 updates. The 180-frame profile now reaches
+116–174 updates across the sampled entries. Full-rate routes and real-hardware
+validation remain incomplete. Detailed evidence is in frame-scheduler-tests.json
+and performance-profile.json; this is not a full-game timing guarantee.

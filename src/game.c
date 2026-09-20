@@ -344,8 +344,8 @@ static void actor_step(u16 i, u16 pressed) {
     Actor *a = &game.actors[i];
     const ActorDef *d = &actor_defs[a->def];
     Player *p = &game.p;
-    s16 x = PX(a->x), y = PX(a->y), dx = PX(p->x) - x, dy = PX(p->y) - y;
-    u8 close = actor_contact(i);
+    s16 x = PX(a->x), y = PX(a->y), dx, dy;
+    u8 close;
     if (a->hit)
         --a->hit;
     a->timer++;
@@ -443,6 +443,9 @@ static void actor_step(u16 i, u16 pressed) {
         hazard_step(i);
         return;
     }
+    /* These families use pre-movement contact. Earlier native families perform
+       their own contact checks after movement and need no duplicate query. */
+    close=actor_contact(i);dx=PX(p->x)-x;dy=PX(p->y)-y;
     if (sentry_kinds[a->def]) {
         sentry_step(i);
         if (a->active && !a->state && close) player_hurt_from(actor_damage[a->def],PX(a->x));

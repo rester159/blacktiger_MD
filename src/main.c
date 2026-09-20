@@ -1,8 +1,9 @@
 #include "game.h"
 #include <genesis.h>
-volatile u16 frame_cost[3];
+volatile u16 frame_cost[3], early_vblank_flushes, vblank_flush_overruns;
 int main(bool hardReset) {
     u16 pal_phase = 0;
+    u32 last_presented=0xffffffff;
     (void)hardReset;
     JOY_init();
     video_init();
@@ -40,7 +41,16 @@ int main(bool hardReset) {
         t0 = getSubTick();
         audio_tick();
         frame_cost[2] = getSubTick() - t0;
-        SYS_doVBlankProcess();
+        /* A small queue finishing just after VBlank starts can still be
+           presented this frame. Never process twice in the same VBlank. */
+        if(!SYS_isPAL() && vtimer!=last_presented &&
+           GET_VDP_STATUS(VDP_VBLANK_FLAG) && GET_VCOUNTER<=230 &&
+           GET_VCOUNTER>=224 && DMA_getQueueTransferSize()<=1024) {
+            SYS_doVBlankProcessEx(ON_VBLANK);
+            early_vblank_flushes++;
+            if(!GET_VDP_STATUS(VDP_VBLANK_FLAG))vblank_flush_overruns++;
+        } else SYS_doVBlankProcess();
+        last_presented=vtimer;
     }
     return 0;
 }
