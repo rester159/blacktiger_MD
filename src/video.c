@@ -342,6 +342,7 @@ static void sprites(void) {
         if (pair_kinds[a->def]) {
             const AnimFrame *f=pair_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;
         }
+        if (hunter_kinds[a->def]) {const AnimFrame *f=hunter_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
         if (crawler_kinds[a->def]) {const AnimFrame *f=crawler_frame(i);if(f)piece(f->code,f->palette,x,y,f->flip);continue;}
         if (statue_kinds[a->def]) {const AnimFrame *f=statue_frame(i);if(f)body(f->code,f->palette,x,y,f->flip);continue;}
         if (boulder_kinds[a->def]) {
@@ -401,7 +402,11 @@ static void sprites(void) {
     }
     for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     for(i=0;i<MAX_STATUE_SHELLS;i++) {
-        const AnimFrame *f=statue_shell_frame(&statue_shells[i]);
+        const AnimFrame *f=hunter_shell_frame(&hunter_shells[i]);
+        if(f)piece(f->code,f->palette,hunter_shells[i].x-game.cam_x,hunter_shells[i].y-game.cam_y,f->flip);
+        f=hunter_shell_frame(&hunter_blasts[i]);
+        if(f)body(f->code,f->palette,hunter_blasts[i].x-game.cam_x,hunter_blasts[i].y-game.cam_y,f->flip);
+        f=statue_shell_frame(&statue_shells[i]);
         if(f)piece(f->code,f->palette,statue_shells[i].x-game.cam_x,statue_shells[i].y-game.cam_y,f->flip);
         f=statue_shell_frame(&statue_blasts[i]);
         if(f)body(f->code,f->palette,statue_blasts[i].x-game.cam_x,statue_blasts[i].y-game.cam_y,f->flip);

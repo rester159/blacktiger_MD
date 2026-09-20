@@ -9,9 +9,11 @@ with tempfile.TemporaryDirectory() as folder:
  stubs=['#include "assets.h"','Game game;','#include "'+str(ROOT/'src/hunter.c')+'"']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
- stubs.append('''void setup(int px,int sample,int boss) {
+ stubs.append('''u8 terrain(s16 x,s16 y){return 0;}
+ void game_boss_clear(void){game.actors[0].active=0;}
+ void setup(int px,int sample,int boss) {
  game=(Game){0};game.p.x=px*256;game.p.y=120*256;game.mode=PLAY;game.spawned[0]=1;
- loot_random=sample*256;game.actors[0]=(Actor){.active=1,.x=128*256,.y=96*256,.def='''+str(definition)+'''};
+ statue_shell_reset();loot_random=sample*256;game.actors[0]=(Actor){.active=1,.x=128*256,.y=96*256,.def='''+str(definition)+'''};
  hunter_spawn(0,boss);}
  void tick(int damage,int *out) {
  Actor *a=&game.actors[0];HunterState *s=&hunters[0];
@@ -20,7 +22,7 @@ with tempfile.TemporaryDirectory() as folder:
  int v[]={a->active,PX(a->x),PX(a->y),a->hp,a->life,s->mode,s->direction,s->animation.remaining,f?f->code:-1,f?f->palette:-1,f?f->flip:-1,game.score,game.spawned[0]};
  for(int i=0;i<13;i++)out[i]=v[i];}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
- subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','loot.c','progress.c','sentry.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'s.dylib')],check=True)
+ subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','loot.c','progress.c','sentry.c','statue_shell.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'s.dylib')],check=True)
  lib=C.CDLL(str(tmp/'s.dylib'));out=(C.c_int*13)();current=-1;count=0
  for line in (ROOT/'reference/hunter_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break
@@ -35,5 +37,5 @@ with tempfile.TemporaryDirectory() as folder:
   assert out[11]==(500 if task=='0560' else 0),(case,tick,'score',task)
   if clear=='0':assert out[12]==int(persist,16),(case,tick,'persistence')
   count+=1
- report={'passed':True,'source_body_ticks':count,'cases':len(ref['cases']),'scope':'Shared hunter/boss body movement, weighted aiming, immunity, damage layers and rewards. Projectile and boss presentation hooks are not yet connected to gameplay.'}
+ report={'passed':True,'source_body_ticks':count,'cases':len(ref['cases']),'scope':'Shared hunter/boss body movement, weighted aiming, immunity, damage layers and rewards. Integrated normal and boss body; original boss health display and complete round-clear presentation remain separate.'}
  (ROOT/'reports/hunter-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

@@ -102,4 +102,5 @@ void video_init(void);
 void video_round(void);
 void video_frame(void);
 void audio_tick(void);
+void game_boss_clear(void);
 #endif

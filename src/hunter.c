@@ -3,6 +3,7 @@
 #include "progress.h"
 #include "loot.h"
 #include "sentry.h"
+#include "statue_shell.h"
 typedef struct {AnimState animation;u16 segment;u8 mode,pending,boss,direction;} HunterState;
 static HunterState hunters[MAX_ACTORS];
 static void select_segment(HunterState *s,u16 segment) {
@@ -32,7 +33,17 @@ static u16 choose(Actor *a,HunterState *s) {
  if(!choice)return hunter_roots[28+angle];
  angle=(angle+3-choice)&15;return hunter_roots[12+angle];
 }
-/* Body kernel; projectile and boss presentation hooks must precede gameplay dispatch. */
+u8 hunter_contact(u16 slot) {return !(hunters[slot].mode&2) && game.actors[slot].state!=2;}
+u8 hunter_present(void) {
+ u16 i;for(i=0;i<MAX_ACTORS;i++)if(game.actors[i].active && hunter_kinds[game.actors[i].def]==2)return 1;return 0;
+}
+u8 hunter_locked(void) {
+ u16 i;for(i=0;i<MAX_ACTORS;i++)if(game.actors[i].active && hunter_kinds[game.actors[i].def]==2 && game.actors[i].state==2)return 1;return 0;
+}
+void hunter_screen_attack(u16 slot) {
+ Actor *a=&game.actors[slot];HunterState *s=&hunters[slot];
+ if(!a->state){a->life=1;s->pending=1;s->mode|=3;a->state=1;}
+}
 void hunter_step(u16 slot) {
  Actor *a=&game.actors[slot];HunterState *s=&hunters[slot];u16 tries;
  if(s->pending){s->pending=0;select_segment(s,hunter_roots[2+s->boss]);}
@@ -52,9 +63,11 @@ void hunter_step(u16 slot) {
     target=hunter_roots[4];game.sound=SND_HIT;
    }else {
     a->state=2;progress_score(hunter_score);game.spawned[a->source]|=2;game.kills++;game.sound=SND_KILL;
+    if(s->boss)game.boss_dead=1;
     if(!s->boss)loot_spawn(drop_categories[a->def],loot_random>>8,PX(a->x),PX(a->y));
    }break;
-  case 6:game.sound=SND_ATTACK;break;
+  case 6:hunter_shell_spawn(PX(a->x)+8,PX(a->y),s->direction>>1,s->boss);break;
+  case 9:game_boss_clear();return;
   default:a->active=0;game.spawned[a->source]&=254;return;
   }
   select_segment(s,target);

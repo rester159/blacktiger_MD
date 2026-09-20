@@ -21,7 +21,7 @@ for constructor,parts,reward in ((0x9a4c,1,15),(0x9eb1,2,515),(0x9f16,4,545)):
  assert s.boss_dead==(constructor!=0x9a4c)
  r.run(8);s=state(r);assert s.score==score+reward and s.kills==kills+parts
  checks.append(dict(constructor=constructor,parts=parts,reward=reward,all_layers_collapsed=True))
-for bank,constructor,reward in ((3,0xaab3,10),(0,0xb84f,100)):
+for bank,constructor,reward in ((3,0xaab3,10),(0,0xb84f,100),(1,0x9f83,500),(1,0x9fc4,500)):
  slot,row,level=fixture(r,0,bank,constructor,approach=128,vertical=0)
  s=state(r);score=s.score;kills=s.kills
  if constructor==0xb84f:
@@ -40,5 +40,5 @@ for bank,constructor,reward in ((3,0xaab3,10),(0,0xb84f,100)):
   shell=r.read('statue_shells',18)
   assert shell[14] and shell[16]==8 and not shell[17],'Special-contact shell must survive POW'
  checks.append(dict(bank=bank,constructor=constructor,reward=reward,forced_death=True))
-r.close();report={'passed':True,'cases':checks,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),'scope':'Actual stone, dormant seed and caster spawn rows and a collected POW pickup. Checks forced layer collapse, simultaneous component rewards, persistence and delayed clear.'}
+r.close();report={'passed':True,'cases':checks,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),'scope':'Actual stone, dormant seed, caster and hunter spawn rows and a collected POW pickup. Checks forced layer collapse, simultaneous component rewards, persistence and delayed clear.'}
 (ROOT/'reports/screen-attack-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

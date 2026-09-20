@@ -17,4 +17,12 @@ u8 statue_shell_hit_at(s16 x,s16 y,u8 kind);
 u8 statue_shell_player_contact(u16 slot,u8 blast);
 void statue_shell_contact(u16 slot);
 const AnimFrame *statue_shell_frame(const StatueShell *s);
+extern StatueShell hunter_shells[MAX_STATUE_SHELLS],hunter_blasts[MAX_STATUE_SHELLS];
+u8 hunter_shell_spawn(s16 x,s16 y,u8 direction,u8 boss);
+void hunter_shell_tick(void);
+u8 hunter_shell_hit(u16 slot);
+u8 hunter_shell_hit_at(s16 x,s16 y,u8 kind);
+u8 hunter_shell_player_contact(u16 slot,u8 blast);
+void hunter_shell_contact(u16 slot);
+const AnimFrame *hunter_shell_frame(const StatueShell *s);
 #endif

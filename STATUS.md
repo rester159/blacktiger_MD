@@ -359,7 +359,11 @@ The bank 1 flying hunter (9F83) and boss variant (9FC4) now have a native shared
 kernel. It matches 57,600 original-loader ticks across 192 cases: all weighted steering
 choices, 16-direction aiming, screen-edge recovery, attack/immunity phases, three damage
 layers (20 HP normal, 46 HP boss), recoil and the 500-point final award. Eighty-one compiled
-animation segments include the pending projectile/explosion phases. **Not yet connected to
-gameplay**: projectile terrain/contact phases and original boss presentation hooks remain.
+animation segments now drive both gameplay variants and their projectiles. The shared native
+shell/explosion engine matches another 8,000 source ticks across all directions, terrain
+impacts, expiry, normal weapon hits, boss-shell immunity and contact bursts. Cartridge checks
+cover real normal/boss spawns, natural firing, all three layers, the 500-point reward and
+death-animation completion before clearing actors/effects and entering round clear. Original
+boss health display, exact global pool contention and full round-clear presentation remain.
 The source screen-attack filter also establishes that special-contact caster shells (36)
 and hunter shells (40) are excluded; caster shells now survive POW, with a linked-cartridge regression check. These body checks do not establish full-family fidelity.

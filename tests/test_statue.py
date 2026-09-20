@@ -9,7 +9,8 @@ with tempfile.TemporaryDirectory() as folder:
  stubs=['#include "assets.h"','Game game;','#include "'+str(ROOT/'src/statue.c')+'"']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
- stubs.append('''void setup(int px,int sample) {
+ stubs.append('''u8 terrain(s16 x,s16 y){return 0;}
+ void setup(int px,int sample) {
  game=(Game){0};game.p.x=px*256;game.p.y=120*256;game.mode=PLAY;game.spawned[0]=1;
  statue_shell_reset();loot_random=sample*256;game.actors[0]=(Actor){.active=1,.x=128*256,.y=96*256,.def='''+str(definition)+'''};
  statue_spawn(0);}

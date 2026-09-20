@@ -13,6 +13,7 @@ typedef struct {
     const AnimFrame *frames;
     u16 count, loop;
 } AnimClip;
+typedef struct {const AnimClip *clip;u16 next;u8 event;} AnimSegment;
 typedef struct {
     u16 frame, remaining;
     s8 vx, vy;

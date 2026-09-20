@@ -95,6 +95,11 @@ void game_new(void) {
     game.p.magic = 2;
     game_round(0);
 }
+void game_boss_clear(void) {
+ zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
+ missile_reset();statue_shell_reset();loot_reset();skeleton_reset();container_actor_restart();
+ game.boss_dead=1;game.mode=CLEAR;game.mode_timer=180;game.sound=SND_CLEAR;
+}
 static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
     u16 i;
     for (i = 0; i < MAX_SHOTS; i++)
@@ -116,6 +121,7 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CHEST || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
+    if (hunter_kinds[a->def]){hunter_hit(a-game.actors,damage);return;}
     if (crawler_kinds[a->def]){crawler_hit(a-game.actors,damage);return;}
     if (statue_kinds[a->def]){statue_hit(a-game.actors,damage);return;}
     if (pair_hit(a-game.actors,damage)) return;
@@ -159,7 +165,7 @@ static void actor_hit(Actor *a, u8 damage) {
 static void spawn_actors(void) {
     const Round *r = &rounds[game.round];
     u16 i, j;
-    if(boss_present())return;
+    if(boss_present() || hunter_present())return;
     for (i = game.frame & 3; i < r->spawn_count; i += 4) {
         const Spawn *s = &r->spawns[i];
         s16 sx=s->x,sy=s->y;
@@ -174,9 +180,9 @@ static void spawn_actors(void) {
         if (pair_kinds[s->def] && !pair_ready(sx,sy))continue;
         if (!npc_spawn_ready(i))
             continue;
-        if(layered_boss_kinds[s->def]) {
+        if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2) {
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
-            missile_reset();statue_shell_reset();loot_reset();skeleton_reset();
+            missile_reset();statue_shell_reset();loot_reset();skeleton_reset();container_actor_restart();
         }
         for (j = 0; j < MAX_ACTORS; j++)
             if (!game.actors[j].active) {
@@ -192,6 +198,7 @@ static void spawn_actors(void) {
                 a->timer = i * 7;
                 if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);
+                if(hunter_kinds[a->def])hunter_spawn(j,hunter_kinds[a->def]-1);
                 if(crawler_kinds[a->def])crawler_spawn(j,0);
                 if(statue_kinds[a->def])statue_spawn(j);
                 if(pair_kinds[a->def])pair_spawn(j);
@@ -207,7 +214,7 @@ static void spawn_actors(void) {
                 if (actor_defs[s->def].kind == HIDDEN_WALL)
                     hidden_spawn(j);
                 game.spawned[i] = pair_kinds[s->def]?2:1;
-                if(layered_boss_kinds[s->def])return;
+                if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2)return;
                 break;
             }
     }
@@ -307,11 +314,12 @@ static void screen_attack(void) {
     for (j = 0; j < MAX_ACTORS; j++) {
         Actor *a = &game.actors[j];
         if (!a->active || !screen_attack_targets[a->def]) continue;
-        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def] || pair_kinds[a->def] || statue_kinds[a->def] || crawler_kinds[a->def])) continue;
+        if (a->state && (skeleton_kinds[a->def] != 255 || sentry_kinds[a->def] || emerge_kinds[a->def] || wisp_kinds[a->def] || zombie_kinds[a->def] || layered_boss_kinds[a->def] || stone_kinds[a->def] || boulder_kinds[a->def] || pair_kinds[a->def] || statue_kinds[a->def] || crawler_kinds[a->def] || hunter_kinds[a->def])) continue;
         a->hit = 0;
         a->hp = 1;
         a->life = 1;
-        if(crawler_kinds[a->def])crawler_screen_attack(j);
+        if(hunter_kinds[a->def])hunter_screen_attack(j);
+        else if(crawler_kinds[a->def])crawler_screen_attack(j);
         else if(statue_kinds[a->def])statue_screen_attack(j);
         else actor_hit(a, 200);
     }
@@ -339,6 +347,11 @@ static void actor_step(u16 i, u16 pressed) {
         if (game.spawned[a->source] != 2)
             game.spawned[a->source] = 0;
         a->active = 0;
+        return;
+    }
+    if (hunter_kinds[a->def]) {
+        hunter_step(i);
+        if(a->active && hunter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt(actor_damage[a->def]);
         return;
     }
     if (crawler_kinds[a->def]) {
@@ -511,7 +524,7 @@ static void shots_step(void) {
                 player_hurt(s->damage);
                 s->active = 0;
             }
-        } else if(statue_shell_hit_at(x,y,s->kind) || missile_hit_at(x,y,s->damage,s->kind))s->active=0;
+        } else if(hunter_shell_hit_at(x,y,s->kind) || statue_shell_hit_at(x,y,s->kind) || missile_hit_at(x,y,s->damage,s->kind))s->active=0;
         else
             for (j = 0; j < MAX_ACTORS; j++) {
                 Actor *a = &game.actors[j];
@@ -520,6 +533,7 @@ static void shots_step(void) {
                     u8 k = actor_defs[a->def].kind;
                     if (k == CHEST || k == CAPTIVE || k == PICKUP || k == HAZARD || k == HIDDEN_WALL)
                         continue;
+                    if (hunter_kinds[a->def] && !hunter_vulnerable(j))continue;
                     if (crawler_kinds[a->def] && !crawler_vulnerable(j))continue;
                     if (statue_kinds[a->def] && !statue_vulnerable(j))continue;
                     if (pair_kinds[a->def] && !pair_vulnerable(j))continue;
@@ -606,14 +620,16 @@ void game_tick(u16 input) {
         return;
     }
     world_tick();
-    if (boss_locked()) input=pressed=0;
+    if (boss_locked() || hunter_locked()) input=pressed=0;
     player_step(input, pressed);
     if (game.mode != PLAY)
         return;
     loot_tick();
     missile_tick();
-    statue_shell_tick();
+    statue_shell_tick();hunter_shell_tick();
     {u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++) {
+        if(!game.p.invincible && hunter_shell_player_contact(i,0))hunter_shell_contact(i);
+        if(hunter_shell_player_contact(i,1))player_hurt(1);
         if(!game.p.invincible && statue_shell_player_contact(i,0))statue_shell_contact(i);
         if(statue_shell_player_contact(i,1))player_hurt(1);
     }}

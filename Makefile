@@ -54,6 +54,8 @@ test: all
 	.venv/bin/python tests/test_progress_runtime.py
 	.venv/bin/python tests/test_restart_runtime.py
 	.venv/bin/python tests/test_hunter.py
+	.venv/bin/python tests/test_hunter_shell.py
+	.venv/bin/python tests/test_hunter_runtime.py
 	.venv/bin/python tests/test_crawler.py
 	.venv/bin/python tests/test_crawler_runtime.py
 	.venv/bin/python tests/test_statue.py
