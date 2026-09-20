@@ -43,3 +43,42 @@ Commands:
 .venv/bin/python tools/find_routes.py --round 2 --round 3 --round 4 --round 5 --limit 1000000 --ticks 4 --quantum 4
 .venv/bin/python tools/replay_route.py
 ```
+
+## Omitted-wall diagnostic and predictive input search
+
+`find_routes.py --open-walls` runs a separately labelled diagnostic with the
+source hidden-wall collision patches already open. It records both original and
+modified collision hashes and writes to `reports/routes-open-walls/`. The
+400,000-state scans still did not find routes for rounds 2–5. This does not
+establish an impassable level: the search is approximate and still excludes
+other interactions. Production collision was not changed.
+
+`tools/play_route.py` explores short controller sequences in copies of the
+actual emulator process, using `fork` (Unix/macOS). Four candidate processes run
+at a time. The parent emulator never rewinds or receives RAM writes. Forecasts
+use the terrain plan after the initial candidate input interval; scoring balances
+route progress, health/armor and inflicted damage. Only chosen controller inputs
+are appended to the final tape. Jump and attack presses are pulsed; lack of route
+progress stops the controller after 32 decisions.
+
+Standard libretro savestate exploration was rejected because its chosen input
+tape did not reproduce the explored terminal state from a fresh boot. No
+conclusion about game correctness relies on that attempt. Process-copy runs
+are checked by replaying their tape from the title and comparing persistent 68000 RAM through the SGDK heap boundary, including
+game/private subsystem state, and CPU PC/SR/SP. Reserved stack scratch bytes
+are excluded: 22 such bytes differed between two independent fresh-boot runs
+of the same tape while persistent RAM and the native game state matched.
+This check does not claim bit-identical stack contents. The verified replay
+hashes and outcome are saved even if verification fails; failure exits nonzero.
+
+The bounded controller currently stalls in round one near a ladder/platform
+transition. It is not a competent full-game player, and its failures are not
+proof of a port defect or an unreachable route. `--resume` reconstructs a
+previous verified tape from boot before searching more inputs; `--fight-boss`
+allows exploration to continue after a boss spawns. Neither flag grants health,
+inventory, coordinates, progress or other game-state changes.
+
+```sh
+.venv/bin/python tools/find_routes.py --round 2 --round 3 --round 4 --round 5 --open-walls --limit 400000
+.venv/bin/python tools/play_route.py --steps 200 --horizon 64 --damage-weight 2
+```

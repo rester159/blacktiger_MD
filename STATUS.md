@@ -814,3 +814,13 @@ Removed the prototype's C-button magic charges. The original player interface
 has two action buttons (attack and jump); source POW pickups retain their
 separate screen effect. An actual-cartridge comparison checks that repeated C
 presses leave movement, attacks, daggers and game state unchanged.
+
+## Route diagnostics follow-through
+
+Pre-opening the known hidden walls in the host route model did not resolve its
+round 2–5 searches; production collision remains unchanged. Added bounded
+controller exploration in isolated emulator-process copies, followed by a
+fresh-title input-only replay comparing persistent RAM and CPU PC/SR/SP. Standard savestate
+exploration failed replay verification and was rejected. The verified controller
+currently stalls mid-round one; this is a controller limitation, not a completed
+playthrough or evidence justifying a terrain change. See `reports/route-play.json`.

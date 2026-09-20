@@ -25,6 +25,17 @@ def build(folder,meta):
 
 def search(lib,source,meta,level,args):
  State=C.c_ubyte*lib.state_size();r=meta['rounds'][level];cells=(ROOT/f'res/generated/collision{level}.bin').read_bytes()
+ original_hash=hashlib.sha256(cells).hexdigest()
+ if args.open_walls:
+  cells=bytearray(cells)
+  patches=re.search(r'const WorldPatch patches'+str(level)+r'\[\]=\{(.*?)\};',source,re.S)[1]
+  value=int(re.search(r'patches'+str(level)+r',open_tile'+str(level)+r',\d+,(\d+)',source)[1])
+  opened=set()
+  for cell,_ in re.findall(r'\{(\d+),(\d+)\}',patches):
+   cell=int(cell);opened.update((cell,cell+r['width']//16));cells[cell]=cells[cell+r['width']//16]=value
+  bonus=re.search(r'const BonusPatch bonus_patches'+str(level)+r'\[\]=\{(.*?)\};',source,re.S)[1]
+  assert opened.isdisjoint(int(cell) for cell in re.findall(r'\{(\d+),\{\{',bonus)), 'Overlapping patches require post-bonus wall application'
+  cells=bytes(cells)
  lib.setup(cells,r['width'],r['height'],level)
  rows=[list(map(int,x.split(','))) for x in re.findall(r'\{([^{}]+)\}',re.search(r'const Spawn spawn'+str(level)+r'\[\]=\{(.*?)\};',source,re.S)[1])]
  defs=meta['actor_definitions'];target=next(row for row in rows if (defs[row[2]]['bank'],defs[row[2]]['address'])==BOSSES[level]);tx,ty=target[:2]
@@ -55,17 +66,17 @@ def search(lib,source,meta,level,args):
   lib.setup(cells,r['width'],r['height'],level);p=State.from_buffer_copy(initial)
   for step in path:
    assert lib.advance(p,step['input'],step['ticks']) and bytes(p).hex()==step['state']
- report=dict(settings=dict(limit=args.limit,ticks=args.ticks,quantum=args.quantum),round=level+1,found=bool(path),nodes=len(nodes),limit_reached=len(nodes)>=args.limit,seconds=round(time.monotonic()-begin,3),target=target,initial=bytes(initial).hex(),ticks=len(path)*args.ticks,collision_sha256=hashlib.sha256(cells).hexdigest(),path=path)
+ report=dict(settings=dict(limit=args.limit,ticks=args.ticks,quantum=args.quantum,open_walls=args.open_walls),round=level+1,found=bool(path),nodes=len(nodes),limit_reached=len(nodes)>=args.limit,seconds=round(time.monotonic()-begin,3),target=target,initial=bytes(initial).hex(),ticks=len(path)*args.ticks,collision_sha256=original_hash,simulated_collision_sha256=hashlib.sha256(cells).hexdigest(),path=path)
  return report
 
 def main():
- parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--round',type=int,choices=range(1,9),action='append');parser.add_argument('--limit',type=int,default=180000);parser.add_argument('--ticks',type=int,default=8);parser.add_argument('--quantum',type=int,default=8);args=parser.parse_args()
+ parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--open-walls',action='store_true',help='Diagnostic only: pre-open hidden walls; does not prove they can be opened in gameplay.');parser.add_argument('--round',type=int,choices=range(1,9),action='append');parser.add_argument('--limit',type=int,default=180000);parser.add_argument('--ticks',type=int,default=8);parser.add_argument('--quantum',type=int,default=8);args=parser.parse_args()
  assert args.limit>0 and args.ticks>0 and args.quantum>0
- meta=json.loads((ROOT/'reports/assets.json').read_text());out=ROOT/'reports/routes';out.mkdir(exist_ok=True);reports=[]
+ meta=json.loads((ROOT/'reports/assets.json').read_text());out=ROOT/('reports/routes-open-walls' if args.open_walls else 'reports/routes');out.mkdir(exist_ok=True);reports=[]
  with tempfile.TemporaryDirectory() as folder:
   lib,source=build(Path(folder),meta)
   for level in [r-1 for r in args.round or range(1,9)]:
    report=search(lib,source,meta,level,args);(out/f'round{level+1}.json').write_text(json.dumps(report,indent=2)+'\n');summary={k:v for k,v in report.items() if k not in ('path','initial')};reports.append(summary);print(json.dumps(summary),flush=True)
- report=dict(scope='Bounded approximate terrain search using native movement, trigger contacts, alternate-area destinations and animated collision. Includes endpoint replay. Excludes enemies, combat, destructible walls, shops, death and boss victory; not proof of natural completion. A failed search does not prove a map unreachable.',settings=vars(args),sources={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in ('src/player_motion.c','src/bonus.c','src/hazard.c','src/data.c','tools/route_model.c')},rounds=reports)
- (ROOT/'reports/route-search.json').write_text(json.dumps(report,indent=2)+'\n')
+ report=dict(scope='Bounded approximate terrain search using native movement, trigger contacts, alternate-area destinations and animated collision. Includes endpoint replay. Excludes enemies, combat-driven wall opening, shops, death and boss victory; --open-walls assumes hidden walls are already open for diagnosis; not proof of natural completion. A failed search does not prove a map unreachable.',settings=vars(args),sources={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in ('src/player_motion.c','src/bonus.c','src/hazard.c','src/data.c','tools/route_model.c')},rounds=reports)
+ (ROOT/('reports/route-search-open-walls.json' if args.open_walls else 'reports/route-search.json')).write_text(json.dumps(report,indent=2)+'\n')
 if __name__=='__main__':main()
