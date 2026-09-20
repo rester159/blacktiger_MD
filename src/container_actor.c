@@ -42,6 +42,7 @@ static void attack_spawn(s16 x,u8 left,const u16 *roots,u8 special) {
  }
 }
 void container_ground_spawn(s16 x,u8 left){attack_spawn(x+8,left,container_trap_roots,0);}
+void dragon_wave_spawn(s16 x,u8 left,u8 profile){attack_spawn(x+(left?-32:48),left,dragon_wave_roots[profile],profile);}
 void container_wave_spawn(s16 x,u8 left){attack_spawn(x+(left?-32:48),left,container_wave_roots,1);}
 void container_step(u16 slot,u8 contact) {
  Actor *a=&game.actors[slot];ContainerState *s=&containers[slot];u16 tries;

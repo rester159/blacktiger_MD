@@ -44,4 +44,14 @@ def extract(s):
   if clip['event']:
    event=callbacks.index(clip['event']['address']);target=intern(clip['event']['record']+3)
   segments[indices[pc]]={'source':pc,'clip':clip,'event':event,'next':target}
- return {'wave_roots':wave_roots,'wave_templates':[t.hex() for t in wave_templates],'roots':roots,'trap_roots':trap_roots,'segments':segments,'trap_templates':[t.hex() for t in trap_templates],'contact_handlers':handlers,'coin_values':coins,'source_set' :s.lock['aggregate_sha256'],'round_contents':tables,'phases':phases,'scope':'Content shuffle, constructor phases and contact effects. Includes native phase and trap animation graphs. Startup inventory, key acquisition and full lifecycle persistence still require a source port.','witnesses':list(s.witnesses.values())}
+ # Dragon ground flames use the same three semantic callbacks in bank three.
+ indices={};dragon_templates=[];dragon_roots=[]
+ for base in (0xa397,0xa457):
+  group=[s.read(3,base+i*32,32) for i in range(6)];dragon_templates.append([t.hex() for t in group])
+  dragon_roots.append([intern(int.from_bytes(t[30:32],'little')+5) for t in group])
+ while pending:
+  pc=pending.pop(0);clip=compile_clip(s,3,pc);event=6;target=65535
+  if clip['event']:
+   event=[0xa517,0xa535,0xa53e].index(clip['event']['address'])+3;target=intern(clip['event']['record']+3)
+  segments[indices[pc]]={'source':pc,'clip':clip,'event':event,'next':target}
+ return {'dragon_roots':dragon_roots,'dragon_templates':dragon_templates,'wave_roots':wave_roots,'wave_templates':[t.hex() for t in wave_templates],'roots':roots,'trap_roots':trap_roots,'segments':segments,'trap_templates':[t.hex() for t in trap_templates],'contact_handlers':handlers,'coin_values':coins,'source_set' :s.lock['aggregate_sha256'],'round_contents':tables,'phases':phases,'scope':'Content shuffle, constructor phases and contact effects. Includes native phase and trap animation graphs. Startup inventory, key acquisition and full lifecycle persistence still require a source port.','witnesses':list(s.witnesses.values())}

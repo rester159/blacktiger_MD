@@ -534,3 +534,16 @@ across the three source profiles, so the cartridge retains one shared set of sho
 Three unported definitions remain: bank-three 8000, 991D and 9B24, all large dragon bosses.
 Their 128-by-64 sprite loader and shared decision family have been identified, but their
 native behavior, weak-point collision, attacks and presentation are still outstanding.
+
+The three dragon body profiles now have one native C controller and 139 extracted
+animation segments. The body oracle matches 427,140 ticks in 384 cases, all three
+completed death sequences, weak/fatal hits, recovery decisions and 2,625 projectile
+launch snapshots, including available/full projectile pools. One shared attack returns
+through the middle dragon's decision table even on the final dragon; this source behavior
+is preserved explicitly. Both six-part ground-flame profiles reuse the container trap
+controller with 5,760 source ticks covering animation, displacement, contact enable timing
+and retirement, plus ordinary/reversed-control contact dispatch. The body and wave-spawn
+entry points are not yet called by the cartridge game loop: projectile owners, 128x64
+rendering, collision and integration remain outstanding. Source details and next steps
+are recorded in reference/dragon_audit.md. These subsystem tests do not prove boss or
+round completion in the cartridge.

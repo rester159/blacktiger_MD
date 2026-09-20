@@ -26,5 +26,7 @@ void container_new(void);
 void container_round(u8 round);
 u8 container_content(u8 persistent);
 void container_ground_spawn(s16 x,u8 left);
+extern const u16 dragon_wave_roots[2][6];
+void dragon_wave_spawn(s16 x,u8 left,u8 profile);
 void container_wave_spawn(s16 x,u8 left);
 #endif
