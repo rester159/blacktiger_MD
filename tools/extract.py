@@ -147,7 +147,7 @@ def main():
     for i,seg in enumerate(skeleton['segments']):
         clip=seg['clip'];native_clip('skeleton_'+str(i),clip['frames'],clip['loop'])
     body.append('const SkeletonSegment skeleton_segments[]={'+','.join('{&skeleton_%d,%d,%d}'%(i,seg['next'],seg['event']) for i,seg in enumerate(skeleton['segments']))+'};')
-    body.append('const SkeletonProfile skeleton_profiles[]={'+','.join('{{'+','.join(map(str,p['roots']))+'},'+','.join(map(str,[p['durability'],p['guard'],p['variant'],p['score']]))+'}' for p in skeleton['profiles'])+'};')
+    body.append('const SkeletonProfile skeleton_profiles[]={'+','.join('{{'+','.join(map(str,p['roots']))+'},'+','.join(map(str,[p['durability'],p['guard'],p['variant'],p['score'],p['weapon_damage'],p['weapon_width'],p['weapon_height'],p['weapon_contact']]))+'}' for p in skeleton['profiles'])+'};')
     wisp=extract_wisp(Source(args.source))
     (ROOT/'reference/wisp.json').write_text(json.dumps(wisp,indent=2)+'\n')
     for i,seg in enumerate(wisp['segments']):native_clip('wisp_'+str(i),seg['clip']['frames'],None)

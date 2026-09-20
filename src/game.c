@@ -529,10 +529,8 @@ void game_tick(u16 input) {
     {
         u16 i;
         for (i = 0; i < MAX_ACTORS; i++) {
-            s16 x, y;
-            if (skeleton_weapon_frame(i, &x, &y) && absolute(x - PX(p->x) - 8) < 16 &&
-                absolute(y - PX(p->y) - 8) < 20)
-                player_hurt(1);
+            u8 damage = skeleton_weapon_contact(i);
+            if (damage) player_hurt(damage);
         }
     }
     if (game.mode != PLAY)

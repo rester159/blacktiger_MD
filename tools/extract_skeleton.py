@@ -33,8 +33,11 @@ def extract(s):
     if event in (2,5,9):nxt=intern(clip['event']['record']+3)
    elif clip['terminal']=='retire':event=10
    segments[indices[pc]]={'variant':variant,'source':pc,'clip':clip,'event':event,'next':nxt}
+  weapon_address=TEMPLATES[variant]+48
+  s.expect(0,[0x950f,0x9ca7,0xa47e][variant],'21'+weapon_address.to_bytes(2,'little').hex()+'012000edb0')
+  weapon=s.read(0,weapon_address,32)
   score_bytes=s.read(None,0x15bc+(0x20 if variant==0 else 0x30)-7,8)
-  profiles.append({'roots':roots,'durability':t[21],'guard':t[35],'variant':variant,'score':int(''.join(map(str,score_bytes)))})
+  profiles.append({'roots':roots,'durability':t[21],'guard':t[35],'variant':variant,'score':int(''.join(map(str,score_bytes))),'weapon_damage':weapon[15],'weapon_width':weapon[16],'weapon_height':weapon[17],'weapon_contact':weapon[13]&127})
  return {'source_set':s.lock['aggregate_sha256'],'profiles':profiles,'segments':segments,'constructors':CONSTRUCTORS,'callback_addresses':CALLBACKS,'witnesses':list(s.witnesses.values())}
 if __name__=='__main__':
  d=extract(Source());(ROOT/'reference/skeleton.json').write_text(json.dumps(d,indent=2)+'\n');print(len(d['segments']),'segments',d['profiles'])

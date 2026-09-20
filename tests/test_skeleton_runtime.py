@@ -38,6 +38,30 @@ def fire(r,slot,damage,face):
   r.run(1);s=state(r)
   if ((s.frame-start)&65535)>=3 and not s.shots[0].active:return s
  raise AssertionError(('projectile not handled',slot,damage))
+def weapon_edges(r):
+ count=0
+ for variant,profile in enumerate(contract['profiles']):
+  definition=next(d['id'] for d in meta['actor_definitions'] if d['bank']==0 and d['address']==contract['constructors'][variant])
+  for dx,dy in ((0,0),(11,12),(-11,-12),(12,0),(0,13)):
+   s=state(r);s.mode=1;s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.hp=4;s.p.armor=2;s.p.invincible=0;s.p.climb=0;s.clock=0;s.time=100
+   for a in s.actors:a.active=0
+   for q in s.shots:q.active=0
+   for i in range(160):s.spawned[i]=2
+   s.actors[0].definition=definition
+   start=s.frame;put(r,s)
+   raw=bytearray(30*24)
+   struct.pack_into('>H',raw,10,100)
+   struct.pack_into('>Hhh',raw,18,profile['roots'][7],136-dx,904-dy)
+   raw[29]=1;r.write('skeletons',0,bytes(raw))
+   for _ in range(12):
+    r.run(1);s=state(r)
+    if s.frame!=start and int.from_bytes(r.read('skeletons',12)[10:12],'big')<100:
+     r.run(1);s=state(r);break
+   hit=abs(dx)<=11 and abs(dy)<=12
+   assert s.p.armor==(1 if hit else 2),(variant,dx,dy,s.p.armor,s.p.x/256,s.p.y/256)
+   count+=1
+ return count
+
 def run():
  r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
  for variant,profile in enumerate(contract['profiles']):
@@ -56,6 +80,7 @@ def run():
    slot,row,level=fixture(r,variant);s=fire(r,slot,1,1)
    assert s.actors[slot].hp==profile['durability'],(variant,'directional guard')
   checks.append({'variant':variant,'round':level+1,'durability':profile['durability'],'spawn_damage_death':True,'guard':bool(variant)})
- r.close();report={'passed':True,'variants':checks,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Actual source spawns, durability, projectile callbacks, score, ordinary-enemy retirement and shield blocks. Full level playthrough remains unverified.'}
+ edges=weapon_edges(r)
+ r.close();report={'weapon_contact_edges':edges,'passed':True,'variants':checks,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Actual source spawns, durability, projectile callbacks, score, ordinary-enemy retirement and shield blocks. Full level playthrough remains unverified.'}
  (ROOT/'reports/skeleton-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
 if __name__=='__main__':run()

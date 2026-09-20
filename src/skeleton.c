@@ -238,3 +238,16 @@ const AnimFrame *skeleton_weapon_frame(u16 slot, s16 *x, s16 *y) {
     *y = s->wy;
     return animation_current(&s->weapon, skeleton_segments[s->weapon_segment].clip);
 }
+
+u8 skeleton_weapon_contact(u16 slot) {
+    const SkeletonState *s = &skeletons[slot];
+    const SkeletonProfile *p;
+    s16 dx, dy, width, height;
+    if (!s->weapon_active || !s->weapon.remaining) return 0;
+    p = profile(slot);
+    dx = PX(game.p.x) + 8 - s->wx;
+    dy = PX(game.p.y) + 8 - s->wy;
+    width = p->weapon_width + contact_player_width;
+    height = p->weapon_height + contact_player_height;
+    return dx >= -width && dx <= width && dy >= -height && dy <= height ? p->weapon_damage : 0;
+}

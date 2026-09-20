@@ -120,3 +120,10 @@ one-point loss and artificial upward velocity/climb cancellation are removed. Na
 180 original-ROM cases, and six linked-cartridge projectile cases cover absorption, overflow,
 lethal damage and invulnerability. Special contact effects, source armor-break visuals, skeleton
 weapon attack strength, and full player/death animation still need separate implementation.
+
+Skeleton weapon contact now uses witnessed small-actor dimensions (8/4 half sizes), inclusive
+player bounds and the source weapon damage value, replacing the oversized generic box. All three
+weapon templates are verified at their actual copy instructions and against observed weapon RAM.
+Checks retain 2,190 body ticks and 822 weapon frames, and add 147 native boundary cases plus 15
+linked-cartridge edge cases. Variant 1's special contact type 42 is recorded but its additional
+status effect remains unported; alternate posture and source collision scheduling remain gaps.

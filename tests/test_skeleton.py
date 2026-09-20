@@ -6,6 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
 from arcade_source import Source
 source=Source()
+profiles=json.loads((ROOT/'reference/skeleton.json').read_text())['profiles']
 reference=json.loads((ROOT/'reference/skeleton_oracle.json').read_text())
 assert hashlib.sha256((ROOT/'reference/skeleton_oracle_events.txt').read_bytes()).hexdigest()==reference['trace_sha256']
 assert hashlib.sha256((ROOT/'tools/skeleton_oracle.lua').read_bytes()).hexdigest()==reference['lua_sha256']
@@ -20,6 +21,11 @@ with tempfile.TemporaryDirectory() as tmp:
  game.actors[0].active=1;game.actors[0].x=128*256;game.actors[0].y=y*256;
  for(unsigned i=0;i<66;i++)if(skeleton_kinds[i]==variant)game.actors[0].def=i;
  skeleton_reset();skeleton_spawn(0);skeletons[0].segment=skeleton_profiles[variant].roots[root];skeletons[0].body.vy=vy;
+}
+int weapon_contact(int dx,int dy,int active,int loaded) {
+ SkeletonState *s=&skeletons[0];s->weapon_active=active;s->weapon.remaining=loaded;
+ s->wx=128;s->wy=96;game.p.x=(120+dx)*256;game.p.y=(88+dy)*256;
+ return skeleton_weapon_contact(0);
 }
 void tick(int damage,int *out) {
  if(damage)skeleton_hit(0,damage);
@@ -49,6 +55,8 @@ void tick(int damage,int *out) {
   if weapon!='-':
    w=bytes.fromhex(weapon)
    if w[0]:
+    p=profiles[c['variant']]
+    assert (w[15],w[16],w[17],w[13]&127)==tuple(p[k] for k in ('weapon_damage','weapon_width','weapon_height','weapon_contact'))
     expected=[1,int.from_bytes(w[1:3],'big',signed=True),int.from_bytes(w[3:5],'big',signed=True),signed(w[6]),signed(w[7]),w[10]]
     actual=list(out)[13:19];actual[-1]=actual[-1] or 1 # Native 0 is the source's initial one-tick load sentinel.
     assert actual==expected,(c['variant'],c['name'],tick,'weapon',list(out)[13:],expected)
@@ -59,5 +67,13 @@ void tick(int damage,int *out) {
   else:assert out[13]==0,(c['variant'],c['name'],tick,'unexpected weapon')
   assert out[22]==bool(int(persistence,16)&2),(c['variant'],c['name'],tick,'persistence')
   comparisons+=1
-report={'passed':True,'cases':len(reference['cases']),'tick_comparisons':comparisons,'weapon_frame_comparisons':weapon_frames,'trace_sha256':reference['trace_sha256'],'scope':reference['scope']+' Excludes random loot and player hitbox geometry.'}
+ contact_checks=0
+ for variant,p in enumerate(profiles):
+  lib.setup(variant,0,0,0,128,0,0,0)
+  for dx in (-12,-11,-10,0,10,11,12):
+   for dy in (-13,-12,-11,0,11,12,13):
+    assert lib.weapon_contact(dx,dy,1,1)==(p['weapon_damage'] if abs(dx)<=11 and abs(dy)<=12 else 0)
+    contact_checks+=1
+  assert lib.weapon_contact(0,0,0,1)==0 and lib.weapon_contact(0,0,1,0)==0
+report={'weapon_contact_checks':contact_checks,'passed':True,'cases':len(reference['cases']),'tick_comparisons':comparisons,'weapon_frame_comparisons':weapon_frames,'trace_sha256':reference['trace_sha256'],'scope':reference['scope']+' Excludes random loot and player hitbox geometry.'}
 (ROOT/'reports/skeleton-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
