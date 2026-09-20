@@ -144,3 +144,12 @@ instead of the displayed tier number. The native projectile creation path uses t
 the existing shop permits the fifth tier. Original-ROM attack-entry observations and cartridge
 input/firing checks cover every tier, with an additional fifth-tier purchase check. Weapon reach,
 attack poses and timing, projectile geometry and source shop pricing remain provisional.
+
+Development evidence for the next recurring walker (bank 0 constructor 8389) is now captured in
+`reference/thrower.json` and `reference/thrower_oracle*`. Its 53 typed animation segments and 2,540
+original-ROM ticks cover emergence, random throw selection, walking, turns, falling, post-throw
+jumps, nonfatal/fatal damage, and independently damageable projectiles. `tools/audit_thrower.py`
+verifies source bytes, trace provenance and observed branch outcomes. This is preparation for the
+native variant extension, not native equivalence or a newly ported cartridge family. Next work:
+share the existing recurring-walker constructor and movement logic through variant profiles, add
+the throw-once/jump callbacks, and give projectiles independent lifetime and hit processing.
