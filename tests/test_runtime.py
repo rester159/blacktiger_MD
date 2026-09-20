@@ -53,7 +53,7 @@ def test():
  kills=s.kills;put(r,s);r.run(90,1<<1);s=state(r);check('projectile defeats enemy',s.kills>kills)
  s.p.invincible=0;s.p.armor=2;a=s.actors[0];a.active=1;a.hp=12;a.hit=0;a.x=s.p.x;a.y=s.p.y;a.vy=0;put(r,s);r.run(8);s=state(r);check('armor absorbs contact',s.p.armor==1 and s.p.hp==4)
   # Shop purchase uses the same public input path after state injection.
- s.mode=3;s.coins=300;s.shop_item=0;s.previous_input=0;s.p.weapon=1;put(r,s);r.run(2);r.run(3,1<<1);s=state(r);check('shop weapon purchase',s.coins==200 and s.p.weapon==2);r.run(2);r.run(3,1<<0);r.run(2);check('shop exits',state(r).mode==1)
+ s.mode=3;s.coins=300;s.shop_item=0;s.previous_input=0;s.p.weapon=1;put(r,s);r.run(2);r.run(3,1<<1);s=state(r);check('shop weapon purchase',s.coins==100 and s.p.weapon==2);r.run(2);r.run(3,1<<0);r.run(2);check('shop exits',state(r).mode==1)
  # Death must take a life and restore the round through the production entry path.
  s=state(r);s.mode=4;s.mode_timer=1;s.p.lives=3;put(r,s);r.run(5);s=state(r);check('death respawn',s.mode==1 and s.p.lives==2 and s.p.hp==4)
  # Every next-round edge uses production CLEAR -> game_round -> video_round.

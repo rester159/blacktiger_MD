@@ -283,3 +283,17 @@ acquisition and HUD are still unported. Healing uses the provisional native maxi
 Trap ground placement follows the source six-height search but is not yet oracle-checked; the
 native trap pool is separate from other small actors, and death/restart persistence needs an
 original lifecycle comparison. These tests do not establish natural chest progression or a full port.
+
+The placeholder four-item shop is replaced with the source ten-item catalog: four weapon
+upgrades, four armor grades, keys and antidotes, plus exit. All eight difficulty price tables
+are extracted; the cartridge uses the observed default DIP setting (index four). Purchases
+refuse insufficient funds, already-owned equipment and quantities at 99 without charging.
+Native controls buy keys for 30 and show their count on the HUD; a purchased key opens an
+actual source container row. The 322 original-handler comparisons and cartridge checks for
+all ten goods pass. Antidotes cost 150 and support stored inventory or clearing the native
+poison state, but enemy poison onset/countdown and consumption are not yet ported. Initial
+inventory, loose key pickups, complete equipment stat mapping and original shop presentation
+remain unfinished. The new two-column menu adapts the catalog to the Genesis screen. A GCC
+16 LTO unaligned widened byte read was eliminated with a volatile difficulty byte. Renderer
+regressions now compare the playfield below the 16-pixel HUD, retaining the pinned old ROM
+reference for sprites; the new HUD/shop have linked cartridge captures and behavior tests.

@@ -21,8 +21,8 @@ for line in (ROOT/'reference/weapon_oracle_events.txt').read_text().splitlines()
    r.run(1,1<<1);s=state(r);shots=[q for q in s.shots if q.active and not q.enemy];break
  assert shots and all(q.damage==damage for q in shots),(tier,damage,[q.damage for q in shots])
  cases.append(dict(tier=tier,damage=damage))
-# The provisional shop must at least make the verified fifth tier reachable.
-s=state(r);s.mode=3;s.shop_item=0;s.coins=300;s.p.weapon=4;s.previous_input=0;put(r,s);r.run(2);r.run(3,1<<1)
-assert state(r).p.weapon==5
+# Buy the fifth tier at the source default-difficulty price.
+s=state(r);s.mode=3;s.shop_item=3;s.coins=12800;s.p.weapon=4;s.previous_input=0;put(r,s);r.run(2);r.run(3,1<<1)
+assert state(r).p.weapon==5 and state(r).coins==0
 r.close();report={'passed':True,'cases':cases,'fifth_tier_purchase':True,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Original attack-entry strength lookup and native projectile creation at all five tiers. Weapon reach/animation, projectile collision and source shop pricing remain separate.'}
 (ROOT/'reports/weapon-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

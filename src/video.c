@@ -1,5 +1,6 @@
 #include "assets.h"
 #include "container.h"
+#include "shop.h"
 #include "loot.h"
 #include "sentry.h"
 #include "emerge.h"
@@ -422,7 +423,7 @@ static void text(u16 x, u16 y, const char *s) {
 }
 static u32 last_score = 0xffffffff;
 static u16 last_coins = 65535, last_time = 65535, last_stats = 65535;
-static u8 last_shop = 255;
+static u8 last_shop = 255,last_keys=255;
 static void digits(char *p, u16 v, u16 count) {
     while (count) {
         p[--count] = '0' + v % 10;
@@ -438,13 +439,14 @@ static void overlay(void) {
         last_mode = m;
     }
     VDP_setTextPlane(WINDOW);
-    if (stats != last_stats) {
+    if (stats != last_stats || last_keys!=container_keys) {
         strcpy(b, "HP 0 ARM 0 W0 LIFE 0");
         b[3] = '0' + game.p.hp;
         b[9] = '0' + game.p.armor;
         b[12] = '0' + game.p.weapon;
         b[19] = '0' + game.p.lives;
         text(1, 0, b);
+        digits(b,container_keys,2);b[2]=0;text(27,0,b);text(24,0,"KEY");last_keys=container_keys;
         last_stats = stats;
     }
     if (game.score != last_score || game.coins != last_coins || game.time != last_time) {
@@ -474,17 +476,15 @@ static void overlay(void) {
     } else if (m == PAUSED)
         text(13, 12, "PAUSED");
     else if (m == SHOP) {
-        text(8, 6, "THE OLD MAN'S SHOP");
-        text(7, 9, "WEAPON         100");
-        text(7, 11, "ARMOR          150");
-        text(7, 13, "VITALITY        75");
-        text(7, 15, "MAGIC           50");
-        text(5, 9, " ");
-        text(5, 11, " ");
-        text(5, 13, " ");
-        text(5, 15, " ");
-        text(5, 9 + game.shop_item * 2, ">");
-        text(5, 19, "A BUY    B / START EXIT");
+        u16 i;static const char *const names[]={"", "WEAPON 2", "WEAPON 3", "WEAPON 4", "WEAPON 5", "ARMOR 1", "ARMOR 2", "ARMOR 3", "ARMOR 4", "KEY", "ANTIDOTE", "EXIT"};
+        text(5, 6, "THE OLD MAN'S SHOP");
+        for(i=0;i<12;i++) {
+            u8 item=shop_grid[i],x=2+(i/6)*16,y=9+(i%6)*2;
+            if(!item)continue;
+            text(x-1,y,game.shop_item==i?">":" ");text(x,y,names[item]);
+            if(item!=11){u16 pad;digits(b,shop_price(item,shop_difficulty),5);b[5]=0;for(pad=0;pad<4 && b[pad]=='0';pad++)b[pad]=' ';text(x+9,y,b);}
+        }
+        text(3, 23, "A BUY   B / START EXIT");
     } else if (m == CLEAR) {
         text(10, 11, "ROUND CLEAR");
     } else if (m == DEAD)

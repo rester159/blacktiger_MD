@@ -71,7 +71,7 @@ for level in range(8):
   r.run(100)
   costs.append(struct.unpack('>3H',r.read('video_cost',6))[1])
   if not baseline:validate_sat(r)
-  checks.append({'round':level+1,'phase':phase,'sha256':hashlib.sha256(r.frame.tobytes()).hexdigest()})
+  checks.append({'round':level+1,'phase':phase,'sha256':hashlib.sha256(r.frame[16:].tobytes()).hexdigest()})
 # Reproduce the old conservative-band overflow with room under hardware scanline limits.
 s=state(r);s.p.y=(s.cam_y+92)*256;s.p.attack=0;s.p.face=0
 for q in s.shots:q.active=0
@@ -83,5 +83,5 @@ r.close();out=ROOT/'reports/sprite-render-baseline.json'
 if '--record' in sys.argv:out.write_text(json.dumps(checks,indent=2)+'\n')
 else:
  expected=json.loads(out.read_text());assert checks==expected,[(a,b) for a,b in zip(checks,expected) if a!=b]
- report={'passed':True,'pixel_fixtures':len(checks),'mean_sprite_subticks':sum(costs)/len(costs),'crowded_drops_in_20_frames':crowded_drops,'sprite_cache_vram_and_scanlines_checked':not baseline,'rom_sha256':hashlib.sha256(((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin')).read_bytes()).hexdigest(),'baseline_rom_sha256':'308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','scope':'Paused pixel equivalence across all rounds, flips, six hero poses, changing actor textures, clipping and mixed sprite sizes. A crowded fixture checks hardware scanline limits and removal of old false-positive drops; active cache textures are compared directly with VRAM.'}
+ report={'passed':True,'pixel_fixtures':len(checks),'mean_sprite_subticks':sum(costs)/len(costs),'crowded_drops_in_20_frames':crowded_drops,'sprite_cache_vram_and_scanlines_checked':not baseline,'rom_sha256':hashlib.sha256(((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin')).read_bytes()).hexdigest(),'baseline_rom_sha256':'308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','scope':'Paused playfield pixel equivalence (HUD rows excluded) across all rounds, flips, six hero poses, changing actor textures, clipping and mixed sprite sizes. A crowded fixture checks hardware scanline limits and removal of old false-positive drops; active cache textures are compared directly with VRAM.'}
  (ROOT/('reports/sprite-render-before.json' if baseline else 'reports/sprite-render-tests.json')).write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

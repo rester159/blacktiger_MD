@@ -1,5 +1,6 @@
 #include "game.h"
 #include "container.h"
+#include "shop.h"
 #include "damage.h"
 #include "boss.h"
 #include "assets.h"
@@ -77,6 +78,7 @@ void game_new(void) {
     loot_new();
     container_new();
     container_keys=0;
+    shop_new();
     game.p.lives = 3;
     game.p.armor = 2;
     game.p.weapon = 1;
@@ -526,25 +528,11 @@ void game_tick(u16 input) {
         return;
     }
     if (game.mode == SHOP) {
-        static const u16 prices[] = {100, 150, 75, 50};
-        if (pressed & IN_DOWN)
-            game.shop_item = (game.shop_item + 1) & 3;
-        if (pressed & IN_UP)
-            game.shop_item = (game.shop_item + 3) & 3;
+        shop_move(pressed);
         if (pressed & IN_ATTACK) {
-            u16 cost = prices[game.shop_item];
-            if (game.coins >= cost) {
-                game.coins -= cost;
-                game.sound = SND_BUY;
-                if (game.shop_item == 0 && p->weapon < 5)
-                    p->weapon++;
-                if (game.shop_item == 1)
-                    p->armor = 4;
-                if (game.shop_item == 2)
-                    p->hp = 4;
-                if (game.shop_item == 3)
-                    p->magic++;
-            }
+            u8 item=shop_grid[game.shop_item];
+            if(item==11)game.mode=PLAY;
+            else shop_buy(item);
         }
         if (pressed & (IN_START | IN_JUMP))
             game.mode = PLAY;
