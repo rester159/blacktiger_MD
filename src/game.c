@@ -379,7 +379,8 @@ static void actor_step(u16 i, u16 pressed) {
         return;
     }
     if(dragon_kinds[a->def]){dragon_step(i,dragon_projectile_spawn);if(a->active && dragon_player_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));return;}
-    if (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300) {
+    if (!wisp_kinds[a->def] && skeleton_kinds[a->def]==255 &&
+        (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300)) {
         game.spawned[a->source]&=254; /* Preserve the consumed bit during offscreen cleanup. */
         a->active = 0;
         return;
@@ -452,7 +453,7 @@ static void actor_step(u16 i, u16 pressed) {
     }
     case BEHAVIOR_WISP: {
         wisp_step(i);
-        if ((game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) player_hurt_from(actor_damage[a->def],PX(a->x));
+        if (a->active && (game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
     case BEHAVIOR_EMERGE: {

@@ -135,6 +135,8 @@ test: all
 	.venv/bin/python tests/test_sentry_runtime.py
 	.venv/bin/python tests/test_loot.py
 	.venv/bin/python tests/test_loot_runtime.py
+	.venv/bin/python tests/test_actor_motion.py
+	.venv/bin/python tests/test_actor_motion_runtime.py
 	.venv/bin/python tests/test_skeleton.py
 	.venv/bin/python tests/test_skeleton_runtime.py
 	.venv/bin/python tests/test_world.py

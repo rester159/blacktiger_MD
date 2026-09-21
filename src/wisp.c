@@ -23,7 +23,7 @@ void wisp_step(u16 slot) {
         const WispSegment *seg=&wisp_segments[s->segment];u16 target;
         if (animation_tick(&s->animation,seg->clip)) {
             a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;
-            a->x+=a->vx;a->y+=a->vy;return;
+            actor_motion(a,a->vx,a->vy,8);return;
         }
         u8 near=(u8)(PX(game.p.y)+70-PX(a->y))<140;
         switch(seg->event) {

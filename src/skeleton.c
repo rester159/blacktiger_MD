@@ -194,8 +194,7 @@ void skeleton_step(u16 slot) {
         if (animation_tick(&s->body, seg->clip)) {
             a->vx = (s16)s->body.vx * FX;
             a->vy = (s16)s->body.vy * FX + s->fraction;
-            a->x += a->vx;
-            a->y += (s16)s->body.vy * FX;
+            actor_motion(a,a->vx,(s16)s->body.vy*FX,8);
             return;
         }
         u16 target = event(slot, seg->event, seg->next);

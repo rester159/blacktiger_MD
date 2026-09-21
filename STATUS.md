@@ -950,3 +950,14 @@ Updates per 180 video frames change from [168,176,133,162,173,138,154,168] to
 [171,175,141,164,171,140,157,170]. Six windows improve; two regress slightly as
 simulation progress and presentation phase change. These observations remain
 short benchmarks, not full-speed proof. See `reports/shell-scan-performance.json`.
+
+## Source-ordered actor edge retirement
+
+A shared native actor-motion helper now checks source screen-edge retirement
+after X movement and before Y movement. The three skeleton variants and wisp
+use it instead of the broad pre-movement distance cutoff. It preserves consumed
+rows and awards no kill reward. Original captures match 696 boundary cases,
+repeated at four native camera offsets, and existing family motion traces remain
+valid. Eight cartridge fixtures cover the real update paths. Remaining families,
+dynamic suppression flags, category counters, and wrapped sprite visibility
+need separate validation; this is not a complete global actor/scanner port.

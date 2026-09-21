@@ -72,3 +72,30 @@ Costs are SGDK subticks (76,800 per second), excluding rendering, audio and
 VBlank processing. These are entry-route measurements with injected
 invulnerability, not sustained full-game performance or a fixed-state CPU
 microbenchmark. Projectile pool scanning, rendering and frame overruns remain.
+
+## Shared actor edge integration
+
+Fixed 3351 performs medium-actor X integration, possible retirement, then Y
+integration and its own possible retirement. High-byte-zero coordinates survive.
+Otherwise the wrapped low byte minus 48 must be at least 161 for X or 160 for Y.
+Fixed 3614 bypasses retirement when actor mode bit 4 is set; 361B clears active
+and toggles the active persistence bit. Native `actor_motion` reuses the existing
+axis predicate, applies this order, and clears the active persistence bit while
+preserving consumed state. Supported caller states use active/consumed values
+1/3, matching the source XOR transition to 0/2.
+
+The helper now serves the three skeleton variants and the bank-2 wandering wisp.
+Their constructors use mode 08; current native transitions do not set retirement
+suppression. They bypass the earlier broad pre-movement distance cutoff. A wisp
+retired by motion no longer proceeds to player contact. Other families retain
+their existing handlers until their dynamic mode rules are established.
+
+The development oracle executes original 3351 directly with valid actor and
+display records, disabled player contact and zero camera delta. It covers 696
+axis/boundary/velocity/mode/persistence combinations. Host comparison repeats
+them at four native camera offsets (2,784 cases), checking active state, both
+coordinates and persistence. Existing 2,190 skeleton and 1,920 wisp source ticks
+still match. Cartridge fixtures verify real updates retire all four definitions
+at the right edge without kill rewards and preserve consumed rows. Source
+category counters, global camera/scanner cadence, and wrapped sprite visibility
+remain outside this integration check.
