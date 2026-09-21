@@ -1,12 +1,14 @@
 #include "dragon_shot.h"
+/* Conservative render occupancy: allocation sets it, updates refresh it. */
+u8 dragon_shots_occupied;
 #include "assets.h"
 #include "hazard.h"
 DragonShot dragon_shots[24];
 static void select_segment(DragonShot *p,u16 n){s8 vx=p->animation.vx,vy=p->animation.vy;animation_reset(&p->animation);p->animation.vx=vx;p->animation.vy=vy;p->segment=n;}
-void dragon_shots_reset(void){u16 i;for(i=0;i<24;i++)dragon_shots[i].active=0;}
+void dragon_shots_reset(void){u16 i;dragon_shots_occupied=0;for(i=0;i<24;i++)dragon_shots[i].active=0;}
 static u8 spawn(u8 kind,u8 direction,s16 x,s16 y,u8 profile,u8 left){
  u16 i,first=kind==2?16:0,end=kind==2?24:16;
- for(i=first;i<end;i++)if(!dragon_shots[i].active){DragonShot *p=&dragon_shots[i];*p=(DragonShot){0};p->active=1;p->kind=kind;p->mode=kind==0?8:kind==1?11:25;p->profile=profile;p->left=left;p->x=x;p->y=y;p->segment=dragon_shot_roots[kind==0?direction:kind==1?16+left:19];return 1;}
+ for(i=first;i<end;i++)if(!dragon_shots[i].active){DragonShot *p=&dragon_shots[i];*p=(DragonShot){0};p->active=1;dragon_shots_occupied=1;p->kind=kind;p->mode=kind==0?8:kind==1?11:25;p->profile=profile;p->left=left;p->x=x;p->y=y;p->segment=dragon_shot_roots[kind==0?direction:kind==1?16+left:19];return 1;}
  return 0;
 }
 void dragon_projectile_spawn(u8 kind,u8 direction,s16 x,s16 y,u8 profile,u8 left){if(kind<2 && (kind || direction<16))spawn(kind,direction,x,y,profile,left);}
@@ -33,7 +35,7 @@ u8 dragon_shots_step(void){u8 occupied=0;
    select_segment(p,target);
   }
  }
-return occupied;
+dragon_shots_occupied=occupied;return occupied;
 }
 u8 dragon_shot_contact(u16 slot){
  DragonShot *p=&dragon_shots[slot];u8 medium=p->kind==2;

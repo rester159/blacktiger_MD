@@ -1,11 +1,12 @@
 #ifndef CONTAINER_H
 #define CONTAINER_H
 #include "animation.h"
+extern u8 container_traps_occupied;
 typedef struct {const AnimClip *clip;u16 next;u8 event;} ContainerSegment;
 typedef struct {AnimState animation;u16 segment;s16 x,y;u8 active,left,contact,part;} ContainerTrap;
 #define MAX_CONTAINER_TRAPS 24
 extern ContainerTrap container_traps[MAX_CONTAINER_TRAPS];
-extern u8 container_keys;
+extern u8 container_keys,container_locked_hint;
 void container_actor_reset(void);
 void container_actor_restart(void);
 void container_spawn(u16 slot);

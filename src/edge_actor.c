@@ -1,4 +1,6 @@
 #include "edge_actor.h"
+/* Conservative render occupancy: allocation sets it, updates refresh it. */
+u8 edge_shots_occupied;
 #include "assets.h"
 #include "loot.h"
 #include "progress.h"
@@ -7,7 +9,7 @@
 typedef struct {AnimState animation;u16 segment;u8 mode,pending,left,fraction,variant,fired,contact,contact_pending;} EdgeState;
 static EdgeState edge_actors[MAX_ACTORS];
 EdgeShot edge_shots[24];
-void edge_shots_reset(void){u16 i;for(i=0;i<24;i++)edge_shots[i].active=0;}
+void edge_shots_reset(void){u16 i;edge_shots_occupied=0;for(i=0;i<24;i++)edge_shots[i].active=0;}
 static void select_animation(AnimState *a,u16 *segment,u16 target){s8 vx=a->vx,vy=a->vy;animation_reset(a);a->vx=vx;a->vy=vy;*segment=target;}
 static u16 sided(EdgeState *s,u8 at){return edge_roots[at+!s->left];}
 void edge_actor_spawn(u16 slot){Actor *a=&game.actors[slot];EdgeState *s=&edge_actors[slot];*s=(EdgeState){0};s->mode=11;s->segment=edge_roots[game.p.face?1:0];a->hp=edge_health;a->life=edge_layers;a->state=0;}
@@ -27,7 +29,7 @@ static u16 launch(Actor *a,EdgeState *s,u8 attack,u16 fallback){
  if(direction>=17)return fallback;
  for(i=0;i<24 && edge_shots[i].active;i++){}
  if(i==24)return fallback;
- {EdgeShot *p=&edge_shots[i];*p=(EdgeShot){0};p->active=1;p->profile=profile;p->hp=profile?32:24;p->segment=edge_shot_roots[profile*17+direction];p->x=PX(a->x)+8;p->y=PX(a->y)+8;}
+ {EdgeShot *p=&edge_shots[i];*p=(EdgeShot){0};p->active=1;edge_shots_occupied=1;p->profile=profile;p->hp=profile?32:24;p->segment=edge_shot_roots[profile*17+direction];p->x=PX(a->x)+8;p->y=PX(a->y)+8;}
  return sided(s,attack==1?28:26);
 }
 void edge_actor_step(u16 slot){Actor *a=&game.actors[slot];EdgeState *s=&edge_actors[slot];u16 tries;
@@ -35,7 +37,7 @@ void edge_actor_step(u16 slot){Actor *a=&game.actors[slot];EdgeState *s=&edge_ac
  if(s->pending){u16 target;s->pending=0;if(--a->life){a->state=0;target=s->variant?edge_roots[player_left(a)?20:21]:recoil(a,s);}else{a->state=2;loot_spawn(drop_categories[a->def],loot_random>>8,PX(a->x),PX(a->y));game.spawned[a->source]|=2;progress_score(edge_score);game.kills++;target=edge_roots[player_left(a)?22:23];}select_animation(&s->animation,&s->segment,target);}
  for(tries=0;tries<12;tries++){
   const AnimSegment *seg=&edge_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;if(!(s->mode&16) && !small_actor_axis_active(PX(a->x)-game.cam_x,0)){a->active=0;game.spawned[a->source]&=254;return;}a->y+=a->vy;if(!(s->mode&16) && !small_actor_axis_active(PX(a->y)-game.cam_y,1)){a->active=0;game.spawned[a->source]&=254;}return;}
+  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;}
   switch(seg->event){
   case 0:s->mode=8; /* fall through */
   case 1:target=choose(a,s);break;
@@ -63,7 +65,7 @@ u8 edge_actor_contact(u16 slot){EdgeState *s=&edge_actors[slot];if((s->mode&2) |
 const AnimFrame *edge_actor_frame(u16 slot){EdgeState *s=&edge_actors[slot];return s->animation.remaining?animation_current(&s->animation,edge_segments[s->segment].clip):0;}
 u8 edge_shots_step(void){u8 occupied=0;u16 i;for(i=0;i<24;i++){EdgeShot *p=&edge_shots[i];u16 n;if(!p->active)continue;occupied=1;if(p->pending){p->pending=0;select_animation(&p->animation,&p->segment,edge_shot_roots[35+p->profile*2]);}
  for(n=0;n<4;n++){const AnimSegment *seg=&edge_shot_segments[p->segment];u16 target=seg->next;if(animation_tick(&p->animation,seg->clip)){p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;break;}p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;break;}if(seg->event){p->active=0;break;}if(ground(p->x+8,p->y+8))target=edge_shot_roots[34+p->profile*2];select_animation(&p->animation,&p->segment,target);}
-}return occupied;
+}edge_shots_occupied=occupied;return occupied;
 }
 u8 edge_shot_contact(u16 slot){EdgeShot *p=&edge_shots[slot];return p->active && !p->dying && !(game.frame&1) && player_contact(p->x,p->y,p->profile?5:3,p->profile?5:3)?(p->profile?3:1):0;}
 u8 edge_shot_hit(s16 x,s16 y,u8 damage,u8 dagger){u16 i;for(i=0;i<24;i++){EdgeShot *p=&edge_shots[i];s16 dx=x-p->x,dy=y-p->y;u8 w=(p->profile?5:3)+(dagger?dagger_width:8),h=(p->profile?5:3)+(dagger?dagger_height:4);if(!p->active || p->dying || (dagger && (game.frame&1)))continue;if(dx>=-(s16)w && dx<=w && dy>=-(s16)h && dy<=h){u8 hit=dagger?(damage>1?damage>>1:1):damage;if(p->hp>hit)p->hp-=hit;else{p->dying=1;p->pending=1;}return 1;}}return 0;}

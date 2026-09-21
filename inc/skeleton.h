@@ -1,6 +1,7 @@
 #ifndef SKELETON_H
 #define SKELETON_H
 #include "animation.h"
+extern u8 skeleton_weapons_occupied;
 typedef struct {
     const AnimClip *clip;
     u16 next;

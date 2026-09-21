@@ -1,6 +1,7 @@
 #ifndef STATUE_SHELL_H
 #define STATUE_SHELL_H
 #include "statue.h"
+extern u8 shell_pools_occupied[2];
 #define MAX_STATUE_SHELLS 12
 typedef struct {
  AnimState animation;

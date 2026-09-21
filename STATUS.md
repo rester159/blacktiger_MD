@@ -961,3 +961,36 @@ repeated at four native camera offsets, and existing family motion traces remain
 valid. Eight cartridge fixtures cover the real update paths. Remaining families,
 dynamic suppression flags, category counters, and wrapped sprite visibility
 need separate validation; this is not a complete global actor/scanner port.
+
+
+## Playtest: slowdown and locked chests
+
+Renderer scans now use conservative occupancy flags for skeleton weapons, edge
+shots, reinforcement shots, flails, dragon shots, waveboss seeds, container
+traps, missiles, and hunter/statue shells and blasts. Allocations set flags
+immediately, including allocations after the update pass; update passes refresh
+them and resets clear them. Non-play modes retain direct scans. Drawing order,
+projectile updates, and sprite limits are unchanged. The small-queue NTSC VBlank
+window now extends to counter 236; the scheduler regression checks for overruns
+and duplicate logic updates. PAL scheduling is unchanged and remains unverified.
+
+In the eight short entry benchmarks, updates per 180 video frames improved from
+[171,175,143,164,173,138,156,170] in the previously packaged build to
+[177,179,161,174,177,145,164,180]. Sprite processing costs fall in all eight
+separate route-profile windows (roughly 14–40%). These are not identical game
+states after optimization and do not prove sustained 60 Hz. Dense scenes still
+slow down. Exact measurements and hashes: `reports/render-pool-performance.json`.
+
+Chests retain the source key requirement. Touching a closed chest without a key
+now shows "LOCKED: BUY A KEY IN SHOP"; the title instructions explain merchant
+rescues and keys. The key costs 30 Zenny. Cartridge checks verify locked feedback,
+its removal on opening, a key bought through the native shop controls, twelve
+constructor/content cases, one-time debit, collection, and empty reconstruction.
+The full `make test` suite, renderer pixel/VRAM fixtures, smoke run, and exact-ROM
+packaging gates passed. No complete natural playthrough is claimed.
+
+The pending shared edge-retirement work also passed: flailer, teleporter,
+hunter, reinforcement, edge caster, and crawler now use source-ordered motion
+checks. Twenty independent cartridge cases preserve consumed rows and avoid
+kill rewards; a separate hunter-boss case retains retirement suppression. Fresh
+boots isolate those fixtures from source scanner delays and spawn quotas.

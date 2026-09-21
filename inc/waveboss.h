@@ -1,6 +1,7 @@
 #ifndef WAVEBOSS_H
 #define WAVEBOSS_H
 #include "animation.h"
+extern u8 waveboss_seeds_occupied;
 typedef struct {const AnimClip *clip;u16 next[2];u8 event;} WaveBossSegment;
 typedef struct {AnimState animation;u16 segment;s16 x,y;u8 active,left,profile;} WaveBossSeed;
 #define MAX_WAVEBOSS_SEEDS 8

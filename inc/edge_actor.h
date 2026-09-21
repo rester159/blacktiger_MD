@@ -1,6 +1,7 @@
 #ifndef EDGE_ACTOR_H
 #define EDGE_ACTOR_H
 #include "animation.h"
+extern u8 edge_shots_occupied;
 extern const AnimSegment edge_segments[],edge_shot_segments[];
 extern const u16 edge_roots[41],edge_shot_roots[38],edge_score;
 extern const u8 edge_choices[8][16],edge_attacks[16],edge_health,edge_layers;

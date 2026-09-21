@@ -379,11 +379,17 @@ static void actor_step(u16 i, u16 pressed) {
         return;
     }
     if(dragon_kinds[a->def]){dragon_step(i,dragon_projectile_spawn);if(a->active && dragon_player_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));return;}
-    if (!wisp_kinds[a->def] && skeleton_kinds[a->def]==255 &&
-        (absolute(x - (s16)game.cam_x - 128) > 352 || absolute(y - (s16)game.cam_y - 112) > 300)) {
-        game.spawned[a->source]&=254; /* Preserve the consumed bit during offscreen cleanup. */
-        a->active = 0;
-        return;
+    /* These families integrate source edge checks themselves, including the
+       dynamic suppression flag. Do not preempt them with the broad fallback. */
+    switch(actor_dispatch[a->def].behavior) {
+    case BEHAVIOR_EDGE:case BEHAVIOR_REINFORCEMENT:case BEHAVIOR_FLAILER:
+    case BEHAVIOR_TELEPORTER:case BEHAVIOR_HUNTER:case BEHAVIOR_CRAWLER:
+    case BEHAVIOR_WISP:break;
+    default:
+        if(skeleton_kinds[a->def]==255 &&
+           (absolute(x-(s16)game.cam_x-128)>352 || absolute(y-(s16)game.cam_y-112)>300)) {
+            game.spawned[a->source]&=254;a->active=0;return;
+        }
     }
     switch(actor_dispatch[a->def].behavior) {
     case BEHAVIOR_EDGE: {
@@ -811,6 +817,7 @@ void game_tick(u16 input) {
         game.mode = PAUSED;
         return;
     }
+    if(container_locked_hint)container_locked_hint--;
     world_tick();
     if (any_boss(1)) input=pressed=0;
     player_step(input, pressed);

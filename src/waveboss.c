@@ -1,4 +1,6 @@
 #include "waveboss.h"
+/* Conservative render occupancy: allocation sets it, updates refresh it. */
+u8 waveboss_seeds_occupied;
 #include "assets.h"
 #include "loot.h"
 #include "progress.h"
@@ -6,7 +8,7 @@
 typedef struct {AnimState animation;u16 segment;u8 mode,pending,left,profile,engaged;} WaveBossState;
 static WaveBossState wavebosses[MAX_ACTORS];
 WaveBossSeed waveboss_seeds[MAX_WAVEBOSS_SEEDS];
-void waveboss_reset(void){u16 i;for(i=0;i<MAX_WAVEBOSS_SEEDS;i++)waveboss_seeds[i].active=0;}
+void waveboss_reset(void){u16 i;waveboss_seeds_occupied=0;for(i=0;i<MAX_WAVEBOSS_SEEDS;i++)waveboss_seeds[i].active=0;}
 static void select_segment(AnimState *a,u16 *segment,u16 target){s8 vx=a->vx,vy=a->vy;animation_reset(a);a->vx=vx;a->vy=vy;*segment=target;}
 void waveboss_spawn(u16 slot){
  Actor *a=&game.actors[slot];WaveBossState *s=&wavebosses[slot];
@@ -33,7 +35,7 @@ static u16 choose(Actor *a,WaveBossState *s){
 static u8 seed_spawn(Actor *a,WaveBossState *s){
  u16 i;for(i=0;i<MAX_WAVEBOSS_SEEDS;i++)if(!waveboss_seeds[i].active){
   WaveBossSeed *p=&waveboss_seeds[i];animation_reset(&p->animation);p->segment=waveboss_roots[16+s->left];
-  p->x=PX(a->x)+(s->left?48:0);p->y=PX(a->y)+4;p->left=s->left;p->profile=s->profile;p->active=1;return 1;
+  p->x=PX(a->x)+(s->left?48:0);p->y=PX(a->y)+4;p->left=s->left;p->profile=s->profile;p->active=1;waveboss_seeds_occupied=1;return 1;
  }return 0;
 }
 void waveboss_step(u16 slot){
@@ -75,7 +77,7 @@ u8 waveboss_seeds_tick(void){u8 occupied=0;
    select_segment(&p->animation,&p->segment,target);
   }
  }
-return occupied;
+waveboss_seeds_occupied=occupied;return occupied;
 }
 const AnimFrame *waveboss_seed_frame(u16 slot){WaveBossSeed *p=&waveboss_seeds[slot];return p->active && p->animation.remaining?animation_current(&p->animation,waveboss_segments[p->segment].clip):0;}
 u8 waveboss_player_contact(u16 slot){

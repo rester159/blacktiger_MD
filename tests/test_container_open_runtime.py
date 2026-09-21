@@ -21,8 +21,11 @@ for pc in (0xacbe,0xacd3):
   r.write('container_contents',persistent,bytes([content+16]))
   s=hold_contact(slot,4)
   assert not r.read('container_opened',8)[persistent]
+  assert r.read('container_locked_hint',1)[0]>0
+  if pc==0xacbe and content==0:r.capture('container-locked.png')
   r.write('container_keys',0,b'\x02');s=hold_contact(slot,4)
   assert r.read('container_keys',1)==b'\x01'
+  assert r.read('container_locked_hint',1)==b'\0'
   assert r.read('container_opened',8)[persistent]==1
   assert r.read('container_collected',8)[persistent]==(content==0)
   assert s.coins==123 and s.p.hp==1 and s.score==987

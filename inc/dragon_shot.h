@@ -1,6 +1,7 @@
 #ifndef DRAGON_SHOT_H
 #define DRAGON_SHOT_H
 #include "dragon.h"
+extern u8 dragon_shots_occupied;
 typedef struct {AnimState animation;u16 segment;s16 x,y;u8 active,kind,mode,left,profile,pending;} DragonShot;
 extern DragonShot dragon_shots[24];
 extern const DragonSegment dragon_shot_segments[];

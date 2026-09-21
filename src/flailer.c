@@ -1,4 +1,6 @@
 #include "flailer.h"
+/* Conservative render occupancy: allocation sets it, updates refresh it. */
+u8 flailer_weapons_occupied;
 #include "assets.h"
 #include "loot.h"
 #include "progress.h"
@@ -6,7 +8,7 @@
 typedef struct {AnimState animation;u16 segment;u8 mode,pending,left,profile,fraction,armed,weapon;} FlailerState;
 static FlailerState flailers[MAX_ACTORS];
 FlailerWeapon flailer_weapons[MAX_ACTORS];
-void flailer_reset(void){u16 i;for(i=0;i<MAX_ACTORS;i++)flailer_weapons[i].active=0;}
+void flailer_reset(void){u16 i;flailer_weapons_occupied=0;for(i=0;i<MAX_ACTORS;i++)flailer_weapons[i].active=0;}
 static void select_segment(AnimState *a,u16 *segment,u16 target){s8 vx=a->vx,vy=a->vy;animation_reset(a);a->vx=vx;a->vy=vy;*segment=target;}
 static u16 root(FlailerState *s,u8 at){return flailer_roots[s->profile][at];}
 static u16 sided(FlailerState *s,u8 at){return root(s,at+!s->left);}
@@ -34,7 +36,7 @@ static u16 fall_start(Actor *a,FlailerState *s){s->animation.vx=s->animation.vy=
 static u16 launch(Actor *a,FlailerState *s){
  u16 i;if(!ground(a,16,32))return fall_start(a,s);
  for(i=0;i<MAX_ACTORS;i++)if(!flailer_weapons[i].active){
-  FlailerWeapon *p=&flailer_weapons[i];animation_reset(&p->animation);p->profile=s->profile;p->pending=p->dying=0;p->active=1;
+  FlailerWeapon *p=&flailer_weapons[i];animation_reset(&p->animation);p->profile=s->profile;p->pending=p->dying=0;p->active=1;flailer_weapons_occupied=1;
   p->segment=sided(s,9);p->x=PX(a->x)+(s->left?32:-16);p->y=PX(a->y)+8;s->weapon=i;s->armed=1;
   return sided(s,7);
  }return facing(a,s,5);
@@ -48,7 +50,7 @@ void flailer_step(u16 slot){
  }
  for(tries=0;tries<8;tries++){
   const AnimSegment *seg=&flailer_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;}
+  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;}
   switch(seg->event){
   case 0:target=facing(a,s,3);break;
   case 1:if((u16)(PX(a->y)+8-PX(game.p.y))<16 && near_x(a,s,1))target=facing(a,s,5);break;
@@ -79,7 +81,7 @@ u8 flailer_weapons_tick(void){u8 occupied=0;
    if(seg->event!=8){p->active=0;break;}game.sound=SND_ATTACK;select_segment(&p->animation,&p->segment,seg->next);
   }
  }
-return occupied;
+flailer_weapons_occupied=occupied;return occupied;
 }
 u8 flailer_weapon_hit(s16 x,s16 y,u8 kind){u16 i;u8 width=8+(kind?dagger_width:8),height=4+(kind?dagger_height:4);for(i=0;i<MAX_ACTORS;i++){FlailerWeapon *p=&flailer_weapons[i];s16 dx=x-p->x,dy=y-p->y;if(p->active && !p->pending && !p->dying && (!kind || !(game.frame&1)) && dx>=-width && dx<=width && dy>=-height && dy<=height){p->pending=1;return 1;}}return 0;}
 u8 flailer_weapon_contact(u16 slot){FlailerWeapon *p=&flailer_weapons[slot];if(!p->active || p->pending || p->dying || (game.frame&1))return 0;return player_contact(p->x,p->y,8,4)?(p->profile?1:2):0;}

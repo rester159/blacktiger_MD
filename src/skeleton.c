@@ -1,4 +1,5 @@
 #include "progress.h"
+u8 skeleton_weapons_occupied;
 #include "skeleton.h"
 #include "assets.h"
 #include "loot.h"
@@ -74,7 +75,7 @@ static u16 swing(u16 slot) {
     s->wy = PX(a->y) + 8;
     animation_reset(&s->weapon);
     s->weapon_segment = p->roots[s->left ? WEAPON_L : WEAPON_R];
-    s->weapon_active = s->attacking = 1;
+    s->weapon_active = s->attacking = 1;skeleton_weapons_occupied=1;
     return p->roots[s->left ? SWING_L : SWING_R];
 }
 static u16 event(u16 slot, u8 action, u16 next) {
@@ -159,6 +160,7 @@ static u16 event(u16 slot, u8 action, u16 next) {
     }
 }
 void skeleton_reset(void) {
+    skeleton_weapons_occupied=0;
     u16 i;
     for (i = 0; i < MAX_ACTORS; i++)
         skeletons[i].weapon_active = 0;
@@ -226,7 +228,7 @@ u32 skeleton_weapons_tick(void) {
         }
         if(s->weapon_active && s->weapon.remaining)active|=(u32)1<<i;
     }
-    return active;
+    skeleton_weapons_occupied=active!=0;return active;
 }
 const AnimFrame *skeleton_frame(u16 slot) {
     SkeletonState *s = &skeletons[slot];

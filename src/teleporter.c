@@ -49,7 +49,7 @@ void teleporter_step(u16 slot) {
  for(tries=0;tries<8;tries++) {
   const AnimSegment *seg=&teleporter_segments[s->segment];u16 target=seg->next;
   if(animation_tick(&s->animation,seg->clip)) {
-   a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;
+   a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;
   }
   switch(seg->event) {
   case 0:target=facing(a,s,1);break;

@@ -1,5 +1,6 @@
 #include "statue_shell.h"
 #include "assets.h"
+u8 shell_pools_occupied[2];
 /* Both source families use the same shell -> independent medium-blast pipeline.
    Pools stay separate from body actors; original global pool contention is pending. */
 StatueShell statue_shells[MAX_STATUE_SHELLS],statue_blasts[MAX_STATUE_SHELLS];
@@ -11,11 +12,12 @@ static void select_segment(StatueShell *s,u16 segment) {
 }
 static u8 spawn(StatueShell *pool,s16 x,s16 y,u16 root,u8 mode,u8 hunter) {
  u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++)if(!pool[i].active) {
-  StatueShell *s=&pool[i];s->x=x;s->y=y;s->active=1;s->cycles=s->pending=0;s->mode=mode;
+  StatueShell *s=&pool[i];s->x=x;s->y=y;s->active=1;shell_pools_occupied[hunter]=1;s->cycles=s->pending=0;s->mode=mode;
   select_segment(s,roots(hunter)[root]);return 1;
  }return 0;
 }
 void statue_shell_reset(void) {
+ shell_pools_occupied[0]=shell_pools_occupied[1]=0;
  u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++) {
   statue_shells[i].active=statue_blasts[i].active=0;
   hunter_shells[i].active=hunter_blasts[i].active=0;
@@ -78,7 +80,7 @@ static u8 tick_pools(StatueShell *shells,StatueShell *blasts,u8 hunter) {
  u8 occupied=0;u16 i;
  for(i=0;i<MAX_STATUE_SHELLS;i++)if(shells[i].active){occupied=1;step(&shells[i],blasts,1,hunter);}
  for(i=0;i<MAX_STATUE_SHELLS;i++)if(blasts[i].active){occupied=1;step(&blasts[i],blasts,0,hunter);}
- return occupied;
+ shell_pools_occupied[hunter]=occupied;return occupied;
 }
 u8 statue_shell_tick(void) {return tick_pools(statue_shells,statue_blasts,0);}
 u8 hunter_shell_tick(void) {return tick_pools(hunter_shells,hunter_blasts,1);}

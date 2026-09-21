@@ -1,6 +1,7 @@
 #ifndef MISSILE_H
 #define MISSILE_H
 #include "animation.h"
+extern u8 missiles_occupied;
 #define MAX_MISSILES 12
 typedef struct {
  AnimState animation;

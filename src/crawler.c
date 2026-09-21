@@ -51,9 +51,7 @@ void crawler_step(u16 slot) {
  for(tries=0;tries<8;tries++) {
   const CrawlerSegment *seg=&crawler_segments[s->segment];u16 target=seg->next;
   if(animation_tick(&s->animation,seg->clip)) {
-   a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;
-   if(!small_actor_axis_active(PX(a->x)-game.cam_x,0)){a->active=0;game.spawned[a->source]&=254;return;}
-   a->y+=a->vy;if(!small_actor_axis_active(PX(a->y)-game.cam_y,1)){a->active=0;game.spawned[a->source]&=254;}return;
+   a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,8);return;
   }
   switch(seg->event) {
   case 0:target=roots(a)[(u16)(PX(a->x)-game.cam_x)<256 && (u8)(PX(game.p.x)+80-PX(a->x))<160?1:0];break;

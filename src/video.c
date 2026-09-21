@@ -406,19 +406,19 @@ static void sprites(void) {
         else
             piece(code, d->palette, x, y, 0);
     }
-    for (i = 0; i < MAX_ACTORS; i++) {
+    if(skeleton_weapons_occupied || game.mode!=PLAY)for (i = 0; i < MAX_ACTORS; i++) {
         s16 wx, wy;
         const AnimFrame *f = skeleton_weapon_frame(i, &wx, &wy);
         if (f)
             piece(f->code, f->palette, wx - game.cam_x, wy - game.cam_y, f->flip);
     }
-    for(i=0;i<24;i++){const AnimFrame *f;if(!edge_shots[i].active)continue;f=edge_shot_frame(i);if(f)piece(f->code,f->palette,edge_shots[i].x-game.cam_x,edge_shots[i].y-game.cam_y,f->flip);}
-    for(i=0;i<24;i++){const AnimFrame *f;if(!reinforcement_shots[i].active)continue;f=reinforcement_shot_frame(i);if(f)piece(f->code,f->palette,reinforcement_shots[i].x-game.cam_x,reinforcement_shots[i].y-game.cam_y,f->flip);}
-    for(i=0;i<MAX_ACTORS;i++){const AnimFrame *f;if(!flailer_weapons[i].active)continue;f=flailer_weapon_frame(i);if(f)piece(f->code,f->palette,flailer_weapons[i].x-game.cam_x,flailer_weapons[i].y-game.cam_y,f->flip);}
-    for(i=0;i<24;i++){const AnimFrame *f;if(!dragon_shots[i].active)continue;f=dragon_shot_frame(i);DragonShot *p=&dragon_shots[i];if(f){if(p->kind==2)body(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);else piece(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);}}
-    for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){const AnimFrame *f;if(!waveboss_seeds[i].active)continue;f=waveboss_seed_frame(i);if(f)piece(f->code,f->palette,waveboss_seeds[i].x-game.cam_x,waveboss_seeds[i].y-game.cam_y,f->flip);}
-    for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
-    for(i=0;i<MAX_STATUE_SHELLS;i++) {
+    if(edge_shots_occupied || game.mode!=PLAY)for(i=0;i<24;i++){const AnimFrame *f;if(!edge_shots[i].active)continue;f=edge_shot_frame(i);if(f)piece(f->code,f->palette,edge_shots[i].x-game.cam_x,edge_shots[i].y-game.cam_y,f->flip);}
+    if(reinforcement_shots_occupied || game.mode!=PLAY)for(i=0;i<24;i++){const AnimFrame *f;if(!reinforcement_shots[i].active)continue;f=reinforcement_shot_frame(i);if(f)piece(f->code,f->palette,reinforcement_shots[i].x-game.cam_x,reinforcement_shots[i].y-game.cam_y,f->flip);}
+    if(flailer_weapons_occupied || game.mode!=PLAY)for(i=0;i<MAX_ACTORS;i++){const AnimFrame *f;if(!flailer_weapons[i].active)continue;f=flailer_weapon_frame(i);if(f)piece(f->code,f->palette,flailer_weapons[i].x-game.cam_x,flailer_weapons[i].y-game.cam_y,f->flip);}
+    if(dragon_shots_occupied || game.mode!=PLAY)for(i=0;i<24;i++){const AnimFrame *f;if(!dragon_shots[i].active)continue;f=dragon_shot_frame(i);DragonShot *p=&dragon_shots[i];if(f){if(p->kind==2)body(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);else piece(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);}}
+    if(waveboss_seeds_occupied || game.mode!=PLAY)for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){const AnimFrame *f;if(!waveboss_seeds[i].active)continue;f=waveboss_seed_frame(i);if(f)piece(f->code,f->palette,waveboss_seeds[i].x-game.cam_x,waveboss_seeds[i].y-game.cam_y,f->flip);}
+    if(container_traps_occupied || game.mode!=PLAY)for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
+    if(shell_pools_occupied[0] || shell_pools_occupied[1] || game.mode!=PLAY)for(i=0;i<MAX_STATUE_SHELLS;i++) {
         const AnimFrame *f=hunter_shells[i].active?hunter_shell_frame(&hunter_shells[i]):0;
         if(f)piece(f->code,f->palette,hunter_shells[i].x-game.cam_x,hunter_shells[i].y-game.cam_y,f->flip);
         f=hunter_blasts[i].active?hunter_shell_frame(&hunter_blasts[i]):0;
@@ -428,7 +428,7 @@ static void sprites(void) {
         f=statue_blasts[i].active?statue_shell_frame(&statue_blasts[i]):0;
         if(f)body(f->code,f->palette,statue_blasts[i].x-game.cam_x,statue_blasts[i].y-game.cam_y,f->flip);
     }
-    for(i=0;i<MAX_MISSILES;i++){const AnimFrame *f;if(!missiles[i].active)continue;f=missile_frame(i);if(f)piece(f->code,f->palette,missiles[i].x-game.cam_x,missiles[i].y-game.cam_y,f->flip);}
+    if(missiles_occupied || game.mode!=PLAY)for(i=0;i<MAX_MISSILES;i++){const AnimFrame *f;if(!missiles[i].active)continue;f=missile_frame(i);if(f)piece(f->code,f->palette,missiles[i].x-game.cam_x,missiles[i].y-game.cam_y,f->flip);}
     for (i = 0; i < MAX_LOOT; i++) {
         const AnimFrame *f;
         if(!loot[i].active)continue;
@@ -457,7 +457,7 @@ static void text(u16 x, u16 y, const char *s) {
 }
 static u32 last_score = 0xffffffff;
 static u16 last_coins = 65535, last_time = 65535, last_stats = 65535;
-static u8 last_shop = 255,last_keys=255,last_max_hp=255,last_npc_page=255;
+static u8 last_shop = 255,last_keys=255,last_max_hp=255,last_npc_page=255,last_locked_hint;
 static void digits(char *p, u16 v, u16 count) {
     while (count) {
         p[--count] = '0' + v % 10;
@@ -515,6 +515,12 @@ static void overlay(void) {
         VDP_setTileMapDataRectEx(BG_A,tiles,0,0,6,32,4,32,CPU);
         last_npc_page=npc_sequence.page;
     }
+    {
+        u8 hint=m==PLAY && container_locked_hint!=0;
+        if(hint!=last_locked_hint || (changed && hint))
+            text(3,24,hint?"LOCKED: BUY A KEY IN SHOP":"                        ");
+        last_locked_hint=hint;
+    }
     if (!changed && !(m == SHOP && last_shop != game.shop_item))
         return;
     last_shop = game.shop_item;
@@ -523,7 +529,8 @@ static void overlay(void) {
         text(7, 10, "SGDK DEVELOPMENT BUILD");
         text(10, 14, "PRESS START");
         text(8, 18, "A ATTACK  B JUMP");
-        text(6, 20, "UP: CLIMB / ENTER SHOP");
+        text(4, 20, "RESCUE OLD MEN FOR SHOPS");
+        text(5, 22, "CHESTS NEED SHOP KEYS");
     } else if (m == PAUSED)
         text(13, 12, "PAUSED");
     else if (m == SHOP) {

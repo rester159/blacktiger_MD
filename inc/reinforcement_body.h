@@ -1,6 +1,7 @@
 #ifndef REINFORCEMENT_BODY_H
 #define REINFORCEMENT_BODY_H
 #include "animation.h"
+extern u8 reinforcement_shots_occupied;
 extern const AnimSegment reinforcement_segments[];
 extern const u16 reinforcement_roots[3][25],reinforcement_scores[3];
 extern const u8 reinforcement_choices[3][8][16],reinforcement_health[3],reinforcement_layers[3];

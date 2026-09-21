@@ -1,4 +1,6 @@
 #include "progress.h"
+/* Conservative render occupancy: allocation sets it, updates refresh it. */
+u8 container_traps_occupied;
 #include "container.h"
 #include "assets.h"
 #include "hazard.h"
@@ -6,11 +8,12 @@ typedef struct {AnimState animation;u16 segment;u8 id,phase,pending,left;} Conta
 static ContainerState containers[MAX_ACTORS];
 static u8 container_opened[8],container_collected[8];
 ContainerTrap container_traps[MAX_CONTAINER_TRAPS];
-u8 container_keys;
-void container_actor_restart(void) {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++)container_traps[i].active=0;}
+u8 container_keys,container_locked_hint;
+void container_actor_restart(void) {container_locked_hint=0;u16 i;container_traps_occupied=0;for(i=0;i<MAX_CONTAINER_TRAPS;i++)container_traps[i].active=0;}
 void container_actor_reset(void) {
+ container_locked_hint=0;
  u16 i;for(i=0;i<8;i++)container_opened[i]=container_collected[i]=0;
- for(i=0;i<MAX_CONTAINER_TRAPS;i++)container_traps[i].active=0;
+ container_traps_occupied=0;for(i=0;i<MAX_CONTAINER_TRAPS;i++)container_traps[i].active=0;
 }
 static void select_clip(AnimState *a,u16 *segment,u16 target) {
  s8 vx=a->vx,vy=a->vy;animation_reset(a);a->vx=vx;a->vy=vy;*segment=target;
@@ -38,7 +41,7 @@ static void attack_spawn(s16 x,u8 left,const u16 *roots,u8 special) {
  for(i=0;i<6;i++) {
   ContainerTrap *t=&container_traps[base+i];animation_reset(&t->animation);
   t->segment=roots[i];t->x=x+(i>=3?(left?-24:24):0);t->y=y;
-  t->active=1;t->left=left;t->contact=0;t->part=i%3+(special?3:0);
+  t->active=1;container_traps_occupied=1;t->left=left;t->contact=0;t->part=i%3+(special?3:0);
  }
 }
 void container_ground_spawn(s16 x,u8 left){attack_spawn(x+8,left,container_trap_roots,0);}
@@ -60,6 +63,8 @@ void container_step(u16 slot,u8 contact) {
  }
  if(contact && (game.frame&1) && (s->phase==0 || s->phase==2)) {
   ContainerContact c;u8 effect;
+  if(s->phase==0 && !container_keys)container_locked_hint=90;
+  else container_locked_hint=0;
   c.coins=game.coins;c.invincible=game.p.invincible;c.keys=container_keys;c.hp=game.p.hp;
   c.max_hp=progress_max_hp;
   c.opened=container_opened[s->id];c.collected=container_collected[s->id];
@@ -92,7 +97,7 @@ u8 container_traps_tick(void){u8 occupied=0;
    select_clip(&t->animation,&t->segment,seg->next);
   }
  }
-return occupied;
+container_traps_occupied=occupied;return occupied;
 }
 u8 container_trap_contact(u16 slot) {
  ContainerTrap *t=&container_traps[slot];

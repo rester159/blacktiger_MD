@@ -1,6 +1,7 @@
 #ifndef FLAILER_H
 #define FLAILER_H
 #include "animation.h"
+extern u8 flailer_weapons_occupied;
 typedef struct {AnimState animation;u16 segment;s16 x,y;u8 active,profile,pending,dying;} FlailerWeapon;
 extern FlailerWeapon flailer_weapons[MAX_ACTORS];
 void flailer_reset(void);

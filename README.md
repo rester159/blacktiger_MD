@@ -14,6 +14,7 @@ Open `dist/blacktiger_astra.bin` in a Genesis emulator.
 - A: chain attack and dagger volley (release to attack again); B: jump.
 - Start: begin, pause, resume; accept a free continue during the timed continue offer.
 - Contact a petrified NPC to rescue it. Merchant rescues open the shop; A buys, B/Start exits.
+- Chests need a key: buy KEY for 30 Zenny in a merchant shop, then touch the chest. Attacking does not unlock it. The HUD shows your key count, and locked chests now display a hint.
 
 ## Build
 

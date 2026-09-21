@@ -1,4 +1,6 @@
 #include "reinforcement_body.h"
+/* Conservative render occupancy: allocation sets it, updates refresh it. */
+u8 reinforcement_shots_occupied;
 #include "assets.h"
 #include "loot.h"
 #include "progress.h"
@@ -7,7 +9,7 @@ typedef struct {AnimState animation;u16 segment;u8 mode,pending,left,profile,fra
 static ReinforcementState fighters[MAX_ACTORS];
 ReinforcementShot reinforcement_shots[24];
 u8 reinforcement_player_low;
-void reinforcement_shots_reset(void){u16 i;for(i=0;i<24;i++)reinforcement_shots[i].active=0;}
+void reinforcement_shots_reset(void){u16 i;reinforcement_shots_occupied=0;for(i=0;i<24;i++)reinforcement_shots[i].active=0;}
 static u16 root(ReinforcementState *s,u8 n){return reinforcement_roots[s->profile][n];}
 static u16 sided(ReinforcementState *s,u8 n){return root(s,n+!s->left);}
 static void select_segment(ReinforcementState *s,u16 n){s8 vx=s->animation.vx,vy=s->animation.vy;animation_reset(&s->animation);s->animation.vx=vx;s->animation.vy=vy;s->segment=n;}
@@ -43,7 +45,7 @@ static u16 choose(Actor *a,ReinforcementState *s){
 static u8 launch(Actor *a,ReinforcementState *s,u8 left){
  u16 i,j;for(i=0;i<24;i+=6){for(j=0;j<6 && !reinforcement_shots[i+j].active;j++){}if(j==6)break;}
  if(i==24)return 0;
- for(j=0;j<6;j++){ReinforcementShot *p=&reinforcement_shots[i+j];animation_reset(&p->animation);p->active=1;p->part=j+(left?0:6);p->x=PX(a->x)+(left?-13:29);p->y=PX(a->y)+(s->low?8:0);}
+ for(j=0;j<6;j++){ReinforcementShot *p=&reinforcement_shots[i+j];animation_reset(&p->animation);p->active=1;reinforcement_shots_occupied=1;p->part=j+(left?0:6);p->x=PX(a->x)+(left?-13:29);p->y=PX(a->y)+(s->low?8:0);}
  game.sound=SND_ATTACK;return 1;
 }
 void reinforcement_body_step(u16 slot){
@@ -55,7 +57,7 @@ void reinforcement_body_step(u16 slot){
  }
  for(tries=0;tries<8;tries++){
   const AnimSegment *seg=&reinforcement_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;}
+  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;}
   switch(seg->event){
   case 0:s->mode=8;
   case 1:target=choose(a,s);break;
@@ -77,7 +79,7 @@ void reinforcement_body_step(u16 slot){
  }
 }
 const AnimFrame *reinforcement_body_frame(u16 slot){ReinforcementState *s=&fighters[slot];return s->animation.remaining?animation_current(&s->animation,reinforcement_segments[s->segment].clip):0;}
-u8 reinforcement_shots_step(void){u8 occupied=0;u16 i;for(i=0;i<24;i++){ReinforcementShot *p=&reinforcement_shots[i];if(!p->active)continue;occupied=1;if(!animation_tick(&p->animation,reinforcement_clips[p->part])){p->active=0;continue;}p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;continue;}p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;}return occupied;
+u8 reinforcement_shots_step(void){u8 occupied=0;u16 i;for(i=0;i<24;i++){ReinforcementShot *p=&reinforcement_shots[i];if(!p->active)continue;occupied=1;if(!animation_tick(&p->animation,reinforcement_clips[p->part])){p->active=0;continue;}p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;continue;}p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;}reinforcement_shots_occupied=occupied;return occupied;
 }
 u8 reinforcement_shot_contact(u16 slot){ReinforcementShot *p=&reinforcement_shots[slot];return p->active && p->part%6==2 && !(game.frame&1) && player_contact(p->x,p->y,40,4);}
 const AnimFrame *reinforcement_shot_frame(u16 slot){ReinforcementShot *p=&reinforcement_shots[slot];return p->active && p->animation.remaining?animation_current(&p->animation,reinforcement_clips[p->part]):0;}

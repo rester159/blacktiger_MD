@@ -1,11 +1,12 @@
 #include "missile.h"
+u8 missiles_occupied;
 #include "assets.h"
 Missile missiles[MAX_MISSILES];
-void missile_reset(void) {u16 i;for(i=0;i<MAX_MISSILES;i++)missiles[i].active=0;}
+void missile_reset(void) {missiles_occupied=0;u16 i;for(i=0;i<MAX_MISSILES;i++)missiles[i].active=0;}
 u8 missile_spawn(s16 x,s16 y,const AnimClip *flight,const AnimClip *death,u8 damage,u8 width,u8 height,u8 health) {
  u16 i;for(i=0;i<MAX_MISSILES;i++)if(!missiles[i].active) {
   Missile *m=&missiles[i];animation_reset(&m->animation);m->clip=flight;m->death=death;
-  m->x=x;m->y=y;m->active=1;m->dying=0;m->damage=damage;m->width=width;m->height=height;m->health=health;return 1;
+  m->x=x;m->y=y;m->active=1;missiles_occupied=1;m->dying=0;m->damage=damage;m->width=width;m->height=height;m->health=health;return 1;
  }
  return 0;
 }
@@ -21,7 +22,7 @@ u8 missile_tick(void) {
   }
   else m->active=0;
  }
- return occupied;
+ missiles_occupied=occupied;return occupied;
 }
 u8 missile_hit(u16 slot,u8 damage) {
  Missile *m=&missiles[slot];if(!m->active || m->dying || !damage)return 0;
