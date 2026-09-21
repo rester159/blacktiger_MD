@@ -203,3 +203,8 @@ are ignored by Git; keep them when moving the repository. `BLACKTIGER_SOURCE`
 and `BLACKTIGER_CORE` can override their locations. SGDK remains installed at
 `~/mars/m68k-elf`. Run `make` to build, `make test` to verify, and
 `tools/launch.sh` to play `dist/blacktiger_astra.bin`.
+
+GitHub checkout: install Git LFS before cloning, or run `git lfs install` and
+`git lfs pull` afterward. Three large regression fixtures use LFS. The ignored
+arcade source package and local emulator core must be supplied separately on a
+new machine; they are not uploaded to GitHub.
