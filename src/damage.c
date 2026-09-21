@@ -10,7 +10,6 @@ void player_hurt_from(u8 damage,s16 source_x) {
         if (p->armor >= damage) {
             if(p->armor==damage)armor_break_start();else p->armor -= damage;
             p->invincible = 60;
-            game.sound = SND_HIT;
             return;
         }
         damage -= p->armor;
@@ -19,7 +18,7 @@ void player_hurt_from(u8 damage,s16 source_x) {
     if (p->hp > damage) {
         p->hp -= damage;
         p->invincible = 60;
-        game.sound = SND_HIT;
+        game_sound(1);
     } else {
         p->hp = 0;
         player_death_start(0,(u8)(PX(p->x)-game.cam_x)<(u8)(source_x-game.cam_x));

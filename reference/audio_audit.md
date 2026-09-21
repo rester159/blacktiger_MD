@@ -129,3 +129,24 @@ attract-mode suppression disabled and an explicit global frame counter. All
 including 931 commands and multi-command updates. The cartridge check also
 verifies ordered stop/landing consumption and no replay on paused frames.
 This does not establish complete game-wide command scheduling fidelity.
+
+## Shared native command buffer and damage/pickups
+
+Movement output now joins a 16-command per-update buffer in Game. The native
+handlers append commands in execution order; audio consumes and clears it once.
+This prevents a later player event from overwriting an earlier command. The
+buffer drops excess commands if full; it does not claim the original asynchronous
+mailbox's producer/consumer timing or overflow behavior. Generic enemy/NPC/shop
+placeholder events still use the old single-event field pending source matching.
+
+Original ordinary damage dispatch at fixed 2F42 is silent when armor remains.
+Exact break and overflow invoke 7A09, queuing `17`; surviving health damage queues
+`01` at 2F93. Lethal damage marks death; the native immediate death initializer
+then queues its separately witnessed `1F,02`. Original damage queue captures now
+cover all 180 existing health/armor/damage/invulnerability fixtures, matching the
+native ordered output (with that explicit death-entry suffix). Cartridge contacts
+verify silence, armor break, health damage, death and protected hits.
+
+Both placed time-extension and screen-attack items emit `05` on collection.
+The 406-update item oracle now records and compares actual sound queues, including
+empty queues before and after collection. This replaces their generic coin chirp.

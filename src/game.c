@@ -310,6 +310,8 @@ static void player_step(u16 in, u16 pressed) {
     if(in&IN_ATTACK)raw|=16;
     player_motion_frame=game.frame;
     player_control_step(&player_motion,&player_attack,raw,status_reverse,p->weapon-1);
+    {u8 i;for(i=0;i<player_motion_sound_count;++i)game_sound(player_motion_sounds[i]);}
+    player_motion_sound_count=0;
     p->x=(s32)(s16)(player_motion.scroll_x+player_motion.screen_x)*FX;
     p->y=(s32)(s16)(player_motion.scroll_y+player_motion.screen_y)*FX;
     p->vx=player_motion.vx*FX;p->vy=player_motion.vy*FX+player_motion.fraction;

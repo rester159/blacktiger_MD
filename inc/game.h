@@ -92,8 +92,15 @@ typedef struct {
     u8 round, mode, sound, shop_item, rescued, boss_dead;
     u16 kills;
     u8 rescue_actor, rescue_kind, player_low;
+    u8 sound_count, sound_commands[16];
 } Game;
 extern Game game;
+/* Ordered commands emitted by native game logic, consumed once per update.
+ * Bounded like the source 16-byte mailbox; source asynchronous contention is
+ * not reproduced by this per-update buffer. */
+static inline void game_sound(u8 command) {
+    if(game.sound_count<16)game.sound_commands[game.sound_count++]=command;
+}
 void game_new(void);
 void game_round(u8 round);
 void game_tick(u16 input);

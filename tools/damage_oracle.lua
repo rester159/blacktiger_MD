@@ -28,5 +28,6 @@ for id,c in ipairs(cases) do
  p:write_u8(0xe905,c.invincible>0 and 1 or 0);le(0xf424,c.invincible)
  call(0x354e)
  emit(string.format('DAMAGE|%d|%d|%d|%d|%d',id-1,p:read_u8(0xf40e),p:read_u8(0xf3ad),p:read_u16(0xf424),p:read_u8(0xf400)))
+ emit(string.format('SOUND|%d|%s',id-1,hex(0xe150,(p:read_u16(0xe160)-0xe150)&15)))
 end
 emit('COMPLETE');out:close();m:exit()

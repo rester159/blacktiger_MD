@@ -13,7 +13,8 @@ with tempfile.TemporaryDirectory() as temp:
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''void setup(int definition){game=(Game){0};game.mode=PLAY;game.time=80;game.coins=123;game.p.x=game.p.y=1000*256;game.actors[0]=(Actor){.active=1,.def=definition,.x=128*256,.y=96*256};}
- int tick(int collect){if(collect){game.p.x=120*256;game.p.y=88*256;}return pickup_step(0);}
+ int tick(int collect){game.sound_count=0;if(collect){game.p.x=120*256;game.p.y=88*256;}return pickup_step(0);}
+ int sound_count(void){return game.sound_count;} int sound_at(int i){return game.sound_commands[i];}
  int active(void){return game.actors[0].active;} int persistent(void){return game.spawned[0];}
  int seconds(void){return game.time;} int coins(void){return game.coins;} int score(void){return game.score;}
 ''');(tmp/'stubs.c').write_text('\n'.join(stubs))
@@ -33,6 +34,9 @@ with tempfile.TemporaryDirectory() as temp:
    assert lib.coins()==123 and lib.score()==0
    assert bool(effect)==(kind==2 and tick==202)
    items+=1
+  elif v[0]=='SOUND':
+   actual=bytes(lib.sound_at(i) for i in range(lib.sound_count()))
+   assert actual==bytes.fromhex(v[3]),('pickup sound',v,actual)
   elif v[0]=='TARGET':
    size,contact,active,hp,layers=map(int,v[1:]);expected=contact in data['screen_contacts'].get(str(size),[])
    assert (active==64)==expected,(size,contact,active)
@@ -44,5 +48,5 @@ with tempfile.TemporaryDirectory() as temp:
    assert a[0]==64 and a[14]==1 and a[21]==(1 if phase==0 else 0),(variant,phase,part,a.hex())
  compiled=(C.c_uint8*len(meta['actor_definitions'])).in_dll(lib,'screen_attack_targets');contracts=load(Source())
  for d in meta['actor_definitions']:assert bool(compiled[d['id']])==bool(contracts[(d['bank'],d['address'])]['screen_attack_target'])
-report={'passed':True,'item_ticks':items,'source_target_cases':targets,'compiled_actor_filters':len(compiled),'scope':'Both placed items, time extension, no coin/score reward, retirement/persistence, and source small/medium/large target filters. Forced health/layer collapse and pending stacked-part death callbacks are also checked; unported enemy death effects and shared-pool contention remain gaps.'}
+report={'passed':True,'item_ticks':items,'source_target_cases':targets,'compiled_actor_filters':len(compiled),'scope':'Both placed items including source sound output, time extension, no coin/score reward, retirement/persistence, and source small/medium/large target filters. Forced health/layer collapse and pending stacked-part death callbacks are also checked; unported enemy death effects and shared-pool contention remain gaps.'}
 (ROOT/'reports/pickup-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

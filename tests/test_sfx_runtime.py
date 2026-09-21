@@ -11,8 +11,8 @@ s=state(r);s.mode=2;put(r,s);r.run(60)
 # Controller output is consumed once, in order, even on paused frames. Stop
 # before landing must clear an existing sustained effect and retain landing.
 r.write('sfx_request',0,b'\x14');r.run(3)
-r.write('player_motion_sounds',0,b'\x1f\x1c');r.write('player_motion_sound_count',0,b'\x02');r.run(3)
-assert r.read('player_motion_sound_count',1)==b'\0'
+s=state(r);s.sound_commands[0]=0x1f;s.sound_commands[1]=0x1c;s.sound_count=2;put(r,s);r.run(3)
+assert state(r).sound_count==0
 assert r.read('sfx_slots',22)[8]==0x1c,'ordered stop/landing output lost'
 r.run(90);assert r.read('sfx_active',1)==b'\0','controller output replayed'
 # A finite FM cue ends before the effects-only capture; pause prevents reselection.

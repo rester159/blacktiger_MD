@@ -9,7 +9,7 @@ U8=C.c_uint8;U16=C.c_uint16;S8=C.c_int8;S16=C.c_int16;U32=C.c_uint32;S32=C.c_int
 class Player(BE):_fields_=[('x',S32),('y',S32),('vx',S16),('vy',S16),('invincible',U16),('attack',U16),*[(k,U8) for k in ('grounded','climb','face','hp','armor','weapon','lives','reserved')]]
 class Actor(BE):_fields_=[('x',S32),('y',S32),('vx',S16),('vy',S16),('definition',U16),('timer',U16),('life',U16),*[(k,U8) for k in ('active','hp','hit','source')],('face',S8),('state',U8)]
 class Shot(BE):_fields_=[('x',S32),('y',S32),('vx',S16),('vy',S16),*[(k,U8) for k in ('active','enemy','life','damage','kind')]]
-class Game(BE):_fields_=[('p',Player),('actors',Actor*24),('shots',Shot*18),('spawned',U8*160),('score',U32),*[(k,U16) for k in ('coins','time','clock','frame','cam_x','cam_y','previous_input','mode_timer')],*[(k,U8) for k in ('round','mode','sound','shop_item','rescued','boss_dead')],('kills',U16),('rescue_actor',U8),('rescue_kind',U8),('player_low',U8)]
+class Game(BE):_fields_=[('p',Player),('actors',Actor*24),('shots',Shot*18),('spawned',U8*160),('score',U32),*[(k,U16) for k in ('coins','time','clock','frame','cam_x','cam_y','previous_input','mode_timer')],*[(k,U8) for k in ('round','mode','sound','shop_item','rescued','boss_dead')],('kills',U16),('rescue_actor',U8),('rescue_kind',U8),('player_low',U8),('sound_count',U8),('sound_commands',U8*16)]
 def state(r):return Game.from_buffer_copy(r.read('game',C.sizeof(Game)))
 def put(r,s):r.write('game',0,bytes(s))
 def finish_clear(r,s):

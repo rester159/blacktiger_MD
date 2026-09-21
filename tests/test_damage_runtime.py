@@ -5,7 +5,7 @@ from test_runtime import ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
 cases=[]
 for armor,damage,hp,invincible in ((4,2,4,0),(2,2,4,0),(1,3,4,0),(0,1,4,0),(1,5,4,0),(2,3,4,20)):
- s=state(r);s.mode=2;put(r,s);r.run(20)
+ s=state(r);s.mode=2;put(r,s);r.write('sfx_request',0,b'\x1f');r.run(20)
  s=state(r);s.cam_x=0;s.cam_y=688;s.mode=1;s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.hp=hp;s.p.armor=armor;s.p.invincible=invincible;s.p.climb=0;s.time=100;s.clock=0
  for a in s.actors:a.active=0
  for q in s.shots:q.active=0
@@ -22,7 +22,12 @@ for armor,damage,hp,invincible in ((4,2,4,0),(2,2,4,0),(1,3,4,0),(0,1,4,0),(1,5,
  assert (s.mode==4)==(expected_hp==0)
  assert s.p.vy>=0,'Unrequested hurt jump remains'
  if expected_hp and not invincible:assert s.p.invincible==60,s.p.invincible
- cases.append(dict(armor=armor,damage=damage,hp=hp,invincible=invincible))
+ expected_sound=0 if invincible or armor>damage else 2 if not expected_hp else 1 if damage>armor else 0x17
+ r.run(3)
+ slot=r.read('sfx_slots',22)
+ assert (slot[8] if slot[9] else 0)==expected_sound,(armor,damage,hp,invincible,'sound',slot.hex(),expected_sound)
+ assert state(r).sound_count==0
+ cases.append(dict(armor=armor,damage=damage,hp=hp,invincible=invincible,sound=expected_sound))
 r.close()
-report={'passed':True,'cases':cases,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),'scope':'Injected enemy projectile contacts on linked cartridge: absorption, exact armor break, overflow, lethal and protected hits.'}
+report={'passed':True,'cases':cases,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),'scope':'Injected enemy projectile contacts on linked cartridge: absorption, exact armor break, overflow, lethal and protected hits, including selected native sound or silence and drained event buffer.'}
 (ROOT/'reports/damage-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

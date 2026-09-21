@@ -892,3 +892,12 @@ The controller oracle now checks 931 sound commands across 56,720 updates,
 including simultaneous jump/attack behavior. Cartridge playback verifies ordered
 consumption and no repeated output while paused. Remaining game-wide audio and
 natural full-game completion gaps above still apply.
+
+## Shared command buffer and damage/pickup sounds
+
+Audited movement, damage, armor-break, death and placed-power-up events now use
+one ordered 16-command buffer. Ordinary armor absorption is silent; break and
+health damage use their distinct source effects. Original sound queues match
+all 180 damage fixtures and 406 placed-item updates. Cartridge contact tests
+check the resulting effect selections and silence. Generic enemy/NPC/shop
+bindings and source asynchronous queue contention remain unfinished.

@@ -4,7 +4,7 @@ ArmorFragment armor_fragments[4];
 void armor_break_reset(void){u16 i;for(i=0;i<4;i++)armor_fragments[i]=(ArmorFragment){0};}
 void armor_break_start(void){
     u16 i;if(!game.p.armor)return;
-    game.p.armor=0;
+    game_sound(0x17);game.p.armor=0;
     for(i=0;i<4;i++)armor_fragments[i]=(ArmorFragment){.x=PX(game.p.x)+8,.y=PX(game.p.y)+8,.active=1};
 }
 void armor_break_step(void){

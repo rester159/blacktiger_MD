@@ -8,7 +8,7 @@ u8 pickup_step(u16 slot) {
     if (!player_contact(PX(a->x), PX(a->y), pickup_width, pickup_height)) return 0;
     a->state = 1;
     game.spawned[a->source] = 2;
-    game.sound = SND_COIN;
+    game_sound(5);
     if (kind == 1) game.time += pickup_seconds;
     return kind == 2;
 }

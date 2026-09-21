@@ -14,7 +14,7 @@ typedef struct {
     u8 active, request, history, launch, selector, reach, damage;
     u8 counter, holding, hit, links, count;
 } PlayerAttack;
-/* Ordered output from one controller update, drained by audio_tick. */
+/* Ordered output from one controller update, copied into the game command buffer. */
 extern u8 player_motion_sounds[4],player_motion_sound_count,player_motion_frame;
 extern PlayerMotion player_motion;
 extern PlayerAttack player_attack;

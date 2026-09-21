@@ -5,7 +5,7 @@ void player_death_reset(void){player_death=(PlayerDeath){0};}
 void player_death_start(u8 hazard,u8 left) {
     u8 x=PX(game.p.x)-game.cam_x,y=PX(game.p.y)-game.cam_y;
     player_death=(PlayerDeath){.x={x,x},.y={y,y},.profile=(hazard?2:0)+!!left,.active=1};
-    game.mode=DEAD;game.mode_timer=329;game.sound=SND_DIE;
+    game.mode=DEAD;game.mode_timer=329;game.sound=SND_DIE;game_sound(0x1f);game_sound(2);
 }
 u8 player_death_step(void) {
     PlayerDeath *p=&player_death;const PlayerDeathFrame *f;u16 i;

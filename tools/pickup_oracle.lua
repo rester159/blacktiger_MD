@@ -26,9 +26,11 @@ for kind,pc in ipairs({0xb4af,0xb515}) do
  call(pc);cpu.state.IX.value=0xf520
  le(0xf3b1,0x0120)
  for tick=1,203 do
+  le(0xe160,0xe150)
   if p:read_u8(0xf520)~=0 then call(0x2fe7) end
   if tick==202 then call(0x4744) end
   emit(string.format('ITEM|%d|%d|%s|%s|%s|%s',kind,tick,hex(0xf520,32),hex(0xfe28,4),hex(0xf3b1,2),hex(0xec58,1)))
+  emit(string.format('SOUND|%d|%d|%s',kind,tick,hex(0xe150,(p:read_u16(0xe160)-0xe150)&15)))
  end
 end
 for _,size in ipairs({32,48,96}) do for contact=0,63 do
