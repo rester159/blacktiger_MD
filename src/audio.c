@@ -1,4 +1,5 @@
 #include "sfx.h"
+#include "frontend.h"
 #include "game.h"
 #include "music.h"
 #include <genesis.h>
@@ -20,7 +21,7 @@ static void music_update(void) {
     audio_video_frame=now;
     bus=Z80_getAndRequestBus(TRUE);
     if(!audio_ready){YM2612_reset();audio_ready=1;pal_audio=SYS_isPAL();elapsed=0;}
-    if(mode==TITLE) {
+    if(mode==TITLE || !settings[frontend.mode].music) {
         music_request=0;if(music_active)music_stop();
     } else {
         u8 request=music_request;music_request=0;
@@ -52,10 +53,10 @@ void audio_tick(void) {
         u8 i;for(i=0;i<game.sound_count;++i)sfx_start(game.sound_commands[i]);
         game.sound_count=0;age=0;
     }
-    if(game.mode==TITLE){sfx_start(0x1f);age=0;}
+    if(game.mode==TITLE || !settings[frontend.mode].sfx){sfx_start(0x1f);age=0;}
     sfx_render(pal_audio);
     if(sfx_active){age=0;return;}
-    if (game.sound && game.sound!=SND_PLAYER_ATTACK && game.sound!=SND_JUMP && game.sound!=SND_DIE && game.sound!=SND_CLEAR) {
+    if (settings[frontend.mode].sfx && game.sound && game.sound!=SND_PLAYER_ATTACK && game.sound!=SND_JUMP && game.sound!=SND_DIE && game.sound!=SND_CLEAR) {
         sound = game.sound;
         age = 18;
         PSG_setEnvelope(0, 0);

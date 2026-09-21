@@ -4,7 +4,7 @@ import json,hashlib
 from test_runtime import ROOT,Runner,state,put
 ref=json.loads((ROOT/'reference/weapon_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/weapon_oracle_events.txt'),('lua_sha256','tools/weapon_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
-rom=(ROOT/'out/release/rom.bin').read_bytes();r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);cases=[]
+rom=(ROOT/'out/release/rom.bin').read_bytes();r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);cases=[]
 for line in (ROOT/'reference/weapon_oracle_events.txt').read_text().splitlines():
  if not line.startswith('WEAPON|'):continue
  _,tier,damage,reach=line.split('|');tier=int(tier)+1;damage=int(damage)

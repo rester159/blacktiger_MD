@@ -2,7 +2,7 @@
 import json,hashlib
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
 from test_loot_runtime import drops
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 slot,row,level=fixture(r,0,2,0xacac,approach=32,vertical=32);s=state(r)
 parts=[i for i,a in enumerate(s.actors) if a.active and a.source==row]
 assert len(parts)==2 and s.spawned[row]==2,parts

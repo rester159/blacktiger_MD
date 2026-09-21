@@ -45,7 +45,7 @@ def test():
  def check(name,condition):
   assert condition,name;checks.append(name)
  check('title boots',s.frame>20 and s.p.hp==1 and s.coins==200 and s.p.armor==2);save(r,'tested-title')
- r.run(2,8);r.run(30);s=state(r);check('start enters play',s.mode==1 and s.p.grounded==1)
+ r.start_game(2);r.run(30);s=state(r);check('start enters play',s.mode==1 and s.p.grounded==1)
  s.p.invincible=0;put(r,s);save(r,'tested-start')
  before=s.p.x;r.run(24,1<<7);s=state(r);check('right movement',s.p.x>before);r.run(4);before=s.p.y;r.run(5,1<<0);s=state(r);check('jump rises',s.p.y<before and s.p.vy<0);save(r,'tested-jump')
  r.run(40);r.run(3,8);r.run(5);s=state(r);check('pause',s.mode==2);xy=(s.p.x,s.p.y);r.run(30,(1<<7)|(1<<1));s=state(r);check('pause freezes world',xy==(s.p.x,s.p.y));r.run(3,8);r.run(1);check('resume',state(r).mode==1)

@@ -3,7 +3,7 @@ import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
 cases=[]
 for profile,constructor in enumerate((0x98a3,0x98e8)):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  slot,row,level=fixture(r,0,1,constructor,approach=32,vertical=64,wait_frames=300)
  s=state(r);score=s.score;assert s.actors[slot].life==5+profile
  seeds=False;waves=False

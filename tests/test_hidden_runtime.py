@@ -51,7 +51,7 @@ def fire(r,slot):
   if not s.shots[0].active:return s
  raise AssertionError(('wall did not consume projectile',initial_frame,s.round,s.mode,s.frame,s.actors[slot].source,s.actors[slot].state,s.actors[slot].active,s.shots[0].x,s.shots[0].y,r.read('old_x').hex(),r.read('old_y').hex(),s.cam_x,s.cam_y))
 def run():
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);r.write('progress_max_hp',0,b'\x05');results=[];reward_kinds=set()
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);r.write('progress_max_hp',0,b'\x05');results=[];reward_kinds=set()
  for level,patches in enumerate(contract['rounds']):
   for patch_index,patch in enumerate(patches):
    enter(r,level)

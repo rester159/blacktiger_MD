@@ -13,7 +13,7 @@ def defeat(r,slot):
  raise AssertionError('fighter did not lose its layers')
 cases=[]
 for pc in (0x8344,0x9af6,0x8ef4):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  slot,row,level=fixture(r,0,2,pc,approach=0,vertical=0,hold_position=True)
  raw=r.read('reinforcement_rows',480);assert raw[row*3+1:row*3+3]==bytes([1,1])
  s=state(r);assert s.spawned[row]==0

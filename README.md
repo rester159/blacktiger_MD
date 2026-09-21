@@ -8,11 +8,17 @@ background maps are converted, but having their data does not establish a comple
 
 ## Run
 
-Open `dist/blacktiger_astra.bin` in a Genesis emulator.
+Open `dist/blacktiger_astra.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
 
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
 - A: chain attack and dagger volley (release to attack again); B: jump.
-- Start: begin, pause, resume; accept a free continue during the timed continue offer.
+- Select (Genesis six-button Mode): insert an Arcade coin. Start: play, pause/resume, accept a paid continue, or skip the intro after its first half-second. C does not insert coins.
+- Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/Options. Normal Play preserves the original animated arcade intro in both modes.
+- Home defaults to three total credits: the initial game and two continues. Options sets 1–99 credits for a new run; Select cannot refill them.
+- Both settings menus provide lives, difficulty, coinage, continues, music and sound effects. Difficulty currently changes original weapon-damage tables and shop prices; full arcade difficulty behavior is not yet certified.
+- Home Boss Rush uses one palace arena for eight bosses, awards 1,000–4,500 Zenny, and opens a shop after every victory, including the last. Equipment, keys and remaining currency carry over.
+- HUD: energy, armor, keys, weapon, lives, antidotes, Zenny, score, timer and remaining credits.
+- RetroArch: use a six-button pad; keyboard Right Shift = Select, Enter = Start, A = attack, Z = jump. `tools/launch.sh` applies the pad type and VSync settings for this run.
 - Contact a petrified NPC to rescue it. Merchant rescues open the shop; A buys, B/Start exits.
 - Chests need a key: buy KEY for 30 Zenny in a merchant shop, then touch the chest. Attacking does not unlock it. The HUD shows your key count, and locked chests now display a hint.
 

@@ -1,4 +1,7 @@
 #include "ending.h"
+#include "frontend.h"
+#include "intro.h"
+#include "boss_rush.h"
 #include "round_clear.h"
 #include "game_over.h"
 #include "actor_dispatch.h"
@@ -52,6 +55,7 @@ static void zero(void *p, u16 n) {
 }
 u8 terrain(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
+    if(boss_rush.active)return x<RUSH_X || x>=RUSH_X+256 || y<0 || y>=RUSH_FLOOR?3:0;
     if (x < 0 || x >= r->width || y < 0)
         return 3;
     if (y >= r->height)
@@ -105,6 +109,7 @@ void game_round(u8 round) {
     p->hp = progress_max_hp;
     motion_reset();game.player_low=0;player_death_reset();armor_break_reset();
     player_attack=(PlayerAttack){0};player_daggers_reset();
+    if(boss_rush.active){boss_rush_prepare();motion_reset();}
 }
 void game_bonus_transition(void) {
  u16 i,x=player_motion.scroll_x,y=player_motion.scroll_y;
@@ -125,7 +130,7 @@ void game_bonus_transition(void) {
  game.cam_y=bound_axis(PX(game.p.y)-144,0,rounds[game.round].height-224);
 }
 void game_new(void) {
-    ending_reset();
+    ending_reset();boss_rush=(BossRush){0};
     restart_pending=0;loaded_round=255;
     zero(&game, sizeof game);
     loot_new();
@@ -134,7 +139,8 @@ void game_new(void) {
     shop_new();
     progress_new();
     game.coins=progress_initial_coins;
-    game.p.lives = progress_initial_lives;
+    game.p.lives = frontend_lives();
+    combat_difficulty=shop_difficulty=settings[frontend.mode].difficulty;
     game.p.armor = progress_initial_armor;
     game.p.weapon = 1;
     game_round(0);
@@ -144,6 +150,7 @@ void game_boss_clear(void) {
  player_attack=(PlayerAttack){0};player_daggers_reset();
  zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
  missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();
+ if(boss_rush.active){game.boss_dead=1;boss_rush_win();return;}
  game.boss_dead=1;game.mode=CLEAR;game.mode_timer=0;game.sound=SND_CLEAR;
 }
 static void shot(s16 x, s16 y, s16 vx, s16 vy, u8 enemy, u8 kind) {
@@ -229,7 +236,7 @@ static u8 any_boss(u8 locked) {
 static void spawn_actors(void) {
     const Round *r = &rounds[game.round];
     u16 i, j;
-    if(any_boss(0))return;
+    if(boss_rush.active || any_boss(0))return;
     for (i = game.frame & 3; i < r->spawn_count; i += 4) {
         const Spawn *s = &r->spawns[i];
         s16 sx=s->x,sy=s->y;
@@ -310,6 +317,7 @@ static void player_step(u16 in, u16 pressed) {
     if(in&IN_ATTACK)raw|=16;
     player_motion_frame=game.frame;
     player_control_step(&player_motion,&player_attack,raw,status_reverse,p->weapon-1);
+    if(player_attack.active)player_attack.damage=player_attack_damage(p->weapon);
     {u8 i;for(i=0;i<player_motion_sound_count;++i)game_sound(player_motion_sounds[i]);}
     player_motion_sound_count=0;
     p->x=(s32)(s16)(player_motion.scroll_x+player_motion.screen_x)*FX;
@@ -322,7 +330,7 @@ static void player_step(u16 in, u16 pressed) {
     game.player_low=player_motion.low && !player_motion.jumping;
     if(p->invincible)--p->invincible;
     p->attack=player_attack.active;
-    p->x=bound_axis(PX(p->x),0,rounds[game.round].width-32)*FX;
+    p->x=bound_axis(PX(p->x),boss_rush.active?RUSH_X:0,boss_rush.active?RUSH_X+224:rounds[game.round].width-32)*FX;
     if(player_attack.launch && !shop_poison) {
         player_daggers_launch(PX(p->x),PX(p->y),(player_attack.selector+1)&4,player_motion.low);
         player_attack.launch=0;
@@ -579,19 +587,13 @@ static u8 weapon_contact(u16 j,s16 x,s16 y,u8 dagger) {
 /* Captured immediately before projectile collisions; hit callbacks only mutate
    their own pools, so an empty family stays empty throughout this pass. */
 static u8 weapon_pools(void) {
-    u16 i;u8 mask=0;
-    for(i=0;i<24;i++) {
-        if(i<16 && dragon_shots[i].active)mask|=1;
-        if(edge_shots[i].active)mask|=2;
-        if(flailer_weapons[i].active)mask|=4;
-        if(i<MAX_STATUE_SHELLS) {
-            if(hunter_shells[i].active)mask|=8;
-            if(statue_shells[i].active)mask|=16;
-        }
-        if(i<MAX_MISSILES && missiles[i].active)mask|=32;
-    }
-    return mask;
+    /* Conservative flags include allocations later than the pool update.
+       Blasts/non-hittable dragon shots may cause a harmless extra scan. */
+    return (dragon_shots_occupied?1:0) | (edge_shots_occupied?2:0) |
+           (flailer_weapons_occupied?4:0) | (shell_pools_occupied[1]?8:0) |
+           (shell_pools_occupied[0]?16:0) | (missiles_occupied?32:0);
 }
+
 static u8 weapon_projectile(s16 x,s16 y,u8 damage,u8 dagger,u8 pools) {
     return ((pools&1) && dragon_shot_hit(x,y,damage,dagger)) || ((pools&2) && edge_shot_hit(x,y,damage,dagger)) ||
         ((pools&4) && flailer_weapon_hit(x,y,dagger)) || ((pools&8) && hunter_shell_hit_at(x,y,dagger)) ||
@@ -730,12 +732,16 @@ void game_tick(u16 input) {
     game.sound = 0;
     game.frame++;
     loot_random_tick();
+    frontend_coin(pressed);
     if (game.mode == TITLE) {
-        if (pressed & IN_START) {
+        u8 start=frontend_step(pressed);
+        if(start){
             game_new();game.previous_input=input;
+            if(start==2){boss_rush.active=1;progress_max_hp=4;game_round(7);game.previous_input=input;}else intro_start();
         }
         return;
     }
+    if(game.mode==INTRO){if(intro_step(pressed)){game.frame=0;game_round(0);game.previous_input=input;}return;}
     if (game.mode == PAUSED) {
         if (pressed & IN_START)
             game.mode = PLAY;
@@ -754,8 +760,8 @@ void game_tick(u16 input) {
             else {u8 status=shop_poison || status_reverse;
                 if(shop_buy(item) && item==10 && status)player_attack.launch=0;}
         }
-        if (pressed & (IN_START | IN_JUMP))
-            game.mode = PLAY;
+        if (pressed & (IN_START | IN_JUMP))game.mode = PLAY;
+        if(game.mode==PLAY){boss_rush_shop_exit();game.previous_input=input;}
         return;
     }
     if (game.mode == PLAY || game.mode == DEAD)armor_break_step();
@@ -795,16 +801,17 @@ void game_tick(u16 input) {
     if (game.mode == GAMEOVER) {
         u8 action;
         if(!game_over.phase)game_over_start();
-        if(ending.complete && game_over.phase==1 && game_over.remaining==1) {
-            game_over_reset();game.mode=TITLE;return;
+        if(game_over.phase==1 && game_over.remaining==1 &&
+           (ending.complete || !settings[frontend.mode].continues || (frontend.mode==1 && !frontend.credits))) {
+            game_over_reset();game.mode=TITLE;frontend_return();return;
         }
-        action=game_over_step(input);
+        action=game_over_step(frontend_continue()?input:(input&~IN_START));
         if(action==1) {
-            game.score=0;p->lives=progress_initial_lives;
+            frontend_spend();game.score=0;p->lives=frontend_lives();
             restart_pending=1;game_round(game.round);restart_pending=0;
             game.previous_input=input;
         } else if(action==2) {
-            game_over_reset();game.mode=TITLE;
+            game_over_reset();game.mode=TITLE;frontend_return();
         }
         return;
     }
@@ -825,8 +832,8 @@ void game_tick(u16 input) {
         return;
     loot_tick();
     {
-    u8 moving_missiles=missile_tick();
-    u8 shells=statue_shell_tick();shells|=hunter_shell_tick();
+    u8 moving_missiles=(missiles_occupied?missile_tick():0);
+    u8 shells=(shell_pools_occupied[0]?statue_shell_tick():0);shells|=(shell_pools_occupied[1]?hunter_shell_tick():0);
     if(shells){u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++) {
         if(hunter_shells[i].active && !game.p.invincible && hunter_shell_player_contact(i,0))hunter_shell_contact(i);
         if(hunter_blasts[i].active && hunter_shell_player_contact(i,1))player_hurt_from(1,hunter_blasts[i].x);
@@ -834,9 +841,9 @@ void game_tick(u16 input) {
         if(statue_blasts[i].active && statue_shell_player_contact(i,1))player_hurt_from(1,statue_blasts[i].x);
     }}
     {
-    u8 traps=container_traps_tick(),seeds=waveboss_seeds_tick();
-    u8 flailers=flailer_weapons_tick(),reinforcements=reinforcement_shots_step();
-    u8 edges=edge_shots_step(),dragons=dragon_shots_step();
+    u8 traps=(container_traps_occupied?container_traps_tick():0),seeds=(waveboss_seeds_occupied?waveboss_seeds_tick():0);
+    u8 flailers=(flailer_weapons_occupied?flailer_weapons_tick():0),reinforcements=(reinforcement_shots_occupied?reinforcement_shots_step():0);
+    u8 edges=(edge_shots_occupied?edge_shots_step():0),dragons=(dragon_shots_occupied?dragon_shots_step():0);
     /* Seeds and dragon shots can create container waves after the trap update.
        Keep the later contact scan in those cases, including new entries. */
     traps|=seeds|dragons;
@@ -854,7 +861,7 @@ void game_tick(u16 input) {
     }
     }
     {
-        u16 i;u32 active=skeleton_weapons_tick();
+        u16 i;u32 active=(skeleton_weapons_occupied?skeleton_weapons_tick():0);
         for (i=0;active;i++,active>>=1)if(active&1) {
             u8 damage = skeleton_weapon_contact(i);
             if (damage) {s16 wx,wy;skeleton_weapon_frame(i,&wx,&wy);player_hurt_from(damage,wx);}
@@ -862,7 +869,7 @@ void game_tick(u16 input) {
     }
     if (game.mode != PLAY)
         return;
-    if(bonus_contact()){game_bonus_transition();return;}
+    if(!boss_rush.active && bonus_contact()){game_bonus_transition();return;}
     spawn_actors();
     {
         u16 i;
@@ -885,6 +892,6 @@ void game_tick(u16 input) {
             player_hurt(1);
         }
     }
-    game.cam_x = bound_axis(PX(p->x) - 112, 0, rounds[game.round].width - 256);
-    game.cam_y = bound_axis(PX(p->y) - 144, 0, rounds[game.round].height - 224);
+    game.cam_x = boss_rush.active?RUSH_X:bound_axis(PX(p->x) - 112, 0, rounds[game.round].width - 256);
+    game.cam_y = boss_rush.active?RUSH_Y:bound_axis(PX(p->y) - 144, 0, rounds[game.round].height - 224);
 }

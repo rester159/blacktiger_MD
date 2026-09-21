@@ -6,7 +6,7 @@ source_frames={}
 for line in (ROOT/'reference/clear_oracle_events.txt').read_text().splitlines():
  v=line.split('|')
  if v[0]=='FRAME':source_frames.setdefault(int(v[1]),[]).append(bytes.fromhex(v[5]+v[6]))
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30);cases=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(30);cases=[]
 for final in (False,True):
  for weapon in range(1,6):
   for armor in (0,2):
@@ -45,7 +45,7 @@ for final in (False,True):
    cases.append(dict(final=final,weapon=weapon,armor=armor,frames_observed=len(seen),bonus=bonus,hardware_sprites=True))
 r.close()
 # Clear entry during an actual native jump must finish landing before restoring armor.
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(30)
 s=state(r);s.mode=2;put(r,s);r.run(60)
 s=state(r);s.mode=1;s.p.x=112*256;s.p.y=896*256;s.p.invincible=1000;s.previous_input=0
 for a in s.actors:a.active=0

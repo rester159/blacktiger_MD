@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib,struct
 from test_runtime import ROOT,Runner,state,put
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
 for x,y,alive in ((-64,96,False),(320,96,False),(128,-64,False),(128,320,False),(0,96,True),(255,96,True),(128,0,True),(128,255,True)):
  s=state(r);s.mode=2;put(r,s);r.run(12);s=state(r)
  for a in s.actors:a.active=0

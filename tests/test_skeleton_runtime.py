@@ -70,7 +70,7 @@ def weapon_edges(r):
  return count
 
 def run():
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
  for variant,profile in enumerate(contract['profiles']):
   slot,row,level=fixture(r,variant);s=state(r);assert s.actors[slot].hp==profile['durability']
   # Source hurt callback is distinct from the one-point trigger field.

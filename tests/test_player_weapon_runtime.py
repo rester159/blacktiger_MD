@@ -10,7 +10,7 @@ for line in (ROOT/'reference/player_motion_oracle_events.txt').read_text().split
  if c.get('attack') and c['geometry']==0 and not c['reversed'] and c['pattern']==[16] and not c['hit']:
   raw=bytes.fromhex(raw);co=bytes.fromhex(counters);slots=bytes.fromhex(slots)
   source[c['tier'],int(tick)]=[raw[0],raw[1],raw[3],raw[2],co[0],co[3],co[4],sum(bool(slots[i*5]) for i in range(6))]
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=0
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=0
 for tier in range(5):
  s=state(r);s.mode=2;put(r,s);r.run(20)
  s=state(r);s.mode=1;s.p.x=112*256;s.p.y=896*256;s.p.weapon=tier+1;s.p.face=0;s.p.invincible=10000;s.previous_input=0

@@ -3,7 +3,7 @@ import json,hashlib,struct
 from test_runtime import ROOT,Runner,state,put,check_video_cache
 rom=(ROOT/'out/release/rom.bin').read_bytes();cases=[]
 for level in range(6):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(40)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(40)
  s=state(r);s.round=level;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(100)
  ptr,count=struct.unpack_from('>IH',rom,r.symbols['bonus_rounds']+level*20)
  width=64 if level==2 else 128;height=128 if level==2 else 64

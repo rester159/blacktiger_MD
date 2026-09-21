@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
 for variant,pc in enumerate((0x8000,0x81a2)):
  slot,row,level=fixture(r,0,2,pc,approach=32,wait_frames=240);s=state(r);hp=(4,16)[variant];assert s.actors[slot].hp==hp
  a=s.actors[slot];xy=(a.x,a.y);s.mode=1;s.p.invincible=10000

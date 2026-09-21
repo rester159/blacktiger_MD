@@ -3,7 +3,7 @@ import json,hashlib
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
 cases=[]
 for face in (0,1):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  s=state(r);s.p.face=face;put(r,s)
  slot,row,level=fixture(r,0,4,0xa4d0,approach=0,vertical=0,hold_position=True,player_face=face)
  s=state(r);a=s.actors[slot];x=a.x//256-s.cam_x;y=a.y//256-s.cam_y

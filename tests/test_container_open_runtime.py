@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);r.write('progress_max_hp',0,b'\x05');checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);r.write('progress_max_hp',0,b'\x05');checks=[]
 rom=(ROOT/'out/release/rom.bin').read_bytes()
 def hold_contact(slot,ticks,near=True):
  start=state(r).frame

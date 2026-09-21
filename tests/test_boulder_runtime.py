@@ -2,7 +2,7 @@
 import hashlib,json
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
 from test_loot_runtime import drops
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 slot,row,level=fixture(r,0,4,0xb338);s=state(r);a=s.actors[slot]
 assert a.hp==255 and s.spawned[row]==1
 x,y=a.x,a.y;score=s.score;kills=s.kills

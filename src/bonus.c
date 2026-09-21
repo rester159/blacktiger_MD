@@ -3,6 +3,9 @@
 #include "hazard.h"
 #include "player_motion.h"
 u8 bonus_entered,bonus_consumed,bonus_rows[128];
+static u16 bonus_row_start[129];
+static u16 patch_keys[16];
+static const BonusPatch *patch_values[16];
 u16 bonus_saved_x,bonus_saved_y;
 u8 bonus_phases[4],bonus_clock;
 void bonus_animation_reset(void){u8 i;bonus_clock=0;for(i=0;i<4;i++)bonus_phases[i]=0;}
@@ -14,9 +17,10 @@ void bonus_tick(void){
 }
 void bonus_reset(u8 preserve) {
  const BonusRound *r=&bonus_rounds[game.round];u16 i,shift=rounds[game.round].width==2048?7:6;
+ for(i=0;i<16;i++)patch_keys[i]=65535;
  bonus_animation_reset();bonus_entered=0;if(!preserve)bonus_consumed=0;
- for(i=0;i<128;i++)bonus_rows[i]=0;
- for(i=0;i<r->count;i++)bonus_rows[r->patches[i].cell>>shift]=1;
+ {u16 row,next=0;for(row=0;row<128;row++){bonus_row_start[row]=next;while(next<r->count && (r->patches[next].cell>>shift)==row)next++;bonus_rows[row]=next!=bonus_row_start[row];}bonus_row_start[128]=next;}
+ (void)i;
 }
 u8 bonus_gate(u8 jumping,u8 falling,u8 returning){return !(jumping|falling|returning);}
 void bonus_destination(u8 round,u8 entered,u16 *x,u16 *y,u16 *sx,u16 *sy) {
@@ -32,10 +36,18 @@ u8 bonus_contact(void) {
  }
  return 0;
 }
-static const BonusPatch *patch(u16 cell){
- const BonusRound *r=&bonus_rounds[game.round];u16 lo=0,hi=r->count;
+u16 bonus_lower_bound(u16 cell){
+ const BonusRound *r=&bonus_rounds[game.round];u16 row=cell>>(rounds[game.round].width==2048?7:6),lo,hi;
+ if(row>=128)return r->count;
+ lo=bonus_row_start[row];hi=bonus_row_start[row+1];
  while(lo<hi){u16 mid=(lo+hi)>>1;if(r->patches[mid].cell<cell)lo=mid+1;else hi=mid;}
- return lo<r->count && r->patches[lo].cell==cell?r->patches+lo:0;
+ return lo;
+}
+static const BonusPatch *patch(u16 cell){
+ const BonusRound *r=&bonus_rounds[game.round];u16 at=(cell^(cell>>6))&15,lo;
+ if(patch_keys[at]==cell)return patch_values[at];
+ lo=bonus_lower_bound(cell);patch_keys[at]=cell;
+ return patch_values[at]=lo<r->count && r->patches[lo].cell==cell?r->patches+lo:0;
 }
 u16 bonus_word_state(u16 x,u16 y,u16 original,u8 entered,const u8 *phases){
  const BonusPatch *p;if(!bonus_rows[y>>1])return original;

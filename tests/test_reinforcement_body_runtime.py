@@ -3,7 +3,7 @@ import hashlib,json,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
 cases=[]
 for profile,pc in enumerate((0x8344,0x9af6,0x8ef4)):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  slot,row,level=fixture(r,0,2,pc,approach=0,vertical=0,hold_position=True)
  s=state(r);score=s.score;s.spawned[row]=2;put(r,s)
  for _ in range(800):
@@ -21,9 +21,11 @@ for profile,pc in enumerate((0x8344,0x9af6,0x8ef4)):
   s=fire(r,slot,255,0);assert s.actors[slot].life==life-1
   if life>1:assert s.score==score and s.actors[slot].hp==(3,18,12)[profile]
  assert s.score==score+(20,80,30)[profile] and s.actors[slot].state==2 and s.mode==1
- r.run(160);assert not state(r).actors[slot].active
+ # Actor slots are reusable: an eruption may occupy this slot after retirement.
+ definition=s.actors[slot].definition;r.run(160)
+ assert not any(a.active and a.source==row and a.definition==definition for a in state(r).actors)
  cases.append(dict(profile=profile,round=level+1,row=row,natural_attack=True,layers=(2,4,2)[profile],reward=(20,80,30)[profile]));r.close()
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);contacts=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);contacts=[]
 for part in (0,2,8):
  s=state(r);s.mode=2;put(r,s);r.run(20)
  s=state(r);s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.armor=4;s.p.hp=4;s.p.invincible=0

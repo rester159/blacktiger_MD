@@ -3,7 +3,7 @@
 import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,meta
 pickup=next(d['id'] for d in meta['actor_definitions'] if d['bank']==4 and d['address']==0xb515)
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
 for constructor,parts,reward in ((0x9a4c,1,15),(0x9eb1,2,515),(0x9f16,4,545)):
  slot,row,level=fixture(r,0,4,constructor);s=state(r);score=s.score;kills=s.kills
  assert s.actors[slot].life>1

@@ -1,11 +1,11 @@
 """Real actor paths retire at source screen edges, preserving consumed rows."""
 import hashlib,json
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
 for bank,constructor in ((0,0x93ed),(0,0x9b85),(0,0xa35c),(2,0xa6f8),(0,0xab33),(1,0x92e6),(1,0x9f83),(2,0x8344),(4,0xa4d0),(3,0xaab3)):
  for persistence in (1,3):
   # Independent boot avoids retained source scanner delays and spawn quotas.
-  r.close();r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+  r.close();r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
   options=dict(approach=32,vertical=0,wait_frames=300,hold_position=True) if constructor in (0xab33,0x9f83,0xaab3) else dict(approach=0,vertical=0,hold_position=True) if constructor in (0x8344,0xa4d0) else dict(approach=32,vertical=0,wait_frames=400,hold_position=True) if constructor==0x92e6 else {}
   slot,row,level=fixture(r,0,bank,constructor,**options)
   s=state(r);s.mode=2;put(r,s);r.run(60)

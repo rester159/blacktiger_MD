@@ -3,7 +3,7 @@ import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
 cases=[]
 for profile,constructor in enumerate((0x8000,0x991d,0x9b24)):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  slot,row,level=fixture(r,0,3,constructor,approach=0,vertical=0,wait_frames=300,hold_position=True)
  s=state(r);score=s.score;assert s.actors[slot].life==(3,6,8)[profile];px=s.p.x;py=s.p.y
  seen=set();waves=False
@@ -44,7 +44,7 @@ for profile,constructor in enumerate((0x8000,0x991d,0x9b24)):
  else:raise AssertionError(('dragon clear missing',profile))
  assert not any(a.active for a in s.actors)
  cases.append(dict(profile=profile,round=level+1,row=row,layers=initial,attack_kinds=sorted(seen),ground_flames=waves,weak_point_weapons=True,reward=1000,round_clear=True));r.close()
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);projectiles=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);projectiles=[]
 rom=(ROOT/'out/release/rom.bin').read_bytes()
 roots=struct.unpack_from('>21H',rom,r.symbols['dragon_shot_roots'])
 for kind,mode,full in ((0,8,0),(1,11,0),(2,25,0),(2,27,0),(0,8,1)):

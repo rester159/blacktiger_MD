@@ -4,7 +4,7 @@ from test_runtime import ROOT,Runner,state,put,check_video_cache
 rom=ROOT/'out/release/rom.bin';cases=[]
 patterns=(ROOT/'res/generated/clear_screen_patterns.bin').read_bytes()
 digits=list(map(int,re.search(r'clear_digits\[10\]=\{([^}]+)',(ROOT/'src/clear_screen_data.inc').read_text())[1].split(',')))
-r=Runner(rom);r.run(100);r.run(3,8);r.run(40)
+r=Runner(rom);r.run(100);r.start_game(3);r.run(40)
 for level in range(7):
  s=state(r);s.mode=2;put(r,s);r.run(60)
  s=state(r);s.round=level;s.mode=5;s.mode_timer=240;s.coins=12345+level

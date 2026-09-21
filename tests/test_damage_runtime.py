@@ -2,7 +2,7 @@
 """Cartridge projectile path reaches shared damage without artificial knockback."""
 import json,hashlib
 from test_runtime import ROOT,Runner,state,put
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 cases=[]
 for armor,damage,hp,invincible in ((4,2,4,0),(2,2,4,0),(1,3,4,0),(0,1,4,0),(1,5,4,0),(2,3,4,20)):
  s=state(r);s.mode=2;put(r,s);r.write('sfx_request',0,b'\x1f');r.run(20)

@@ -4,7 +4,7 @@ from PIL import Image
 from test_runtime import ROOT,Runner,state,put,check_video_cache
 ref=json.loads((ROOT/'reference/bonus.json').read_text());cases=[]
 for level in range(6):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(40)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(40)
  s=state(r);s.round=level;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(100)
  saved=None
  for index,t in enumerate(ref['rounds'][level]['triggers']):
@@ -41,7 +41,7 @@ for level in range(6):
  assert r.read('bonus_entered',1)[0]==0 and r.read('bonus_consumed',1)[0]==3
  r.close()
 # One round-one doorway also runs normal gravity/ground contact, without a ladder override.
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(40)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(40)
 s=state(r);s.mode=2;put(r,s);r.run(60)
 t=ref['rounds'][0]['triggers'][1];s=state(r);s.mode=1;s.p.x=(t['x']-16)*256;s.p.y=(t['y']-16)*256;s.p.climb=0;s.p.invincible=10000
 for a in s.actors:a.active=0

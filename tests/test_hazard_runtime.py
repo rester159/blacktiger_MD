@@ -2,7 +2,7 @@
 """Actual source hazard spawn, fatal contact and production respawn in cartridge."""
 import json,hashlib
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 slot,row,level=fixture(r,0,1,0xb2a9);s=state(r);a=s.actors[slot];xy=(a.x,a.y)
 s.mode=1;s.p.armor=4;s.p.invincible=10000;s.p.hp=4;s.p.lives=3
 q=s.shots[0];q.active=1;q.enemy=0;q.life=20;q.damage=200;q.vx=q.vy=0;q.x=a.x+8*256;q.y=a.y+8*256;put(r,s)

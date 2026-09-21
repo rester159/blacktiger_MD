@@ -39,6 +39,7 @@ class Runner:
   for name,typ,fn in funcs:
    cb=typ(fn);self.callbacks.append(cb);f=getattr(l,'retro_set_'+name);f.argtypes=[typ];f(cb)
   l.retro_init();raw=path.read_bytes();self.buffer=C.create_string_buffer(raw);info=Info(str(path).encode(),C.cast(self.buffer,C.c_void_p),len(raw),None);l.retro_load_game.argtypes=[C.POINTER(Info)];l.retro_load_game.restype=C.c_bool;assert l.retro_load_game(C.byref(info))
+  l.retro_set_controller_port_device(0,513) # Six-button pad: libretro Select is Genesis Mode.
   av=AVInfo();l.retro_get_system_av_info.argtypes=[C.POINTER(AVInfo)];l.retro_get_system_av_info(C.byref(av));self.sample_rate=av.timing.sample_rate
   self.ram=(C.c_uint8*65536).in_dll(l,'work_ram');self.symbols={}
   for line in (ROOT/'out/release/symbol.txt').read_text().splitlines():
@@ -56,9 +57,31 @@ class Runner:
  def run(self,n,mask=0):
   self.mask=mask
   for _ in range(n):self.lib.retro_run();self.frames+=1
+ def start_game(self,frames=3):
+  if "frontend" in self.symbols:
+   self.run(3,32);self.run(2);self.run(3,8);self.run(2)
+  self.run(frames,8)
+  if "intro_tick" in self.symbols:
+   for _ in range(1000):
+    if int.from_bytes(self.read("intro_tick"),"big")>=842:break
+    self.run(1)
+   else:raise AssertionError("Intro did not finish")
+   self.run(max(0,frames-1))
  def read(self,name,n=2):
   a=self.symbols[name]&65535;return bytes(self.ram[(a+i)^1] for i in range(n))
  def write(self,name,offset,data):
+  # Raw diagnostic pool edits must invalidate the native occupancy cache just
+  # as the public allocation routines do. A conservative positive is enough:
+  # the next normal update rebuilds it, including for an all-zero injection.
+  pool_flags={'missiles':('missiles_occupied',0),'skeletons':('skeleton_weapons_occupied',0),
+   'statue_shells':('shell_pools_occupied',0),'statue_blasts':('shell_pools_occupied',0),
+   'hunter_shells':('shell_pools_occupied',1),'hunter_blasts':('shell_pools_occupied',1),
+   'container_traps':('container_traps_occupied',0),'waveboss_seeds':('waveboss_seeds_occupied',0),
+   'flailer_weapons':('flailer_weapons_occupied',0),'reinforcement_shots':('reinforcement_shots_occupied',0),
+   'edge_shots':('edge_shots_occupied',0),'dragon_shots':('dragon_shots_occupied',0)}
+  if name in pool_flags:
+   flag,index=pool_flags[name]
+   if flag in self.symbols:self.write(flag,index,b'\x01')
   a=(self.symbols[name]+offset)&65535
   for i,v in enumerate(data):self.ram[(a+i)^1]=v
  def capture(self,name):
@@ -66,5 +89,5 @@ class Runner:
  def close(self):self.lib.retro_unload_game();self.lib.retro_deinit()
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('--rom',type=Path,default=ROOT/'out/release/rom.bin');p.add_argument('--core',type=Path,default=CORE);a=p.parse_args();r=Runner(a.rom,a.core);r.run(120);r.capture('title.png');r.run(2,1<<3);r.run(120);r.capture('start.png');r.run(120,(1<<7)|(1<<1));r.capture('walk.png');r.run(30,(1<<7)|(1<<0)|(1<<1));r.capture('jump.png');print(json.dumps({'frames':r.frames,'audio_samples':r.audio,'sha256':hashlib.sha256(a.rom.read_bytes()).hexdigest(),'game_hex':r.read('game',64).hex(),'cache_faults':r.read('video_cache_faults').hex(),'dma_bytes_last_frame':r.read('video_dma_bytes').hex()},indent=2));r.close()
+ p=argparse.ArgumentParser();p.add_argument('--rom',type=Path,default=ROOT/'out/release/rom.bin');p.add_argument('--core',type=Path,default=CORE);a=p.parse_args();r=Runner(a.rom,a.core);r.run(120);r.capture('title.png');r.start_game(2);r.run(120);r.capture('start.png');r.run(120,(1<<7)|(1<<1));r.capture('walk.png');r.run(30,(1<<7)|(1<<0)|(1<<1));r.capture('jump.png');print(json.dumps({'frames':r.frames,'audio_samples':r.audio,'sha256':hashlib.sha256(a.rom.read_bytes()).hexdigest(),'game_hex':r.read('game',64).hex(),'cache_faults':r.read('video_cache_faults').hex(),'dma_bytes_last_frame':r.read('video_dma_bytes').hex()},indent=2));r.close()
 if __name__=='__main__':main()

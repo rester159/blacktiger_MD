@@ -3,7 +3,7 @@
 import array,hashlib,json,math
 from test_runtime import ROOT,Runner,state,put
 meta=json.loads((ROOT/'reference/music_conversion.json').read_text())
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 s=state(r);s.mode=2;put(r,s);r.run(30);cases=[]
 for track in meta['tracks']:
  command=track['command'];r.write('music_request',0,bytes([command]));r.run(8)

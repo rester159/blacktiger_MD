@@ -6,7 +6,7 @@ for l in (ROOT/'reference/sfx_oracle_events.txt').read_text().splitlines():
  f=l.split('|')
  if f[0]=='CASE':command=int(f[1])
  elif f[0]=='END':ends[command]=max(ends.get(command,0),int(f[1]))
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(30)
 s=state(r);s.mode=2;put(r,s);r.run(60)
 # Controller output is consumed once, in order, even on paused frames. Stop
 # before landing must clear an existing sustained effect and retain landing.
@@ -32,7 +32,7 @@ for command in meta['commands']:
 mixed=array.array('h',b''.join(r.audio_capture));mixed_peak=max(abs(v) for v in mixed);assert mixed_peak<32767,mixed_peak
 r.close()
 with wave.open(str(ROOT/'reports/sfx-preview.wav'),'wb') as w:w.setnchannels(2);w.setsampwidth(2);w.setframerate(44100);w.writeframes(array.array('h',preview).tobytes())
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(30)
 for _ in range(30):
  r.run(1,1)
  if r.read('sfx_slots',22)[8]==0x1b:break

@@ -3,7 +3,7 @@ import hashlib,json
 from test_runtime import ROOT,Runner,state
 rom=ROOT/'out/release/rom.bin';snapshots=[]
 for extra in (0,256):
- r=Runner(rom);r.run(100);r.run(2,8)
+ r=Runner(rom);r.run(100);r.start_game(2)
  for tick in range(180):
   keys=128|(1 if tick%60<20 else 0)|(2 if tick%32<8 else 0)
   r.run(1,keys|(extra if tick%12<6 else 0))

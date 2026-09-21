@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);cases=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);cases=[]
 for constructor,hp in ((0x9eb1,16),(0x9f16,24)):
  slot,row,level=fixture(r,0,4,constructor);s=state(r);a=s.actors[slot];assert a.hp==hp and a.life==2
  parts=[i for i,a in enumerate(s.actors) if a.active and a.source==row]

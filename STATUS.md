@@ -9,6 +9,10 @@ cadence, presentation and audio. All eight maps use one renderer and game loop;
 normal locomotion and the known major enemy/boss families now have native routines.
 Injected actor/ending tests do not establish natural full-game completion.
 
+New presentation/modes: original arcade title artwork with Arcade/Home menus, native source-derived start intro in both normal-game modes, bounded credits, expanded HUD and eight-boss Home rush with a shop after each fight. Shared settings include source weapon damage and shop-price difficulty, lives, coinage, continue and audio toggles. The remaining original difficulty effects and physical arcade DIP functions are not yet fully reproduced.
+
+Scroll registers and HUD changes now commit in VBlank. A linked-ROM pixel test covers 32 horizontal/vertical camera transitions with no split old/new image; host compositor and physical-display tearing are separate.
+
 Known native issues: frame overruns on denser routes; unverified PAL timing;
 placeholder sound effects and incomplete music selection; incomplete combat integration and parts of presentation. Exact
 cadence, cartridge hash, and test counts live in JSON reports and `dist/build.json`.
@@ -994,3 +998,5 @@ hunter, reinforcement, edge caster, and crawler now use source-ordered motion
 checks. Twenty independent cartridge cases preserve consumed rows and avoid
 kill rewards; a separate hunter-boss case retains retirement suppression. Fresh
 boots isolate those fixtures from source scanner delays and spawn quotas.
+
+Latest front-end/renderer pass: skips empty projectile updates and repeated weapon-pool scans, narrows animated-patch searches to their row, caches recent patch lookups, and reuses resolved terrain words while scrolling. The 180-frame injected-entry benchmark now records 178, 180, 168, 179, 178, 155, 168, 180 updates across rounds 1–8 (previous build: 177, 179, 161, 174, 177, 145, 164, 180). Intro/RNG timing and the expanded HUD differ between builds; this is not a controlled isolated speedup measurement. Dense routes still miss frames, especially round 6. The sprite DMA batching experiment did not improve cadence and was discarded.

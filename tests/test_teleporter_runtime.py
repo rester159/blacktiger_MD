@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 slot,row,level=fixture(r,0,1,0x92e6,approach=32,vertical=0,wait_frames=400)
 s=state(r);score=s.score;assert s.actors[slot].life==18
 for _ in range(700):

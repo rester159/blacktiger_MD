@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 slot,row,level=fixture(r,0,2,0xa6f8);s=state(r);xy=(s.actors[slot].x,s.actors[slot].y);s.mode=1;put(r,s)
 r.write('loot_random',0,b'\0\0')
 # Hold a controlled player height while allowing the production actor and renderer to run.

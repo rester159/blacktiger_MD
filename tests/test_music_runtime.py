@@ -2,7 +2,7 @@
 """All eight native FM tracks produce cartridge audio and keep display-clock tempo."""
 import array,json,hashlib,math,wave
 from test_runtime import finish_clear,ROOT,Runner,state,put
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30);cases=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(30);cases=[]
 for level in range(8):
  if level:
   s=state(r);s.mode=5;s.mode_timer=1;finish_clear(r,s);r.run(20)

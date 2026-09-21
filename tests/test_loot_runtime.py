@@ -8,7 +8,7 @@ def drops(r):
  return [(i,*struct.unpack_from('>hh',raw,i*14),raw[i*14+12],raw[i*14+13]) for i in range(33) if raw[i*14+12]]
 
 def run():
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
  for variant,expected in enumerate((1,2,2)):
   slot,row,level=fixture(r,variant)
   # Zero is a deliberate deterministic selection fixture, not a normal RNG seed.

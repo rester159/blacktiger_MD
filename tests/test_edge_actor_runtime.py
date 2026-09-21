@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import hashlib,json,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 slot,row,level=fixture(r,0,4,0xa4d0,approach=0,vertical=0,hold_position=True)
 for _ in range(800):
  s=state(r);a=s.actors[slot];assert a.active,'Caster retired before attack'
@@ -24,7 +24,7 @@ r.run(160);assert not state(r).actors[slot].active
 r.close()
 # Freeze each projectile profile to check live damage dispatch and weapon destruction.
 contacts=[];ref=json.loads((ROOT/'reference/edge_actor.json').read_text())
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 for profile in (0,1):
  s=state(r);s.mode=2;put(r,s);r.run(20)
  s=state(r);s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.armor=4;s.p.hp=4;s.p.invincible=0

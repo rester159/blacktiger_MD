@@ -8,6 +8,7 @@ extern const BonusRound bonus_rounds[8];
 extern u8 bonus_entered,bonus_consumed,bonus_rows[128];
 extern u8 bonus_phases[4],bonus_clock;
 void bonus_tick(void);
+u16 bonus_lower_bound(u16 cell);
 void bonus_animation_reset(void);
 u16 bonus_word_state(u16 x,u16 y,u16 original,u8 entered,const u8 *phases);
 extern u16 bonus_saved_x,bonus_saved_y;

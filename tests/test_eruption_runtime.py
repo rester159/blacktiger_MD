@@ -2,7 +2,7 @@
 import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
 def run(constructor,antidotes,invincible=0):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  slot,row,level=fixture(r,0,1,constructor,approach=32,vertical=0,wait_frames=500,hold_position=True)
  s=state(r);definition=s.actors[slot].definition;score=s.score;x=s.actors[slot].x;y=s.actors[slot].y
  # Keep the real placement in view and the player within its source proximity gate.

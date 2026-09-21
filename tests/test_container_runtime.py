@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
 rom=(ROOT/'out/release/rom.bin').read_bytes();data=json.loads((ROOT/'reference/container.json').read_text())
 assert rom[r.symbols['container_initial']:r.symbols['container_initial']+64]==bytes(v for row in data['round_contents'] for v in row)
 for pc in (0xacbe,0xacd3):

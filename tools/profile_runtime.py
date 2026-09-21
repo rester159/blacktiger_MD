@@ -2,7 +2,7 @@ import sys,struct,json,statistics,hashlib
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests'))
 from test_runtime import finish_clear,ROOT,Runner,state,put
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);rows=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);rows=[]
 for level in range(8):
  if level:
   s=state(r);s.mode=5;s.mode_timer=1;finish_clear(r,s);r.run(12)

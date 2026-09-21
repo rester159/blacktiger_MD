@@ -1,4 +1,7 @@
 #include "ending.h"
+#include "frontend.h"
+#include "intro.h"
+#include "boss_rush.h"
 #include "actor_dispatch.h"
 #include "bonus.h"
 #include "armor_break.h"
@@ -31,6 +34,9 @@
 static u16 logical_to_slot[1700], slot_to_logical[BG_SLOTS], sprite_keys[SPR_SLOTS],
     sprite_stamp[SPR_SLOTS];
 static u16 visible[1700];
+/* Logical words already resolved for the ring-buffer viewport. Reuse them
+   when unpinning and submitting rows instead of re-querying dynamic terrain. */
+static u16 visible_words[2048];
 /* A body occupies four existing 16x16 cache slots; both formats share the same VRAM. */
 static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
 static u8 line_count[28], sprite_slot_for_key[16384];
@@ -83,72 +89,47 @@ static u16 cached(u16 word) {
     }
     return (word & 0xf800) | (16 + slot);
 }
-static void row(s16 x, s16 y) {
-    const Round *r = &rounds[game.round];
-    u16 b[33], i, w = r->width >> 3;
-    const u16 *p = r->map + ((u16)y << (r->width == 2048 ? 8 : 7)) + x;
-    for (i = 0; i < 33; i++)
-        b[i] = (y >= r->height / 8 || x + i >= w)
-                   ? 0
-                   : cached(((world_opened & world_rows[y]) || bonus_rows[y>>1]) ? world_word(x + i, y, p[i]) : p[i]);
-    VDP_setTileMapDataRow(BG_B, b, y & 31, x & 63, 33, DMA_QUEUE_COPY);
-    video_dma_bytes += 66;
+static void row(s16 x,s16 y) {
+ u16 b[33],i,at=(y&31)<<6;
+ for(i=0;i<33;i++)b[i]=cached(visible_words[at|((x+i)&63)]);
+ VDP_setTileMapDataRow(BG_B,b,y&31,x&63,33,DMA_QUEUE_COPY);video_dma_bytes+=66;
 }
-static void column(s16 x, s16 y) {
-    const Round *r = &rounds[game.round];
-    u16 b[29], i, w = r->width >> 3, h = r->height >> 3;
-    const u16 *p = r->map + ((u16)y << (r->width == 2048 ? 8 : 7)) + x;
-    for (i = 0; i < 29; i++, p += w)
-        b[i] = (x >= w || y + i >= h)
-                   ? 0
-                   : cached(((world_opened & world_rows[y + i]) || bonus_rows[(y+i)>>1]) ? world_word(x, y + i, *p) : *p);
-    VDP_setTileMapDataColumn(BG_B, b, x & 63, y & 31, 29, 1, DMA_QUEUE_COPY);
-    video_dma_bytes += 58;
+static void column(s16 x,s16 y) {
+ u16 b[29],i;
+ for(i=0;i<29;i++)b[i]=cached(visible_words[(((y+i)&31)<<6)|(x&63)]);
+ VDP_setTileMapDataColumn(BG_B,b,x&63,y&31,29,1,DMA_QUEUE_COPY);video_dma_bytes+=58;
 }
-static void pin(s16 x, s16 y, s16 delta) {
-    u16 v = word_at(x, y) & 2047;
-    if (v >= 16 && v < 1716)
-        visible[v - 16] += delta;
+static void pin(s16 x,s16 y,s16 delta) {
+ u16 at=((y&31)<<6)|(x&63),word,v;
+ if(delta>0){word=word_at(x,y);visible_words[at]=word;}else word=visible_words[at];
+ v=word&2047;if(v>=16 && v<1716)visible[v-16]+=delta;
 }
-static void pin_column(s16 x, s16 y, s16 delta) {
-    const Round *r = &rounds[game.round];
-    u16 w = r->width >> 3, h = r->height >> 3, i;
-    const u16 *p = r->map + ((u16)y << (r->width == 2048 ? 8 : 7)) + x;
-    if (x >= w)
-        return;
-    for (i = 0; i < 29 && y + i < h; i++, p += w) {
-        u16 v = (((world_opened & world_rows[y + i]) || bonus_rows[(y+i)>>1]) ? world_word(x, y + i, *p) : *p) & 2047;
-        if (v >= 16)
-            visible[v - 16] += delta;
-    }
+static void pin_column(s16 x,s16 y,s16 delta) {
+ u16 i;for(i=0;i<29;i++)pin(x,y+i,delta);
 }
-static void pin_row(s16 x, s16 y, s16 delta) {
-    const Round *r = &rounds[game.round];
-    u16 w = r->width >> 3, i;
-    const u16 *p = r->map + ((u16)y << (r->width == 2048 ? 8 : 7)) + x;
-    if (y >= r->height / 8)
-        return;
-    for (i = 0; i < 33 && x + i < w; i++) {
-        u16 v = (((world_opened & world_rows[y]) || bonus_rows[y>>1]) ? world_word(x + i, y, p[i]) : p[i]) & 2047;
-        if (v >= 16)
-            visible[v - 16] += delta;
-    }
+static void pin_row(s16 x,s16 y,s16 delta) {
+ u16 i;for(i=0;i<33;i++)pin(x+i,y,delta);
 }
-static void terrain_cell(u16 x,u16 y,u8 pass) {
- const Round *r=&rounds[game.round];u16 original,old,next,v;
- if(x<old_x || x>=old_x+33 || y<old_y || y>=old_y+29)return;
- original=r->map[(y<<(r->width==2048?8:7))+x];
- old=world_override(x,y,bonus_word_state(x,y,original,last_bonus_entered,last_bonus_phases),last_opened);
- next=world_word(x,y,original);
- if(old==next)return;
+static void terrain_change(u16 x,u16 y,u16 old,u16 next,u8 pass) {
+ u16 v;
+ if(x<old_x || x>=old_x+33 || y<old_y || y>=old_y+29 || old==next)return;
  if(!pass){
   v=old&2047;if(v>=16)visible[v-16]--;
   v=next&2047;if(v>=16)visible[v-16]++;
  }else{
+  visible_words[((y&31)<<6)|(x&63)]=next;
   v=cached(next);
   VDP_setTileMapData(VDP_getBGBAddress(),&v,((y&31)<<6)|(x&63),1,2,DMA_QUEUE_COPY);
   video_dma_bytes+=2;
  }
+}
+static void terrain_cell(u16 x,u16 y,u8 pass) {
+ const Round *r=&rounds[game.round];u16 original,old,next;
+ if(x<old_x || x>=old_x+33 || y<old_y || y>=old_y+29)return;
+ original=r->map[(y<<(r->width==2048?8:7))+x];
+ old=world_override(x,y,bonus_word_state(x,y,original,last_bonus_entered,last_bonus_phases),last_opened);
+ next=world_word(x,y,original);
+ terrain_change(x,y,old,next,pass);
 }
 static void terrain_state(void){
  u8 i;last_opened=world_opened;last_bonus_entered=bonus_entered;
@@ -156,10 +137,13 @@ static void terrain_state(void){
 }
 static void terrain_updates(void) {
  const Round *r=&rounds[game.round];const BonusRound *b=&bonus_rounds[game.round];
- u16 i,j,dx,dy,shift=r->width==2048?7:6,width=r->width>>4;u8 changed=last_opened!=world_opened || last_bonus_entered!=bonus_entered,pass;
+ u16 i,j,dx,dy,first,last,shift=r->width==2048?7:6,width=r->width>>4;u8 changed=last_opened!=world_opened || last_bonus_entered!=bonus_entered,pass;
  if(!changed && !b->count)return;
  for(i=0;i<4;i++)changed|=last_bonus_phases[i]!=bonus_phases[i];
  if(!changed)return;
+ /* Patches are sorted by cell: only visit the visible band of world rows. */
+ first=bonus_lower_bound((old_y>>1)<<shift);
+ last=bonus_lower_bound(((old_y+30)>>1)<<shift);
  /* Every affected cell is visited once; unpin all old patterns before allocation. */
  for(pass=0;pass<2;pass++){
   for(i=0;i<r->patch_count;i++){
@@ -168,13 +152,20 @@ static void terrain_updates(void) {
    if(!((last_opened^world_opened)&(1<<i)) && ((world_opened&(1<<i)) || (!bonus_rows[y>>1] && !bonus_rows[(y+2)>>1])))continue;
    for(dy=0;dy<4;dy++)for(dx=0;dx<2;dx++)terrain_cell(x+dx,y+dy,pass);
   }
-  for(i=0;i<b->count;i++){
+  for(i=first;i<last;i++){
    u16 cell=b->patches[i].cell,x=(cell&(width-1))*2,y=(cell>>shift)*2;
    if(last_bonus_entered==bonus_entered && last_bonus_phases[b->patches[i].bank]==bonus_phases[b->patches[i].bank])continue;
    if(x+2<=old_x || x>=old_x+33 || y+2<=old_y || y>=old_y+29)continue;
    for(j=0;j<r->patch_count;j++)if(cell==r->patches[j].cell || cell==r->patches[j].cell+width)break;
    if(j<r->patch_count)continue;
-   for(dy=0;dy<2;dy++)for(dx=0;dx<2;dx++)terrain_cell(x+dx,y+dy,pass);
+   /* This sorted patch is already known; do not binary-search it twice
+      for every 8x8 tile in both passes. World-overlap cases were handled above. */
+   {const BonusPatch *p=&b->patches[i];
+    const u16 *old=p->words[last_bonus_entered*2+last_bonus_phases[p->bank]];
+    const u16 *next=p->words[bonus_entered*2+bonus_phases[p->bank]];
+    for(dy=0;dy<2;dy++)for(dx=0;dx<2;dx++)
+     terrain_change(x+dx,y+dy,old[dy*2+dx],next[dy*2+dx],pass);
+   }
   }
  }
  terrain_state();
@@ -453,11 +444,9 @@ static void sprites(void) {
     video_dma_bytes += sprite_count * 8;
 }
 static void text(u16 x, u16 y, const char *s) {
-    VDP_drawText(s, x, y);
+    VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),x,y,DMA_QUEUE);
 }
-static u32 last_score = 0xffffffff;
-static u16 last_coins = 65535, last_time = 65535, last_stats = 65535;
-static u8 last_shop = 255,last_keys=255,last_max_hp=255,last_npc_page=255,last_locked_hint;
+static u8 last_shop = 255,last_npc_page=255,last_locked_hint;
 static void digits(char *p, u16 v, u16 count) {
     while (count) {
         p[--count] = '0' + v % 10;
@@ -470,35 +459,11 @@ static void overlay(void) {
     last_game_over_phase=game_over.phase;last_continue_digit=game_over.digit;
     last_clear_phase=round_clear.phase;
     char b[40];
-    u16 stats = (game.p.hp << 12) | (game.p.armor << 8) | (game.p.weapon << 4) | game.p.lives;
     if (changed) {
         if(!clear_screen_active && !ending_screen_active)VDP_clearPlane(BG_A, TRUE);
         last_mode = m;
     }
-    VDP_setTextPlane(WINDOW);
-    if (stats != last_stats || last_keys!=container_keys || last_max_hp!=progress_max_hp) {
-        strcpy(b, "HP 0/0 ARM0 W0 LIFE0");
-        b[3] = '0' + game.p.hp;
-        b[5] = '0' + progress_max_hp;last_max_hp=progress_max_hp;
-        b[10] = '0' + game.p.armor;
-        b[13] = '0' + game.p.weapon;
-        b[19] = '0' + game.p.lives;
-        text(1, 0, b);
-        digits(b,container_keys,2);b[2]=0;text(27,0,b);text(24,0,"KEY");last_keys=container_keys;
-        last_stats = stats;
-    }
-    if (game.score != last_score || game.coins != last_coins || game.time != last_time) {
-        strcpy(b, "000000 Z0000 T000 R0");
-        digits(b, (u16)(game.score / 1000), 3);
-        digits(b + 3, (u16)(game.score % 1000), 3);
-        digits(b + 8, game.coins, 4);
-        digits(b + 14, game.time, 3);
-        b[19] = '1' + game.round;
-        text(1, 1, b);
-        last_score = game.score;
-        last_coins = game.coins;
-        last_time = game.time;
-    }
+    ui_hud();
     VDP_setTextPlane(BG_A);
     if(m==RESCUE && (changed || last_npc_page!=npc_sequence.page)) {
         u16 i,tiles[128];const u16 *page=npc_dialogue();
@@ -536,6 +501,7 @@ static void overlay(void) {
     else if (m == SHOP) {
         u16 i;static const char *const names[]={"", "WEAPON 2", "WEAPON 3", "WEAPON 4", "WEAPON 5", "ARMOR 1", "ARMOR 2", "ARMOR 3", "ARMOR 4", "KEY", "ANTIDOTE", "EXIT"};
         text(5, 6, "THE OLD MAN'S SHOP");
+        if(boss_rush.active && boss_rush.shopping){text(4,4,"VICTORY! ZENNY +");digits(b,boss_rush.reward,4);b[4]=0;text(20,4,b);}
         for(i=0;i<12;i++) {
             u8 item=shop_grid[i],x=2+(i/6)*16,y=9+(i%6)*2;
             if(!item)continue;
@@ -551,7 +517,7 @@ static void overlay(void) {
         text(11, 10, "GAME OVER");
         if(game_over.phase==2) {
             text(10,12,"CONTINUE? 0");b[0]='0'+game_over.digit;b[1]=0;text(20,12,b);
-            text(8,14,"START TO CONTINUE");
+            text(8,14,frontend.credits?"START TO CONTINUE":"SELECT TO ADD COIN");
         }
     } else if (m == ENDING) {
         /* Source timed lettering is rendered by ending_screen. */
@@ -600,8 +566,7 @@ void video_round(void) {
     DMA_flushQueue();
     last_round = game.round;
     last_mode = 255;
-    last_stats = last_coins = last_time = 65535;
-    last_score = 0xffffffff;
+    ui_game_init();
     VDP_setEnable(TRUE);
     SYS_enableInts();
 }
@@ -671,6 +636,9 @@ volatile u16 video_cost[3];
 void video_frame(void) {
     u32 t = getSubTick();
     video_dma_bytes = 0;
+    if(game.mode==TITLE){ui_title();video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;last_mode=TITLE;return;}
+    if(game.mode==INTRO){intro_video();last_mode=INTRO;return;}
+    if(last_mode==TITLE || last_mode==INTRO)video_round();
     if(game.mode==ENDING || (game.mode==GAMEOVER && ending.complete)) {
         ending_screen();overlay();
         video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;return;
@@ -691,8 +659,8 @@ void video_frame(void) {
     scene(0);
     video_cost[0] = getSubTick() - t;
     t = getSubTick();
-    VDP_setHorizontalScroll(BG_B, -game.cam_x);
-    VDP_setVerticalScroll(BG_B, game.cam_y);
+    VDP_setHorizontalScrollVSync(BG_B, -game.cam_x);
+    VDP_setVerticalScrollVSync(BG_B, game.cam_y);
     sprites();
     video_cost[1] = getSubTick() - t;
     t = getSubTick();

@@ -1,4 +1,5 @@
 #include "game.h"
+#include "frontend.h"
 #include <genesis.h>
 volatile u16 frame_cost[3], early_vblank_flushes, vblank_flush_overruns;
 int main(bool hardReset) {
@@ -7,6 +8,7 @@ int main(bool hardReset) {
     (void)hardReset;
     JOY_init();
     video_init();
+    frontend_init();
     game_new();
     game.mode = TITLE;
     video_round();
@@ -26,6 +28,7 @@ int main(bool hardReset) {
             in |= IN_ATTACK;
         if (joy & BUTTON_START)
             in |= IN_START;
+        if (joy & BUTTON_MODE)in |= IN_COIN;
         u32 t0 = getSubTick();
         game_tick(in);
         frame_cost[0] = getSubTick() - t0; /* PAL maintains the same 60 Hz rule clock. */
@@ -41,11 +44,11 @@ int main(bool hardReset) {
         frame_cost[2] = getSubTick() - t0;
         /* A small queue finishing just after VBlank starts can still be
            presented this frame. Counter <=236 leaves at least 20 NTSC lines
-           (including its counter discontinuity) for a <=1 KiB queue and SGDK
+           (including its counter discontinuity) for a <=1.5 KiB queue and SGDK
            housekeeping. Never process twice in the same VBlank. */
         if(!SYS_isPAL() && vtimer!=last_presented &&
            GET_VDP_STATUS(VDP_VBLANK_FLAG) && GET_VCOUNTER<=236 &&
-           GET_VCOUNTER>=224 && DMA_getQueueTransferSize()<=1024) {
+           GET_VCOUNTER>=224 && DMA_getQueueTransferSize()<=1536) {
             SYS_doVBlankProcessEx(ON_VBLANK);
             early_vblank_flushes++;
             if(!GET_VDP_STATUS(VDP_VBLANK_FLAG))vblank_flush_overruns++;

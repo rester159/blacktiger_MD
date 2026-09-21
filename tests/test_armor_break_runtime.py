@@ -2,7 +2,7 @@
 """Armor fragments arise through real cartridge damage and timeout paths."""
 import json,hashlib
 from test_runtime import ROOT,Runner,state,put
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);cases=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);cases=[]
 for armor,damage,protected,timeout in ((4,2,0,0),(2,2,0,0),(1,3,0,0),(0,1,0,0),(2,3,1,0),(4,0,1,1)):
  s=state(r);s.mode=2;put(r,s);r.run(20)
  s=state(r);s.mode=1;s.cam_x=0;s.cam_y=688;s.p.x=128*256;s.p.y=832*256;s.p.vx=s.p.vy=0;s.p.hp=4;s.p.armor=armor;s.p.invincible=100 if protected else 0;s.p.climb=0;s.time=0 if timeout else 100;s.clock=59 if timeout else 0

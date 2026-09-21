@@ -11,7 +11,7 @@ def crawler_fire(r,slot,damage):
  raise AssertionError('Crawler dagger was not handled')
 cases=[]
 for profile,(bank,constructor,health,reward_points) in enumerate(((3,0xaab3,2,10),(3,0xb153,8,15),(7,0xa3b6,16,15),(3,0xb7f3,3,15))):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  slot,row,level=fixture(r,0,bank,constructor,approach=32,vertical=0)
  s=state(r);score=s.score
  s=fire(r,slot,255,0);assert s.actors[slot].active and not s.actors[slot].state and s.score==score,'Dormant seed was not immune'
@@ -46,7 +46,7 @@ for profile,(bank,constructor,health,reward_points) in enumerate(((3,0xaab3,2,10
 # Hold a live poison body in place to exercise the cartridge's contact dispatch.
 contacts=[];ref=json.loads((ROOT/'reference/crawler.json').read_text())
 definition=next(d['id'] for d in json.loads((ROOT/'reports/assets.json').read_text())['actor_definitions'] if (d['bank'],d['address'])==(7,0xa3b6))
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 for antidotes,gate in ((0,0),(1,0),(0,30)):
  s=state(r);s.mode=2;s.cam_x=16;s.cam_y=752;put(r,s);r.run(60)
  s=state(r);s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.armor=4;s.p.hp=4;s.p.invincible=0

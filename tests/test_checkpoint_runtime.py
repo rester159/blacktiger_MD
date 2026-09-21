@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib
 from test_runtime import ROOT,Runner,state,put
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 data=json.loads((ROOT/'reference/checkpoint.json').read_text());checks=[]
 def death():
  for _ in range(100):

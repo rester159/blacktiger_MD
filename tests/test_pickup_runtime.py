@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
 for pc in (0xb4af,0xb515):
  slot,row,level=fixture(r,0,4,pc);s=state(r);a=s.actors[slot];assert not a.state
  s.mode=1;s.p.x=a.x-8*256;s.p.y=a.y-8*256;s.p.vx=s.p.vy=0;s.p.invincible=10000;s.clock=0

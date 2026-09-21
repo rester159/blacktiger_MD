@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
 data=json.loads((ROOT/'reference/shop.json').read_text());rom=(ROOT/'out/release/rom.bin').read_bytes()
 def tap(mask):r.run(3);r.run(3,mask);r.run(3)
 for index,item in enumerate(data['grid']):

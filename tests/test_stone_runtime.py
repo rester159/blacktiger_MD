@@ -3,7 +3,7 @@
 import hashlib,json
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
 from test_loot_runtime import drops
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 slot,row,level=fixture(r,0,4,0x9a4c);s=state(r)
 assert s.actors[slot].hp==2 and s.actors[slot].life==4 and s.boss_dead==0
 s=fire(r,slot,100,0)

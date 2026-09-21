@@ -2,7 +2,7 @@
 """One real contact update distinguishes standing, crouched and jumping postures."""
 import json,hashlib,struct
 from test_runtime import ROOT,Runner,state,put
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);cases=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);cases=[]
 for low,jumping in ((0,0),(1,0),(1,1)):
  for dx,dy in ((0,-3),(6,10),(7,10),(0,21),(0,22),(-6,-1)):
   s=state(r);s.mode=2;put(r,s);r.run(20)

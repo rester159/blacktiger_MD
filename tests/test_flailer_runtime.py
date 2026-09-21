@@ -3,7 +3,7 @@ import json,hashlib,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
 cases=[]
 for variant,constructor in enumerate((0xab33,0xab4a,0xb1c1,0xb1d8)):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  slot,row,level=fixture(r,0,0,0xb1c1 if variant==3 else constructor,approach=32,vertical=0,wait_frames=300,hold_position=True)
  if variant==3:
   # This constructor's only table row has X=16352, outside the round's 2048-pixel
@@ -32,7 +32,7 @@ for variant,constructor in enumerate((0xab33,0xab4a,0xb1c1,0xb1d8)):
  r.close()
 # Controlled real contact dispatch for ordinary and poison weapons.
 contacts=[];ref=json.loads((ROOT/'reference/flailer.json').read_text())
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 for profile,antidotes,gate in ((0,0,0),(0,1,0),(0,0,30),(1,0,0)):
  s=state(r);s.mode=2;put(r,s);r.run(20)
  s=state(r);s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.armor=4;s.p.hp=4;s.p.invincible=0

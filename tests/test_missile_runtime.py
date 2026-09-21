@@ -2,7 +2,7 @@
 """One-contact-tick missile fixtures expose linked-cartridge parity mistakes."""
 import json,hashlib,struct
 from test_runtime import ROOT,Runner,state,put
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);cases=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);cases=[]
 for next_parity,dx,dy in ((0,0,0),(1,0,0),(0,11,12),(0,12,0),(0,0,13),(1,11,12)):
  s=state(r);s.mode=2;put(r,s);r.run(8)
  s=state(r);s.mode=1;s.frame=9+next_parity;s.p.x=128*256;s.p.y=896*256;s.p.vx=s.p.vy=0;s.p.climb=0;s.p.hp=4;s.p.armor=0;s.p.invincible=0;s.time=100;s.clock=0

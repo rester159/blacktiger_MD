@@ -5,12 +5,12 @@ from test_runtime import finish_clear
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
 cases=[]
 for bank,constructor in ((4,0x9eb1),(4,0x9f16),(1,0x9fc4),(1,0x98a3),(1,0x98e8),(3,0x8000),(3,0x991d),(3,0x9b24)):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
  slot,row,level=fixture(r,0,bank,constructor,approach=32,vertical=64,wait_frames=300)
  expected=(0x29,0x29,0x2a,0x29,0x29,0x2a,0x29,0x2b)[level]
  assert r.read('music_command',1)[0]==expected,(bank,hex(constructor),level,r.read('music_command',1))
  cases.append(dict(round=level+1,constructor=constructor,command=expected));r.close()
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20)
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20)
 s=state(r);s.mode=3;put(r,s);r.run(8);assert r.read('music_command',1)[0]==0x2c
 s=state(r);s.mode=1;put(r,s);r.run(8);assert r.read('music_command',1)[0]==0x21+s.round
 s=state(r);s.mode=5;s.mode_timer=10000;finish_clear(r,s);r.run(8);assert r.read('music_command',1)[0]==0x32

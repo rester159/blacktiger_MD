@@ -2,7 +2,7 @@
 """Independent upper-part defeat must preserve the boss encounter and its row."""
 import json,hashlib
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,fire
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);cases=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);cases=[]
 for constructor,hp in ((0x9eb1,6),(0x9f16,4)):
  main,row,level=fixture(r,0,4,constructor);slot=main+1
  for _ in range(100):

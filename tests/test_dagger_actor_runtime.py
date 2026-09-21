@@ -2,7 +2,7 @@
 import hashlib,json,struct
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture,meta
 rom=(ROOT/'out/release/rom.bin').read_bytes()
-r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(20);checks=[]
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);checks=[]
 for pool,bank,pc,w,h in ((32,2,0xacac,8,8),(48,2,0xb67f,6,6)):
  for parity,dx,dy in ((0,0,0),(1,0,0),(int(pool==48),w+4,0),(int(pool==48),w+5,0),(int(pool==48),0,h+2),(int(pool==48),0,h+3)):
   slot,row,level=fixture(r,0,bank,pc,approach=32,vertical=32)

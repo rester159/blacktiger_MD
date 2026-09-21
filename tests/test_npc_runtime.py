@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'tools'))
 from test_runtime import Runner,state,put
 
 def run_case(kind,defs):
- r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30);r.write('progress_max_hp',0,b'\x05')
+ r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(30);r.write('progress_max_hp',0,b'\x05')
  rom=(ROOT/'out/release/rom.bin').read_bytes();metadata=json.loads((ROOT/'reports/assets.json').read_text())
  found=None
  for level,info in enumerate(metadata['rounds']):

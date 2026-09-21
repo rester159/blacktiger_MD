@@ -2,7 +2,9 @@
 #include "damage.h"
 #include "player_death.h"
 #include "assets.h"
-u8 player_attack_damage(u8 tier) {return player_weapon_damage[tier<1?0:tier>5?4:tier-1];}
+#include "difficulty_data.inc"
+volatile u8 combat_difficulty=4;
+u8 player_attack_damage(u8 tier) {return difficulty_damage[combat_difficulty&7][tier<1?0:tier>5?4:tier-1];}
 void player_hurt_from(u8 damage,s16 source_x) {
     Player *p = &game.p;
     if (p->invincible || game.boss_dead || game.mode != PLAY) return;
