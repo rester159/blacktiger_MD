@@ -1,6 +1,6 @@
 # Black Tiger Astra — native SGDK development build
 
-This is a new, separate Genesis project. The previous `_capcom/black tiger` repository is unchanged.
+The native SGDK port lives in `/Users/rester159/My_apps/genesis ports/_capcom/black tiger`.
 
 **This is not a complete or arcade-faithful port.** It builds and runs native game logic on the
 68000 using SGDK. It does not execute the arcade program or emulate its CPU. All eight original
@@ -17,7 +17,7 @@ Open `dist/blacktiger_astra.bin` in a Genesis emulator, or run `tools/launch.sh`
 - Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/Options. Normal Play preserves the original animated arcade intro in both modes.
 - Home defaults to three total credits: the initial game and two continues. Options sets 1–99 credits for a new run; Select cannot refill them.
 - Both settings menus provide lives, difficulty, coinage, continues, music and sound effects. Difficulty currently changes original weapon-damage tables and shop prices; full arcade difficulty behavior is not yet certified.
-- Home Boss Rush uses a three-screen-wide, horizontally scrolling palace hall for eight bosses, awards 1,000–4,500 Zenny, and opens a shop after every victory, including the last. Equipment, keys and remaining currency carry over. Each fight starts in the center with scrolling available left and right.
+- Home Boss Rush uses a three-screen-wide, horizontally scrolling palace hall for eight bosses, awards 1,000–4,500 Zenny, and opens a shop after every victory, including the last. Equipment, keys and remaining currency carry over. Each fight starts in the center with scrolling available left and right. Scenery through the palace windows scrolls at half speed for depth.
 - Arcade HUD: original top/bottom glyph layout, score/high score, TIME, VITALITY, Zenny, keys, weapon, armor and antidotes. Title screens retain CAPCOM 1987 and add RESTER159 2026.
 - RetroArch: use a six-button pad; keyboard Right Shift = Select, Enter = Start, A = attack, Z = jump. `tools/launch.sh` applies these bindings, audio sync and VSync, and disables fast-forward/slow-motion keyboard shortcuts for this run. Space is not jump. Global RetroArch settings are unchanged.
 - Contact a petrified NPC to rescue it. Merchant rescues open the arcade-style icon shop. Left/right selects within a row; up/down switches weapons/armor rows. A buys, B/Start exits. Purchases and refusals have feedback.
@@ -195,3 +195,11 @@ and restore its one-point trigger without killing it or awarding score. Eight sc
 1,920 original ticks for graphics, motion, repeated hits and proximity changes. A cartridge test
 covers an actual spawn, motion, absent placeholder shots and repeated nonlethal hit callbacks.
 Player damage details and common viewport retirement still need broader source matching.
+
+Local rebuild dependencies are kept inside this checkout: the verified supplied
+arcade package in `assets/source/arcade`, and the pinned test core in
+`.local/test-core` (identity in `tools/test_core.json`). These local dependencies
+are ignored by Git; keep them when moving the repository. `BLACKTIGER_SOURCE`
+and `BLACKTIGER_CORE` can override their locations. SGDK remains installed at
+`~/mars/m68k-elf`. Run `make` to build, `make test` to verify, and
+`tools/launch.sh` to play `dist/blacktiger_astra.bin`.

@@ -43,8 +43,7 @@ from extract_hidden import extract as extract_hidden
 from actor_contract import load as load_actor_contract
 from extract_animation import extract as extract_animation
 ROOT=Path(__file__).resolve().parents[1]
-OLD=ROOT.parent/'_capcom/black tiger'
-DEFAULT=OLD/'assets/source_packages/arcade/blktiger_supplied_romset_e54221c17ce6b5ee'
+DEFAULT=ROOT/'assets/source/arcade'
 OUT=ROOT/'res/generated'
 def sha(b):return hashlib.sha256(b).hexdigest()
 def words(v):return struct.pack('>'+str(len(v))+'H',*map(int,v))

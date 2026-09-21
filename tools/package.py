@@ -8,7 +8,7 @@ rom=ROOT/'out/release/rom.bin';raw=rom.read_bytes();assert raw[0x100:0x104]==b'S
 checksum=sum(int.from_bytes(raw[i:i+2],'big') for i in range(0x200,len(raw),2))&65535
 assert int.from_bytes(raw[0x18e:0x190],'big')==checksum
 assert int.from_bytes(raw[0x1a4:0x1a8],'big')==len(raw)-1
-source=ROOT.parent/'_capcom/black tiger/assets/source_packages/arcade/blktiger_supplied_romset_e54221c17ce6b5ee/payload'
+source=ROOT/'assets/source/arcade/payload'
 checked=0
 if source.exists():
  for name in ('bdu-01a.5e','bdu-02a.6e','bdu-03a.8e','bd-06.1l'):
@@ -141,7 +141,7 @@ player_death_runtime=json.loads((ROOT/'reports/player-death-runtime-tests.json')
 armor_break=json.loads((ROOT/'reports/armor-break-tests.json').read_text());assert armor_break['passed']
 armor_break_runtime=json.loads((ROOT/'reports/armor-break-runtime-tests.json').read_text());assert armor_break_runtime['passed'] and armor_break_runtime['rom_sha256']==sha(rom)
 frontend_checks={}
-for name in ('frontend-runtime-tests','boss-rush-runtime-tests','presentation-runtime-tests','settings-runtime-tests','hud-runtime-tests','boot-logos-runtime-tests'):
+for name in ('frontend-runtime-tests','boss-rush-runtime-tests','presentation-runtime-tests','settings-runtime-tests','hud-runtime-tests','boot-logos-runtime-tests','arena-parallax-runtime-tests'):
  result=json.loads((ROOT/f'reports/{name}.json').read_text());assert result['passed'] and result['rom_sha256']==sha(rom),name
  frontend_checks[name]=result
 performance=json.loads((ROOT/'reports/performance-profile.json').read_text());assert performance['rom_sha256']==sha(rom)

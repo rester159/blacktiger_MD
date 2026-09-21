@@ -1049,3 +1049,28 @@ The two-legged wave bosses use their actual 64-pixel body height instead of the
 flying enemies and death sequences retain their vertical movement. Runtime
 checks cover centered entry, initial movement in either direction, both scrolling
 limits, and walking-boss ground alignment throughout all traversal frames.
+
+
+## Palace window parallax (2026-09-20)
+
+Boss Rush now separates the existing palace walls/window mullions from distant
+scenery. The foreground uses high-priority plane B; the landscape uses low-priority
+plane A with half-speed hardware scrolling. HUD rows remain fixed, and shop rows
+use zero scroll. The landscape strip is derived from existing palace scenery and
+mirrored for seamless repetition; both existing background palettes are retained.
+Only an entering wall column and scroll values are updated during movement.
+The effect resets when returning to the title or leaving Boss Rush.
+
+Runtime checks verify the actual VRAM scroll table in both directions, rendered
+wall/scenery displacement (16/8 pixels), fixed HUD cells, shop scroll and title
+reset. Eight-boss traversal, floor alignment and progression tests also pass.
+
+## Repository consolidation (2026-09-20)
+
+The working repository now lives at `genesis ports/_capcom/black tiger`.
+The superseded checkout, worktrees and two verifier repositories were removed.
+Required arcade inputs and the pinned test core are local ignored dependencies;
+build/test tools no longer depend on the deleted directories. Unused Dungeon
+files and duplicate oracle scratch output were removed. A clean rebuild at the
+new location matches the fully tested ROM byte for byte; parallax and all eight
+Boss Rush runtime checks were repeated successfully after relocation.

@@ -2,7 +2,7 @@ JAVA ?= $(or $(wildcard /opt/homebrew/opt/openjdk/bin/java),java)
 GDK ?= $(HOME)/mars/m68k-elf
 .DEFAULT_GOAL := all
 .PHONY: all assets test clean
-all: src/shop_visual_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
+all: src/arena_parallax_data.inc src/shop_visual_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
 	$(MAKE) -f $(GDK)/makefile.gen JAVA=$(JAVA) LIBGCC="$(shell $(GDK)/bin/m68k-elf-gcc -m68000 -print-libgcc-file-name)"
 	python3 tools/finalize_rom.py out/release/rom.bin
 .venv/bin/python: requirements.txt
@@ -15,6 +15,7 @@ assets: .venv/bin/python
 src/ui_data.inc: tools/build_ui.py assets/ui/title_arcade.png assets/board.json | .venv/bin/python
 	.venv/bin/python tools/build_ui.py
 test: all
+	.venv/bin/python tests/test_arena_parallax_runtime.py
 	.venv/bin/python tests/test_boot_logos_runtime.py
 	.venv/bin/python tests/test_hud_runtime.py
 	.venv/bin/python tests/test_settings_runtime.py
@@ -162,3 +163,6 @@ src/hud_data.inc: tools/build_hud.py tools/hud_assets.py reference/hud_oracle_ev
 
 src/shop_visual_data.inc: tools/build_shop.py reference/shop_screen_oracle.json reference/shop_screen_oracle_events.txt res/generated/object_patterns.bin
 	.venv/bin/python tools/build_shop.py
+
+src/arena_parallax_data.inc: tools/build_arena_parallax.py res/generated/object_patterns.bin
+	.venv/bin/python tools/build_arena_parallax.py

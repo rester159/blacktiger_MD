@@ -2,6 +2,7 @@
 #include "frontend.h"
 #include "intro.h"
 #include "boss_rush.h"
+#include "arena_video.h"
 #include "actor_dispatch.h"
 #include "bonus.h"
 #include "armor_break.h"
@@ -450,7 +451,7 @@ static void sprites(void) {
     video_dma_bytes += sprite_count * 8;
 }
 static void text(u16 x, u16 y, const char *s) {
-    VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),x,y,DMA_QUEUE);
+    VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),arena_video_text_x(x,y),y,DMA_QUEUE);
 }
 static u8 last_shop = 255,last_npc_page=255;
 static void digits(char *p, u16 v, u16 count) {
@@ -466,7 +467,10 @@ static void overlay(void) {
     last_clear_phase=round_clear.phase;
     char b[40];
     if (changed) {
-        if(!clear_screen_active && !ending_screen_active)VDP_clearPlane(BG_A, TRUE);
+        if(!clear_screen_active && !ending_screen_active){
+            VDP_clearPlane(BG_A, TRUE);
+            if(arena_video_active)arena_video_restore(0);
+        }
         ui_hud_invalidate();
         last_mode = m;
     }
@@ -555,7 +559,8 @@ void video_round(void) {
     VDP_clearPlane(WINDOW, TRUE);
     for (i = 0; i < 2; i++)
         VDP_fillTileMapRect(WINDOW, TILE_ATTR_FULL(PAL2, TRUE, FALSE, FALSE, 0), 0, i, 32, 1);
-    scene(1);
+    if(boss_rush.active){arena_video_init();old_x=game.cam_x>>3;old_y=game.cam_y>>3;}
+    else {arena_video_reset();scene(1);}
     DMA_flushQueue();
     last_round = game.round;
     last_mode = 255;
@@ -629,6 +634,8 @@ volatile u16 video_cost[3];
 void video_frame(void) {
     u32 t = getSubTick();
     video_dma_bytes = 0;
+    if(arena_video_active && (game.mode==TITLE || game.mode==INTRO))arena_video_reset();
+    else if(arena_video_active && !boss_rush.active)video_round();
     if(game.mode==TITLE){ui_title();video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;last_mode=TITLE;return;}
     if(game.mode==INTRO){intro_video();last_mode=INTRO;return;}
     if(last_mode==TITLE || last_mode==INTRO)video_round();
@@ -645,11 +652,12 @@ void video_frame(void) {
         memset(body_keys,255,sizeof body_keys);memset(body_stamp,0,sizeof body_stamp);
         sprite_eviction=body_eviction=epoch=0;
         VDP_clearPlane(BG_A,TRUE);ui_hud_invalidate();
+        if(arena_video_active)arena_video_restore(0);
         shop_screen_active=0;last_mode=255;
         VDP_setEnable(TRUE);SYS_enableInts();
     }
     if(game.mode==SHOP){
-        if(!shop_screen_active){shop_video_init();shop_screen_active=1;}
+        if(!shop_screen_active){shop_video_init();shop_screen_active=1;if(arena_video_active)arena_video_restore(1);}
         shop_video_frame();last_mode=SHOP;
         video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;return;
     }
@@ -665,12 +673,12 @@ void video_frame(void) {
         old_x - (game.cam_x >> 3) > 1 || (game.cam_y >> 3) - old_y > 1 ||
         old_y - (game.cam_y >> 3) > 1)
         video_round();
-    terrain_updates();
-    scene(0);
+    if(arena_video_active){arena_video_frame();old_x=game.cam_x>>3;}
+    else {terrain_updates();scene(0);}
     video_cost[0] = getSubTick() - t;
     t = getSubTick();
-    VDP_setHorizontalScrollVSync(BG_B, -game.cam_x);
-    VDP_setVerticalScrollVSync(BG_B, game.cam_y);
+    if(!arena_video_active){VDP_setHorizontalScrollVSync(BG_B, -game.cam_x);
+    VDP_setVerticalScrollVSync(BG_B, game.cam_y);}
     sprites();
     video_cost[1] = getSubTick() - t;
     t = getSubTick();

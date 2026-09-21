@@ -1,0 +1,7 @@
+{
+  "path": ".local/test-core/genesis_plus_gx_libretro.dylib",
+  "sha256": "20903bdbe7dde068ebc55eabb00a2bf45238a254f24fbe2285d12389520dbba0",
+  "upstream_revision": "f2b40ca6c97b2ff7f70d3c00d7ace84200bb31eb",
+  "platform": "macOS arm64",
+  "scope": "Local pinned test dependency; BLACKTIGER_CORE can override this path."
+}

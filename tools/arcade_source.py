@@ -2,7 +2,7 @@
 from pathlib import Path
 import hashlib,json,os
 ROOT=Path(__file__).resolve().parents[1]
-DEFAULT=ROOT.parent/'_capcom/black tiger/assets/source_packages/arcade/blktiger_supplied_romset_e54221c17ce6b5ee'
+DEFAULT=ROOT/'assets/source/arcade'
 class Source:
  def __init__(self,root=None):
   self.root=Path(root or os.environ.get('BLACKTIGER_SOURCE',DEFAULT));self.lock=json.loads((self.root/'source_lock.json').read_text());self.files={};self.witnesses={}

@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[1]
-CORE=ROOT.parent/'_capcom/black tiger/dist/reports/development/BT-PLAT-001/core_admission_work/source/Genesis-Plus-GX-f2b40ca6c97b2ff7f70d3c00d7ace84200bb31eb/genesis_plus_gx_libretro.dylib'
+CORE=ROOT/'.local/test-core/genesis_plus_gx_libretro.dylib'
 CORE=Path(os.environ.get('BLACKTIGER_CORE',str(CORE)))
 class Info(C.Structure):_fields_=[('path',C.c_char_p),('data',C.c_void_p),('size',C.c_size_t),('meta',C.c_char_p)]
 class Geometry(C.Structure):_fields_=[('base_width',C.c_uint),('base_height',C.c_uint),('max_width',C.c_uint),('max_height',C.c_uint),('aspect_ratio',C.c_float)]

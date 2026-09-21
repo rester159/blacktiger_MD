@@ -8,14 +8,16 @@ r=Runner(ROOT/'out/release/rom.bin');r.run(100);cases=[]
 def tap(mask):r.run(12,mask);r.run(12)
 def walk(mask,travel=512):
  previous=state(r).cam_x;scrolled=0
- for _ in range(460):
+ for _ in range(640):
   r.run(1,mask);s=state(r);delta=abs(s.cam_x-previous)
   assert delta<=2,('camera jump',previous,s.cam_x)
   scrolled+=delta;previous=s.cam_x
+  if (mask==128 and s.p.x//256>=1312) or (mask==64 and s.p.x//256<=576):break
   for a in s.actors:
    if a.active and a.definition in (49,62) and a.state!=2:
     assert a.y==192*256 and a.vy==0,('walking boss above floor',a.definition,a.y//256)
  assert scrolled==travel,('incomplete scroll',scrolled,travel)
+ assert int.from_bytes(r.read('vblank_flush_overruns'),'big')==0,'arena DMA exceeded VBlank'
 tap(32);tap(8);tap(32);tap(8)
 for stage in range(8):
  s=state(r);assert s.mode==1 and r.read('boss_rush',4)==bytes([1,stage,0,0]),(stage,s.mode,list(r.read('boss_rush',6)))
