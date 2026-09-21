@@ -14,7 +14,8 @@ u8 edge_actor_vulnerable(u16 slot);
 u8 edge_actor_contact(u16 slot);
 void edge_screen_attack(u16 slot);
 const AnimFrame *edge_actor_frame(u16 slot);
-void edge_shots_step(void);
+/* Conservative occupancy from the update; retired entries may still count. */
+u8 edge_shots_step(void);
 u8 edge_shot_contact(u16 slot);
 u8 edge_shot_hit(s16 x,s16 y,u8 damage,u8 dagger);
 const AnimFrame *edge_shot_frame(u16 slot);

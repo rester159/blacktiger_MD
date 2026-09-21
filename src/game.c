@@ -824,12 +824,19 @@ void game_tick(u16 input) {
         if(statue_shells[i].active && !game.p.invincible && statue_shell_player_contact(i,0))statue_shell_contact(i);
         if(statue_blasts[i].active && statue_shell_player_contact(i,1))player_hurt_from(1,statue_blasts[i].x);
     }}
-    container_traps_tick();waveboss_seeds_tick();flailer_weapons_tick();reinforcement_shots_step();edge_shots_step();dragon_shots_step();
-    {u16 i;for(i=0;i<24;i++)if(dragon_shots[i].active && dragon_shot_contact(i))player_hurt_from(1,dragon_shots[i].x);}
-    {u16 i;for(i=0;i<24;i++){u8 damage;if(!edge_shots[i].active)continue;damage=edge_shot_contact(i);if(damage)player_hurt_from(damage,edge_shots[i].x);}}
-    {u16 i;for(i=0;i<24;i++)if(reinforcement_shots[i].active && reinforcement_shot_contact(i))player_hurt_from(1,reinforcement_shots[i].x);}
-    {u16 i;for(i=0;i<MAX_ACTORS;i++){u8 contact;if(!flailer_weapons[i].active)continue;contact=flailer_weapon_contact(i);if(contact==1)player_hurt_from(1,flailer_weapons[i].x);else if(contact==2 && status_poison_cloud_contact())player_hurt_from(2,flailer_weapons[i].x);}}
-    {u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact;if(!container_traps[i].active)continue;contact=container_trap_contact(i);if(contact==1)player_hurt_from(1,container_traps[i].x);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
+    {
+    u8 traps=container_traps_tick(),seeds=waveboss_seeds_tick();
+    u8 flailers=flailer_weapons_tick(),reinforcements=reinforcement_shots_step();
+    u8 edges=edge_shots_step(),dragons=dragon_shots_step();
+    /* Seeds and dragon shots can create container waves after the trap update.
+       Keep the later contact scan in those cases, including new entries. */
+    traps|=seeds|dragons;
+    if(dragons){u16 i;for(i=0;i<24;i++)if(dragon_shots[i].active && dragon_shot_contact(i))player_hurt_from(1,dragon_shots[i].x);}
+    if(edges){u16 i;for(i=0;i<24;i++){u8 damage;if(!edge_shots[i].active)continue;damage=edge_shot_contact(i);if(damage)player_hurt_from(damage,edge_shots[i].x);}}
+    if(reinforcements){u16 i;for(i=0;i<24;i++)if(reinforcement_shots[i].active && reinforcement_shot_contact(i))player_hurt_from(1,reinforcement_shots[i].x);}
+    if(flailers){u16 i;for(i=0;i<MAX_ACTORS;i++){u8 contact;if(!flailer_weapons[i].active)continue;contact=flailer_weapon_contact(i);if(contact==1)player_hurt_from(1,flailer_weapons[i].x);else if(contact==2 && status_poison_cloud_contact())player_hurt_from(2,flailer_weapons[i].x);}}
+    if(traps){u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact;if(!container_traps[i].active)continue;contact=container_trap_contact(i);if(contact==1)player_hurt_from(1,container_traps[i].x);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
+    }
     {
         u16 i;for(i=0;i<MAX_MISSILES;i++) {
             Missile *m=&missiles[i];

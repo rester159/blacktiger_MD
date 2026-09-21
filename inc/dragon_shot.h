@@ -7,7 +7,8 @@ extern const DragonSegment dragon_shot_segments[];
 extern const u16 dragon_shot_roots[21];
 void dragon_shots_reset(void);
 void dragon_projectile_spawn(u8 kind,u8 direction,s16 x,s16 y,u8 profile,u8 left);
-void dragon_shots_step(void);
+/* Conservative occupancy from the update; retired entries may still count. */
+u8 dragon_shots_step(void);
 u8 dragon_shot_hit_slot(u16 slot,u8 damage);
 u8 dragon_shot_contact(u16 slot);
 const AnimFrame *dragon_shot_frame(u16 slot);

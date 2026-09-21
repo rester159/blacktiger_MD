@@ -11,7 +11,8 @@ void container_actor_restart(void);
 void container_spawn(u16 slot);
 void container_step(u16 slot,u8 contact);
 const AnimFrame *container_frame(u16 slot);
-void container_traps_tick(void);
+/* Conservative occupancy from the update; retired entries may still count. */
+u8 container_traps_tick(void);
 u8 container_trap_contact(u16 slot);
 const AnimFrame *container_trap_frame(u16 slot);
 /* Contact effect only: the animation owner gates contact and fires trap events. */

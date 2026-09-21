@@ -73,9 +73,9 @@ void container_step(u16 slot,u8 contact) {
 const AnimFrame *container_frame(u16 slot) {
  ContainerState *s=&containers[slot];return animation_current(&s->animation,container_segments[s->segment].clip);
 }
-void container_traps_tick(void) {
+u8 container_traps_tick(void){u8 occupied=0;
  u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++) {
-  ContainerTrap *t=&container_traps[i];u16 tries;if(!t->active)continue;
+  ContainerTrap *t=&container_traps[i];u16 tries;if(!t->active)continue;occupied=1;
   for(tries=0;tries<4;tries++) {
    const ContainerSegment *seg=&container_segments[t->segment];
    if(animation_tick(&t->animation,seg->clip)) {
@@ -92,6 +92,7 @@ void container_traps_tick(void) {
    select_clip(&t->animation,&t->segment,seg->next);
   }
  }
+return occupied;
 }
 u8 container_trap_contact(u16 slot) {
  ContainerTrap *t=&container_traps[slot];

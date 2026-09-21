@@ -61,8 +61,8 @@ void waveboss_step(u16 slot){
  }
 }
 const AnimFrame *waveboss_frame(u16 slot){WaveBossState *s=&wavebosses[slot];return s->animation.remaining?animation_current(&s->animation,waveboss_segments[s->segment].clip):0;}
-void waveboss_seeds_tick(void){
- u16 i,tries;for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){WaveBossSeed *p=&waveboss_seeds[i];if(!p->active)continue;
+u8 waveboss_seeds_tick(void){u8 occupied=0;
+ u16 i,tries;for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){WaveBossSeed *p=&waveboss_seeds[i];if(!p->active)continue;occupied=1;
   for(tries=0;tries<8;tries++){
    const WaveBossSegment *seg=&waveboss_segments[p->segment];u16 target=seg->next[0];
    if(animation_tick(&p->animation,seg->clip)){
@@ -75,6 +75,7 @@ void waveboss_seeds_tick(void){
    select_segment(&p->animation,&p->segment,target);
   }
  }
+return occupied;
 }
 const AnimFrame *waveboss_seed_frame(u16 slot){WaveBossSeed *p=&waveboss_seeds[slot];return p->active && p->animation.remaining?animation_current(&p->animation,waveboss_segments[p->segment].clip):0;}
 u8 waveboss_player_contact(u16 slot){

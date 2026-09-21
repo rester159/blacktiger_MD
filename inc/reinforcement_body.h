@@ -17,7 +17,8 @@ u8 reinforcement_body_contact(u16 slot);
 void reinforcement_screen_attack(u16 slot);
 const AnimFrame *reinforcement_body_frame(u16 slot);
 void reinforcement_shots_reset(void);
-void reinforcement_shots_step(void);
+/* Conservative occupancy from the update; retired entries may still count. */
+u8 reinforcement_shots_step(void);
 u8 reinforcement_shot_contact(u16 slot);
 const AnimFrame *reinforcement_shot_frame(u16 slot);
 #endif

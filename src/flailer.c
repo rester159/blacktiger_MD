@@ -70,8 +70,8 @@ void flailer_step(u16 slot){
  }
 }
 const AnimFrame *flailer_frame(u16 slot){FlailerState *s=&flailers[slot];return s->animation.remaining?animation_current(&s->animation,flailer_segments[s->segment].clip):0;}
-void flailer_weapons_tick(void){
- u16 i,tries;for(i=0;i<MAX_ACTORS;i++){FlailerWeapon *p=&flailer_weapons[i];if(!p->active)continue;
+u8 flailer_weapons_tick(void){u8 occupied=0;
+ u16 i,tries;for(i=0;i<MAX_ACTORS;i++){FlailerWeapon *p=&flailer_weapons[i];if(!p->active)continue;occupied=1;
   if(p->pending){p->pending=0;p->dying=1;select_segment(&p->animation,&p->segment,flailer_roots[p->profile][20]);}
   for(tries=0;tries<8;tries++){
    const AnimSegment *seg=&flailer_segments[p->segment];
@@ -79,6 +79,7 @@ void flailer_weapons_tick(void){
    if(seg->event!=8){p->active=0;break;}game.sound=SND_ATTACK;select_segment(&p->animation,&p->segment,seg->next);
   }
  }
+return occupied;
 }
 u8 flailer_weapon_hit(s16 x,s16 y,u8 kind){u16 i;u8 width=8+(kind?dagger_width:8),height=4+(kind?dagger_height:4);for(i=0;i<MAX_ACTORS;i++){FlailerWeapon *p=&flailer_weapons[i];s16 dx=x-p->x,dy=y-p->y;if(p->active && !p->pending && !p->dying && (!kind || !(game.frame&1)) && dx>=-width && dx<=width && dy>=-height && dy<=height){p->pending=1;return 1;}}return 0;}
 u8 flailer_weapon_contact(u16 slot){FlailerWeapon *p=&flailer_weapons[slot];if(!p->active || p->pending || p->dying || (game.frame&1))return 0;return player_contact(p->x,p->y,8,4)?(p->profile?1:2):0;}

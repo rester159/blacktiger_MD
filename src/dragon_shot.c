@@ -11,8 +11,8 @@ static u8 spawn(u8 kind,u8 direction,s16 x,s16 y,u8 profile,u8 left){
 }
 void dragon_projectile_spawn(u8 kind,u8 direction,s16 x,s16 y,u8 profile,u8 left){if(kind<2 && (kind || direction<16))spawn(kind,direction,x,y,profile,left);}
 u8 dragon_shot_hit_slot(u16 slot,u8 damage){DragonShot *p=&dragon_shots[slot];if(!damage || !p->active || (p->mode&1))return 0;p->pending=1;p->mode|=3;return 1;}
-void dragon_shots_step(void){
- u16 i;for(i=0;i<24;i++){DragonShot *p=&dragon_shots[i];u16 tries;if(!p->active)continue;
+u8 dragon_shots_step(void){u8 occupied=0;
+ u16 i;for(i=0;i<24;i++){DragonShot *p=&dragon_shots[i];u16 tries;if(!p->active)continue;occupied=1;
   if(p->pending==2){p->active=0;continue;}
   if(p->pending){p->pending=0;select_segment(p,dragon_shot_roots[18]);}
   for(tries=0;tries<6;tries++){
@@ -33,6 +33,7 @@ void dragon_shots_step(void){
    select_segment(p,target);
   }
  }
+return occupied;
 }
 u8 dragon_shot_contact(u16 slot){
  DragonShot *p=&dragon_shots[slot];u8 medium=p->kind==2;

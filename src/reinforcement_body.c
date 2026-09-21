@@ -77,6 +77,7 @@ void reinforcement_body_step(u16 slot){
  }
 }
 const AnimFrame *reinforcement_body_frame(u16 slot){ReinforcementState *s=&fighters[slot];return s->animation.remaining?animation_current(&s->animation,reinforcement_segments[s->segment].clip):0;}
-void reinforcement_shots_step(void){u16 i;for(i=0;i<24;i++){ReinforcementShot *p=&reinforcement_shots[i];if(!p->active)continue;if(!animation_tick(&p->animation,reinforcement_clips[p->part])){p->active=0;continue;}p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;continue;}p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;}}
+u8 reinforcement_shots_step(void){u8 occupied=0;u16 i;for(i=0;i<24;i++){ReinforcementShot *p=&reinforcement_shots[i];if(!p->active)continue;occupied=1;if(!animation_tick(&p->animation,reinforcement_clips[p->part])){p->active=0;continue;}p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;continue;}p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;}return occupied;
+}
 u8 reinforcement_shot_contact(u16 slot){ReinforcementShot *p=&reinforcement_shots[slot];return p->active && p->part%6==2 && !(game.frame&1) && player_contact(p->x,p->y,40,4);}
 const AnimFrame *reinforcement_shot_frame(u16 slot){ReinforcementShot *p=&reinforcement_shots[slot];return p->active && p->animation.remaining?animation_current(&p->animation,reinforcement_clips[p->part]):0;}

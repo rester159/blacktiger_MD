@@ -61,9 +61,10 @@ void edge_actor_step(u16 slot){Actor *a=&game.actors[slot];EdgeState *s=&edge_ac
 }
 u8 edge_actor_contact(u16 slot){EdgeState *s=&edge_actors[slot];if((s->mode&2) || game.actors[slot].state==2)return 0;if(s->contact==37)s->contact_pending=1;return 1;}
 const AnimFrame *edge_actor_frame(u16 slot){EdgeState *s=&edge_actors[slot];return s->animation.remaining?animation_current(&s->animation,edge_segments[s->segment].clip):0;}
-void edge_shots_step(void){u16 i;for(i=0;i<24;i++){EdgeShot *p=&edge_shots[i];u16 n;if(!p->active)continue;if(p->pending){p->pending=0;select_animation(&p->animation,&p->segment,edge_shot_roots[35+p->profile*2]);}
+u8 edge_shots_step(void){u8 occupied=0;u16 i;for(i=0;i<24;i++){EdgeShot *p=&edge_shots[i];u16 n;if(!p->active)continue;occupied=1;if(p->pending){p->pending=0;select_animation(&p->animation,&p->segment,edge_shot_roots[35+p->profile*2]);}
  for(n=0;n<4;n++){const AnimSegment *seg=&edge_shot_segments[p->segment];u16 target=seg->next;if(animation_tick(&p->animation,seg->clip)){p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;break;}p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;break;}if(seg->event){p->active=0;break;}if(ground(p->x+8,p->y+8))target=edge_shot_roots[34+p->profile*2];select_animation(&p->animation,&p->segment,target);}
-}}
+}return occupied;
+}
 u8 edge_shot_contact(u16 slot){EdgeShot *p=&edge_shots[slot];return p->active && !p->dying && !(game.frame&1) && player_contact(p->x,p->y,p->profile?5:3,p->profile?5:3)?(p->profile?3:1):0;}
 u8 edge_shot_hit(s16 x,s16 y,u8 damage,u8 dagger){u16 i;for(i=0;i<24;i++){EdgeShot *p=&edge_shots[i];s16 dx=x-p->x,dy=y-p->y;u8 w=(p->profile?5:3)+(dagger?dagger_width:8),h=(p->profile?5:3)+(dagger?dagger_height:4);if(!p->active || p->dying || (dagger && (game.frame&1)))continue;if(dx>=-(s16)w && dx<=w && dy>=-(s16)h && dy<=h){u8 hit=dagger?(damage>1?damage>>1:1):damage;if(p->hp>hit)p->hp-=hit;else{p->dying=1;p->pending=1;}return 1;}}return 0;}
 const AnimFrame *edge_shot_frame(u16 slot){EdgeShot *p=&edge_shots[slot];return p->active && p->animation.remaining?animation_current(&p->animation,edge_shot_segments[p->segment].clip):0;}

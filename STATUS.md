@@ -921,3 +921,18 @@ cartridge checks verify dialogue VRAM at 16 stable checkpoints across all types.
 Rendered pages were inspected. Original multicolor text palettes and whole-board
 task scheduling remain distinct fidelity gaps. Natural full-game completion and
 frame-budget issues above still prevent claiming the requested port complete.
+
+## Empty projectile contact scans
+
+Six shared projectile update routines now return conservative occupancy from
+their existing scan. The main loop skips the later contact scan for empty pools,
+while retaining it when seeds or dragon projectiles may have created container
+waves. No activity cache needs synchronization with spawns, resets or diagnostic
+fixtures. Update and contact ordering is preserved.
+
+The same eight entry benchmarks save 65–70 timer subticks in median game logic.
+Updates per 180 video frames improve from [155,172,121,156,172,132,139,162] to
+[168,176,133,162,173,138,154,168]. These windows advance different amounts of
+gameplay after optimization; they are not state-identical workloads. Full frame
+rate, dense-route worst cases and PAL remain unproven. Exact ROM hashes and
+measurements are in `reports/projectile-scan-performance.json`.

@@ -17,6 +17,7 @@ u8 waveboss_present(void);
 u8 waveboss_locked(void);
 void waveboss_screen_attack(u16 slot);
 const AnimFrame *waveboss_frame(u16 slot);
-void waveboss_seeds_tick(void);
+/* Conservative occupancy from the update; retired entries may still count. */
+u8 waveboss_seeds_tick(void);
 const AnimFrame *waveboss_seed_frame(u16 slot);
 #endif
