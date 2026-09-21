@@ -29,7 +29,7 @@ u8 shop_buy(u8 item) {
  s.armor=game.p.armor;s.keys=container_keys;s.antidotes=shop_antidotes;s.poison=shop_poison || status_reverse;
  if(!shop_purchase(item,shop_difficulty,&s))return 0;
  game.coins=s.coins;game.p.invincible=s.invincible;game.p.weapon=s.weapon+1;game.p.armor=s.armor;
- container_keys=s.keys;shop_antidotes=s.antidotes;if(item==10 && !s.poison){shop_poison=0;status_reverse=0;}game.sound=SND_BUY;return 1;
+ container_keys=s.keys;shop_antidotes=s.antidotes;if(item==10 && !s.poison){shop_poison=0;status_reverse=0;}game_sound(0x12);return 1;
 }
 void shop_move(u16 pressed) {
  u8 column=game.shop_item/6,row=game.shop_item%6;

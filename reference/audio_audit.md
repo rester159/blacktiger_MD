@@ -150,3 +150,16 @@ verify silence, armor break, health damage, death and protected hits.
 Both placed time-extension and screen-attack items emit `05` on collection.
 The 406-update item oracle now records and compares actual sound queues, including
 empty queues before and after collection. This replaces their generic coin chirp.
+
+## Coin drops and shop purchases
+
+All seven shared enemy-drop coin kinds now enqueue `06` at collection, replacing
+the generic coin chirp. The original loot oracle captures this command for each
+kind, alongside its reward and retirement checks. Successful shop purchases now
+enqueue `12`; rejected purchases enqueue nothing. The economic oracle captures
+actual source sound queues across 322 cases covering all ten goods, all eight
+price schedules, insufficient funds, owned equipment, inventory caps, and
+antidote storage/cure. Its existing presentation/task bypasses are unchanged.
+Native cartridge checks also assert the selected command after actual loot
+contact and purchases through the shop controls. NPC rewards, dialogue cues,
+shop cursor/presentation sounds and enemy event bindings remain separate.

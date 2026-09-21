@@ -13,8 +13,9 @@ with tempfile.TemporaryDirectory() as temp:
  stubs=['#include "assets.h"','#include "loot.h"','Game game;']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
- stubs.append('''int setup(int category,int sample) {loot_new();game.p.x=game.p.y=1000*256;game.coins=123;return loot_spawn(category,sample,80,80);}
+ stubs.append('''int setup(int category,int sample) {loot_new();game.sound_count=0;game.p.x=game.p.y=1000*256;game.coins=123;return loot_spawn(category,sample,80,80);}
  int collect(void) {game.p.x=80*256;game.p.y=72*256;loot_tick();return game.coins;}
+ int sound_count(void){return game.sound_count;} int sound_at(int i){return game.sound_commands[i];}
  int graphic(void) {const AnimFrame *f=loot_frame(0);return f?f->code:-1;}
 ''');(tmp/'stubs.c').write_text('\n'.join(stubs))
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/loot.c'),str(ROOT/'src/animation.c'),str(ROOT/'src/data.c'),str(tmp/'stubs.c'),'-o',str(tmp/'loot.dylib')],check=True)
@@ -37,6 +38,8 @@ with tempfile.TemporaryDirectory() as temp:
   elif v[0]=='COINS':
    kind=int(v[1]);lib.setup(*ref['cases'][kind-1]);assert lib.collect()==int.from_bytes(bytes.fromhex(v[2]),'little')
    assert pool[0].active==2;lib.loot_tick();assert pool[0].active==0;assert lib.collect()==123+data['kinds'][kind-1]['coins']
+  elif v[0]=='SOUND':
+   assert bytes(lib.sound_at(i) for i in range(lib.sound_count()))==bytes.fromhex(v[2]),v
   elif v[0]=='FULL':
    lib.loot_reset()
    for _ in range(33):assert lib.loot_spawn(1,0,80,80)==1
@@ -44,5 +47,5 @@ with tempfile.TemporaryDirectory() as temp:
   elif v[0]=='RNG':
    if int(v[2])==1:rng.value=int(v[1])
    lib.loot_random_tick();assert rng.value==int.from_bytes(bytes.fromhex(v[3]),'little')
-report={'passed':True,'original_drop_selections':counts['DROP'],'animation_ticks':counts['FRAME'],'coin_rewards':counts['COINS'],'rng_steps':counts['RNG'],'full_pool_refusal':True,'scope':ref['scope']}
+report={'passed':True,'original_drop_selections':counts['DROP'],'animation_ticks':counts['FRAME'],'coin_rewards':counts['COINS'],'sound_commands':counts['SOUND'],'rng_steps':counts['RNG'],'full_pool_refusal':True,'scope':ref['scope']}
 (ROOT/'reports/loot-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

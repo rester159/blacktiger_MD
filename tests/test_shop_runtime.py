@@ -11,6 +11,7 @@ for index,item in enumerate(data['grid']):
  r.run(20);tap(1<<1);s=state(r)
  price=data['prices'][(item-1)//4][4][(item-1)%4] if item<=8 else 30 if item==9 else 150
  assert s.coins==20000-price,(item,s.coins,price)
+ assert r.read('sfx_slots',22)[8]==0x12 and state(r).sound_count==0,(item,'purchase cue')
  if item<=4:assert s.p.weapon==item+1
  elif item<=8:assert s.p.armor==(item-4)*2
  elif item==9:assert r.read('container_keys',1)==b'\x01'

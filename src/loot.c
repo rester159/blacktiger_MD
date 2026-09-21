@@ -55,7 +55,7 @@ void loot_tick(void) {
         if (dx >= -18 && dx <= 18 && dy >= -20 && dy <= 20) {
             game.coins += loot_values[p->kind];
             p->active = 2;
-            game.sound = SND_COIN;
+            game_sound(6);
         }
     }
 }

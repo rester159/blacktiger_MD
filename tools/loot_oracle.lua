@@ -33,6 +33,7 @@ for kind,c in ipairs(cases) do
  end
  clean(c.category,c.sample);call(0x54e9);cpu.state.IX.value=0xf520;call(0x2fe7);call(0x4744)
  emit(string.format('COINS|%d|%s|%s',kind,hex(0xf3a7,2),hex(0xf520,32)))
+ emit(string.format('SOUND|%d|%s',kind,hex(0xe150,(p:read_u16(0xe160)-0xe150)&15)))
 end
 clean(1,0)
 for a=0xf520,0xf920,32 do p:write_u8(a,0x80) end

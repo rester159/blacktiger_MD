@@ -901,3 +901,11 @@ health damage use their distinct source effects. Original sound queues match
 all 180 damage fixtures and 406 placed-item updates. Cartridge contact tests
 check the resulting effect selections and silence. Generic enemy/NPC/shop
 bindings and source asynchronous queue contention remain unfinished.
+
+## Shared coin and purchase sound bindings
+
+All seven drop-coin kinds and all ten purchasable goods now enqueue their
+source collection/purchase effects. Original sound queues match seven reward
+cases and 322 purchase/refusal cases; failed purchases remain silent. Cartridge
+checks cover loot contact and purchases through the native shop controls.
+NPC, enemy and presentation cue fidelity remains unfinished.

@@ -23,6 +23,11 @@ def run():
     r.run(1);s=state(r)
     if s.coins!=before:break
    assert s.coins==before+(1,5,10,50,100,500,1000)[kind],(variant,s.coins,before)
+   for _ in range(120):
+    r.run(1)
+    if state(r).sound_count==0:break
+   else:raise AssertionError('coin event queue did not drain')
+   assert r.read('sfx_slots',22)[8]==6,('coin cue',variant,r.read('sfx_slots',22).hex())
    r.run(20);assert not drops(r) and state(r).coins==s.coins
    outcome='collected once'
   else:
