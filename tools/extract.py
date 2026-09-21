@@ -105,21 +105,19 @@ def main():
     OUT.mkdir(parents=True,exist_ok=True);(ROOT/'reports').mkdir(exist_ok=True)
     tiles=decode(b''.join(files[r['path']] for r in board['regions']['tiles']['files']),board['layouts']['tiles'])
     sprites=decode(b''.join(files[r['path']] for r in board['regions']['sprites']['files']),board['layouts']['sprites'])
-    resources=[];decl=[];body=[];report={'source':lock,'rounds':[],'unresolved_spawn_rows':[],'adaptations':['Two 15-color background palettes; two shared HUD/actor palettes, prioritizing original HUD colors and hero color fidelity.','Background priority groups are flattened.','Actor behavior families are native approximations pending arcade comparison.']}
+    resources=[];decl=[];body=[];report={'source':lock,'rounds':[],'unresolved_spawn_rows':[],'adaptations':['Two 15-color background palettes; original 15-color hero palette and 15-color enemy quantization. HUD colors adapt to the actor palettes.','Background priority groups are flattened.','Actor behavior families are native approximations pending arcade comparison.']}
     def emit(name,b,typ='u16'):
         (OUT/(name+'.bin')).write_bytes(b);resources.append(f'BIN {name} "generated/{name}.bin" 4');decl.append(f'extern const {typ} {name}[];')
     p0=pal(0);scols=np.array([rgb(w) for w in p0[512:640]])
     hist=np.zeros(512,dtype=np.int64)
     for p in range(1,8):
         for k in range(15):hist[colid(p0[512+p*16+k])]+=1
-    from hud_assets import palettes as hud_palettes
-    hud_banks=hud_palettes(list(map(int,p0[512:527])),list(map(int,p0[528:640])))
-    cram=hud_banks[0]+hud_banks[1];emit('object_palette',words(cram))
-    hero=np.array([rgb(w) for w in hud_banks[0][1:]]);enemy=np.array([rgb(w) for w in hud_banks[1][1:]])
+    enemy=quant(hist);enemy=enemy[[0,*range(2,15),1]]; hero=np.array([rgb(w) for w in p0[512:527]])
+    cram=[0]+[int(c[0]*2+c[1]*32+c[2]*512) for c in hero]+[0]+[int(c[0]*2+c[1]*32+c[2]*512) for c in enemy]
+    emit('object_palette',words(cram))
     smap=[]
     for p in range(8):
-        target=hero if p==0 else enemy
-        smap.append([int(((target-c)**2).sum(1).argmin())+1 for c in scols[p*16:p*16+15]]+[0])
+        smap.append(list(range(1,16))+[0] if p==0 else [int(((enemy-c)**2).sum(1).argmin())+1 for c in scols[p*16:p*16+15]]+[0])
     # ROM sprite atlas, hardware column-major tile order. All eight palette variants.
     atlas=bytearray()
     for p in range(8):

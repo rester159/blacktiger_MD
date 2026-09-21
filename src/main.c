@@ -44,11 +44,11 @@ int main(bool hardReset) {
         audio_tick();
         frame_cost[2] = getSubTick() - t0;
         /* A small queue finishing just after VBlank starts can still be
-           presented this frame. Counter <=236 leaves at least 20 NTSC lines
+           presented this frame. Counter <=230 leaves at least 26 NTSC lines
            (including its counter discontinuity) for a <=1.5 KiB queue and SGDK
            housekeeping. Never process twice in the same VBlank. */
         if(!SYS_isPAL() && vtimer!=last_presented &&
-           GET_VDP_STATUS(VDP_VBLANK_FLAG) && GET_VCOUNTER<=236 &&
+           GET_VDP_STATUS(VDP_VBLANK_FLAG) && GET_VCOUNTER<=230 &&
            GET_VCOUNTER>=224 && DMA_getQueueTransferSize()<=1536) {
             SYS_doVBlankProcessEx(ON_VBLANK);
             early_vblank_flushes++;

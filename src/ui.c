@@ -1,4 +1,5 @@
 #include "frontend.h"
+#include "dungeon.h"
 #include "boss_rush.h"
 #include "container.h"
 #include "shop.h"
@@ -9,7 +10,8 @@ static u8 title_ready,title_page=255,title_revision=255,title_message=255;
 static u32 high_score=20000;
 static u16 hud_previous[256];
 static u8 hud_invalid=1;
-static u32 hud_score;
+static u32 hud_score,hud_xp;
+static u8 hud_max_hp,hud_charges,hud_exit;
 static u16 hud_coins,hud_time;
 static u8 hud_hp,hud_weapon,hud_armor,hud_keys,hud_antidotes;
 #include "hud_data.inc"
@@ -29,22 +31,40 @@ static void hud_number(u16 *p,u32 value,u8 count,u8 blue,u8 spaces){
 }
 static void hud_icon(u16 *p,const u16 *icon){p[0]=icon[0];p[1]=icon[1];p[32]=icon[2];p[33]=icon[3];}
 void ui_hud(void){
- u16 map[256],i,row;u8 hp=game.p.hp>5?5:game.p.hp;
- if(!hud_invalid && hud_score==game.score && hud_coins==game.coins && hud_time==game.time &&
-    hud_hp==hp && hud_weapon==game.p.weapon && hud_armor==game.p.armor &&
+ u16 map[256],i,row,seconds=dungeon.active?dungeon_seconds():game.time;
+ u8 hp=dungeon.active?(game.p.hp*5+dungeon.max_hp-1)/dungeon.max_hp:(game.p.hp>5?5:game.p.hp);
+ u8 exit=dungeon_layout.ready && PX(game.p.x)>=dungeon_layout.exit_x;
+ if(!hud_invalid && hud_score==game.score && hud_coins==game.coins && hud_time==seconds &&
+    hud_hp==game.p.hp && (!dungeon.active || (hud_xp==dungeon.run_xp && hud_max_hp==dungeon.max_hp && hud_charges==dungeon.charges && hud_exit==exit)) && hud_weapon==game.p.weapon && hud_armor==game.p.armor &&
     hud_keys==container_keys && hud_antidotes==shop_antidotes)return;
- hud_score=game.score;hud_coins=game.coins;hud_time=game.time;hud_hp=hp;
+ hud_score=game.score;hud_coins=game.coins;hud_time=seconds;hud_hp=game.p.hp;
+ hud_xp=dungeon.run_xp;hud_max_hp=dungeon.max_hp;hud_charges=dungeon.charges;hud_exit=exit;
  hud_weapon=game.p.weapon;hud_armor=game.p.armor;hud_keys=container_keys;hud_antidotes=shop_antidotes;
  if(game.score>high_score)high_score=game.score;
  memcpy(map,arcade_hud_map,5*64);memcpy(map+160,arcade_hud_map+25*32,3*64);
  hud_number(map+32+2,game.score,7,1,1);hud_number(map+32+13,high_score,7,1,1);
- hud_number(map+3*32+1,game.time/60,1,0,0);hud_number(map+3*32+3,game.time%60,2,0,0);
+ if(dungeon.active && seconds>=600)hud_number(map+3*32,seconds/60,2,0,0);
+ else hud_number(map+3*32+1,seconds/60,1,0,0);hud_number(map+3*32+3,seconds%60,2,0,0);
  for(i=0;i<10;i++)map[3*32+7+i]=0;
  for(i=0;i<hp;i++){u8 color=i>1?2:i;map[3*32+7+i*2]=arcade_hud_vital[color*2];map[3*32+8+i*2]=arcade_hud_vital[color*2+1];}
  hud_number(map+4*32+26,game.coins,5,0,0);
  hud_icon(map+160+11,arcade_hud_weapons+(game.p.weapon?game.p.weapon-1:0)*4);
  hud_icon(map+160+15,arcade_hud_armors+(game.p.armor>8?8:game.p.armor)*4);
  hud_number(map+224+7,container_keys,2,0,0);hud_number(map+224+19,shop_antidotes,2,0,0);
+ if(dungeon.active){
+  /* Original arcade top/bottom layout; additions occupy unused cells. */
+  const char *label="XP",*glass="HG",*gate=exit?"UP EXIT":"       ";
+  for(i=0;i<2;i++){
+   map[160+23+i]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,TILE_FONT_INDEX+label[i]-32);
+   map[160+1+i]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,TILE_FONT_INDEX+glass[i]-32);
+  }
+  hud_number(map+192+23,dungeon.run_xp,8,0,0);
+  hud_number(map+224+1,dungeon.charges,2,0,0);
+  hud_number(map+128+7,game.p.hp,2,0,0);
+  map[128+9]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,TILE_FONT_INDEX+'/'-32);
+  hud_number(map+128+10,dungeon.max_hp,2,0,0);
+  for(i=0;i<7;i++)map[224+24+i]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,TILE_FONT_INDEX+gate[i]-32);
+ }
  for(row=0;row<8;row++)if(hud_invalid || memcmp(map+row*32,hud_previous+row*32,64)){
   VDP_setTileMapDataRow(BG_A,map+row*32,row<5?row:row+20,0,32,DMA_QUEUE_COPY);
   memcpy(hud_previous+row*32,map+row*32,64);

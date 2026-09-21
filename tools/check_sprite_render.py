@@ -75,9 +75,8 @@ for level in range(8):
   r.run(100)
   costs.append(struct.unpack('>3H',r.read('video_cost',6))[1])
   if not baseline:validate_sat(r)
-  # Actor palette allocation changed to share exact common HUD colors. Compare
-  # baseline geometry/source texture IDs and untouched background pixels, while
-  # validate_sat checks every uploaded pixel against the newly quantized atlas.
+  # Compare baseline geometry/source texture IDs and untouched backgrounds;
+  # validate_sat checks every uploaded pixel against the restored actor atlas.
   pixels=r.frame.copy();pixels[:40]=0;pixels[200:]=0;pixels[96:104,104:152]=0
   sat=r.read('vdpSpriteCache',64*8);bodies=struct.unpack('>20H',r.read('body_keys',40)) if 'body_keys' in r.symbols else [];pieces=struct.unpack('>80H',r.read('sprite_keys',160));geometry=[]
   for si in range(64):
@@ -103,5 +102,5 @@ r.close();out=ROOT/'reports/sprite-render-geometry-baseline.json'
 if '--record' in sys.argv:out.write_text(json.dumps(checks,indent=2)+'\n')
 else:
  expected=json.loads(out.read_text());assert checks==expected,[(a,b) for a,b in zip(checks,expected) if a!=b]
- report={'passed':True,'pixel_fixtures':len(checks),'mean_sprite_subticks':sum(costs)/len(costs),'crowded_drops_in_20_frames':crowded_drops,'sprite_cache_vram_and_scanlines_checked':not baseline,'rom_sha256':hashlib.sha256(((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin')).read_bytes()).hexdigest(),'baseline_rom_sha256':'308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','scope':'Pinned baseline sprite positions, dimensions, flips, source texture IDs and background pixel equivalence (HUD and sprite rectangles excluded) across all rounds. Actor colors intentionally requantized for HUD palette sharing; active atlas pixels independently checked against VRAM. A crowded fixture checks hardware scanline limits and removal of old false-positive drops; active cache textures are compared directly with VRAM.'}
+ report={'passed':True,'pixel_fixtures':len(checks),'mean_sprite_subticks':sum(costs)/len(costs),'crowded_drops_in_20_frames':crowded_drops,'sprite_cache_vram_and_scanlines_checked':not baseline,'rom_sha256':hashlib.sha256(((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin')).read_bytes()).hexdigest(),'baseline_rom_sha256':'308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','scope':'Pinned baseline sprite positions, dimensions, flips, source texture IDs and background pixel equivalence (HUD and sprite rectangles excluded) across all rounds. Original hero and earlier enemy palette allocation restored; active atlas pixels independently checked against VRAM. A crowded fixture checks hardware scanline limits and removal of old false-positive drops; active cache textures are compared directly with VRAM.'}
  (ROOT/('reports/sprite-render-before.json' if baseline else 'reports/sprite-render-tests.json')).write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

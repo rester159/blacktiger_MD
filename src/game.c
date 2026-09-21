@@ -55,7 +55,8 @@ static void zero(void *p, u16 n) {
         *b++ = 0;
 }
 u8 terrain(s16 x, s16 y) {
-    const Round *r = &rounds[game.round];
+    const Round *r = &CURRENT_ROUND;
+    if(dungeon_layout.ready)return dungeon_terrain(x,y);
     if(boss_rush.active)return x<RUSH_X || x>=RUSH_X+256 || y<0 || y>=RUSH_FLOOR?3:0;
     if (x < 0 || x >= r->width || y < 0)
         return 3;
@@ -75,10 +76,10 @@ void game_round(u8 round) {
     round_clear_reset();game_over_reset();
     music_request=0x21+(round&7);
     Player *p = &game.p;
-    const Round *r = &rounds[round];
+    const Round *r = dungeon_layout.ready?&dungeon_round:&rounds[round];
     u8 preserve=restart_pending && loaded_round==round;
-    u16 restart_x=r->start_x,restart_y=r->start_y;
-    if(preserve)checkpoint_lookup(round,game.cam_x,game.cam_y,&restart_x,&restart_y);
+    u16 restart_x=r->start_x,restart_y=r->start_y,old_x=PX(p->x);
+    if(preserve && !dungeon_layout.ready)checkpoint_lookup(round,game.cam_x,game.cam_y,&restart_x,&restart_y);
     status_reverse=shop_poison=0;loaded_round=round;game.round = round;
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
@@ -103,6 +104,7 @@ void game_round(u8 round) {
     game.cam_y = restart_y;
     p->x = (restart_x + checkpoint_player_x) * FX;
     p->y = (restart_y + checkpoint_player_y) * FX;
+    if(dungeon_layout.ready){u16 x,y;dungeon_checkpoint(preserve?old_x:0,&x,&y);p->x=(s32)x*FX;p->y=(s32)y*FX;game.cam_x=x;game.cam_y=528;}
     p->vx = p->vy = 0;
     p->climb = p->grounded = p->attack = 0;
     p->invincible = 120;
@@ -127,8 +129,8 @@ void game_bonus_transition(void) {
  player_motion.scroll_x=x;player_motion.scroll_y=y;
  game.p.x=(s32)(u16)(x+player_motion.screen_x)*FX;
  game.p.y=(s32)(u16)(y+player_motion.screen_y)*FX;
- game.cam_x=bound_axis(PX(game.p.x)-112,0,rounds[game.round].width-256);
- game.cam_y=bound_axis(PX(game.p.y)-144,0,rounds[game.round].height-224);
+ game.cam_x=bound_axis(PX(game.p.x)-112,0,CURRENT_ROUND.width-256);
+ game.cam_y=bound_axis(PX(game.p.y)-144,0,CURRENT_ROUND.height-224);
 }
 void game_new(void) {
     ending_reset();boss_rush=(BossRush){0};
@@ -235,7 +237,7 @@ static u8 any_boss(u8 locked) {
     return 0;
 }
 static void spawn_actors(void) {
-    const Round *r = &rounds[game.round];
+    const Round *r = &CURRENT_ROUND;
     u16 i, j;
     if(boss_rush.active || any_boss(0))return;
     for (i = game.frame & 3; i < r->spawn_count; i += 4) {
@@ -331,13 +333,13 @@ static void player_step(u16 in, u16 pressed) {
     game.player_low=player_motion.low && !player_motion.jumping;
     if(p->invincible)--p->invincible;
     p->attack=player_attack.active;
-    p->x=bound_axis(PX(p->x),boss_rush.active?RUSH_X:0,boss_rush.active?RUSH_X+224:rounds[game.round].width-32)*FX;
+    p->x=bound_axis(PX(p->x),boss_rush.active?RUSH_X:0,boss_rush.active?RUSH_X+224:CURRENT_ROUND.width-32)*FX;
     if(player_attack.launch && !shop_poison) {
         player_daggers_launch(PX(p->x),PX(p->y),(player_attack.selector+1)&4,player_motion.low);
         player_attack.launch=0;
     }
     player_daggers_step();
-    if (PX(p->y) > rounds[game.round].height + 32) {
+    if (PX(p->y) > CURRENT_ROUND.height + 32) {
         p->invincible = 0;
         p->hp = 1;
         p->armor = 0;
@@ -789,8 +791,8 @@ void game_tick(u16 input) {
         if(!round_clear.active) {
             if(player_motion.jumping || player_motion.falling || player_motion.ladder) {
                 player_step(player_motion.ladder?IN_DOWN:0,0);
-                game.cam_x=bound_axis(PX(p->x)-112,0,rounds[game.round].width-256);
-                game.cam_y=bound_axis(PX(p->y)-144,0,rounds[game.round].height-224);
+                game.cam_x=bound_axis(PX(p->x)-112,0,CURRENT_ROUND.width-256);
+                game.cam_y=bound_axis(PX(p->y)-144,0,CURRENT_ROUND.height-224);
                 return;
             }
             round_clear_start();
@@ -873,7 +875,7 @@ void game_tick(u16 input) {
     }
     if (game.mode != PLAY)
         return;
-    if(!boss_rush.active && bonus_contact()){game_bonus_transition();return;}
+    if(!dungeon_layout.ready && !boss_rush.active && bonus_contact()){game_bonus_transition();return;}
     spawn_actors();
     {
         u16 i;
@@ -897,6 +899,6 @@ enemies_done:
             player_hurt(1);
         }
     }
-    game.cam_x = boss_rush.active?RUSH_X:bound_axis(PX(p->x) - 112, 0, rounds[game.round].width - 256);
-    game.cam_y = boss_rush.active?RUSH_Y:bound_axis(PX(p->y) - 144, 0, rounds[game.round].height - 224);
+    game.cam_x = boss_rush.active?RUSH_X:bound_axis(PX(p->x) - 112, 0, CURRENT_ROUND.width - 256);
+    game.cam_y = boss_rush.active?RUSH_Y:bound_axis(PX(p->y) - 144, 0, CURRENT_ROUND.height - 224);
 }

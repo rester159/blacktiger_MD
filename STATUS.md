@@ -3,6 +3,8 @@
 Deliverable: an SGDK development cartridge and a reproducible new repository.
 User's requested complete native Black Tiger port: **not achieved**.
 
+Dungeon correction: seeded source-slice routes now replace the original static maps. It uses 119 validated slices, bounded compatible-neighbour selection, independently randomized population, original gameplay palettes and the arcade icon HUD with XP. This is an initial horizontal generator, not the complete supplied roguelike specification. See `docs/dungeon/IMPLEMENTATION.md` and generation/runtime reports for the tested scope and remaining work.
+
 The main remaining shared systems are compound-boss contact
 geometry and screen-edge behavior, global camera/scanner
 cadence, presentation and audio. All eight maps use one renderer and game loop;

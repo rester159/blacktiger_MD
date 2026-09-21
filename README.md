@@ -13,12 +13,13 @@ Open `dist/blacktiger_astra.bin` in a Genesis emulator, or run `tools/launch.sh`
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
 - A: chain attack and dagger volley (release to attack again); B: jump.
 - Select (Genesis six-button Mode): insert an Arcade coin. Start: play, pause/resume, accept a paid continue, or skip the intro after its first half-second. C does not insert coins.
-- Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/Options. Normal Play preserves the original animated arcade intro in both modes.
+- Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/The Dungeon/Options. Normal Play preserves the original animated arcade intro in both modes.
 - Home defaults to three total credits: the initial game and two continues. Options sets 1–99 credits for a new run; Select cannot refill them.
 - Both settings menus provide lives, difficulty, coinage, continues, music and sound effects. Difficulty currently changes original weapon-damage tables and shop prices; full arcade difficulty behavior is not yet certified.
 - Home Boss Rush uses one palace arena for eight bosses, awards 1,000–4,500 Zenny, and opens a shop after every victory, including the last. Equipment, keys and remaining currency carry over.
 - Arcade HUD: original top/bottom glyph layout, score/high score, TIME, VITALITY, Zenny, keys, weapon, armor and antidotes. Title screens retain CAPCOM 1987 and add RESTER159 2026.
-- RetroArch: use a six-button pad; keyboard Right Shift = Select, Enter = Start, A = attack, Z = jump. `tools/launch.sh` applies the pad type and VSync settings for this run.
+- RetroArch: use a six-button pad; keyboard Right Shift = Select, Enter = Start, A = attack, Z = jump, X = C (Dungeon Hourglass). `tools/launch.sh` applies these bindings, audio sync and VSync, and disables fast-forward/slow-motion keyboard shortcuts for this run. Space is not jump. Global RetroArch settings are unchanged.
+- The Dungeon now assembles seeded horizontal routes from 119 original-map slices, with randomized source themes, order and skeleton placements, two merchants, and 6/7/8/10 screens by act. Press Up at the far-right exit. It shares the arcade HUD, adds XP/Hourglass and numeric vitality, and uses the run clock for TIME. This remains a partial roguelike: branches, doors, affixes, full equipment/relic economy, special bosses, co-op and saved progression are unfinished.
 - Contact a petrified NPC to rescue it. Merchant rescues open the shop; A buys, B/Start exits.
 - Chests need a key: buy KEY for 30 Zenny in a merchant shop, then touch the chest. Attacking does not unlock it. The HUD shows your key count, and locked chests now display a hint.
 
@@ -58,7 +59,7 @@ Fixed actor/projectile pools avoid gameplay allocations. Actor behavior is share
 
 The asset pipeline verifies the supplied ROM hashes, decodes the original graphics, reads all eight
 maps and collision tables, extracts spawn records, and reduces palettes to Genesis RGB333. It uses
-two background palettes and two shared HUD/actor palettes. The common HUD colors constrain actor quantization; armor tiers 7/8 use nearest available colors. Transparent sprite pen 15
+two background palettes, the original 15-color hero palette, and a 15-color enemy palette. HUD colors map to the nearest actor-palette colors; the HUD no longer reduces sprite color fidelity. Transparent sprite pen 15
 becomes Genesis pen 0; opaque black stays opaque. Horizontal/vertical flip deduplication reduces tile
 storage. The renderer streams a 64×32 tile ring through a 1,056-tile background cache and an 80-entry
 sprite cache. Full bodies share this cache as 32×32 hardware sprites (four slots per body),

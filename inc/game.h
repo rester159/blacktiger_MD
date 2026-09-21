@@ -65,6 +65,12 @@ typedef struct {
     const u16 *open_tile;
     u8 patch_count, open_collision;
 } Round;
+/* Host subsystem fixtures use their supplied original rounds. */
+#ifdef HOST_TEST
+#define CURRENT_ROUND (rounds[game.round])
+#else
+#define CURRENT_ROUND (*(dungeon_layout.ready ? &dungeon_round : &rounds[game.round]))
+#endif
 typedef struct {
     s32 x, y;
     s16 vx, vy;
@@ -112,4 +118,7 @@ void video_round(void);
 void video_frame(void);
 void audio_tick(void);
 void game_boss_clear(void);
+#ifndef HOST_TEST
+#include "dungeon_layout.h"
+#endif
 #endif

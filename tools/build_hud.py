@@ -8,7 +8,7 @@ s=Source();board=json.loads((ROOT/'assets/board.json').read_text());tx,pal,_=obs
 chars=decode(b''.join(s.files[f['path']] for f in board['regions']['chars']['files']),board['layouts']['characters'])
 palette=np.frombuffer((ROOT/'res/generated/object_palette.bin').read_bytes(),'>u2').reshape(2,16).tolist()
 patterns=[];lookup={};glyphs={}
-slots=list(range(1012,1072))+list(range(1504,1536))+list(range(7,16))
+slots=list(range(1012,1072))+list(range(1499,1536))+list(range(7,16))
 def glyph(code,attr):
  key=(code,attr)
  if key in glyphs:return glyphs[key]
@@ -16,7 +16,7 @@ def glyph(code,attr):
  costs=[sum(min(np.sum((rgb(c)-rgb(v))**2) for v in p[1:]) for c in colors) for p in palette]
  bank=int(np.argmin(costs))
  pens=[1+int(np.argmin([np.sum((rgb(c)-rgb(v))**2) for v in palette[bank][1:]])) for c in colors]+[0]
- if attr&31 not in (26,27):assert costs[bank]==0,(code,attr,colors)
+ # Preserve actor color fidelity; HUD glyphs use nearest available colors.
  raw=pack(np.array(pens,dtype=np.uint8)[chars[code+((attr&224)<<3)]])
  if raw not in lookup:lookup[raw]=len(patterns);patterns.append(raw)
  assert len(patterns)<=len(slots),(len(patterns),len(slots))
@@ -38,5 +38,5 @@ out+=arr('arcade_hud_map','u16',mapping)+arr('arcade_hud_digits','u16',[v for ro
 out+=arr('arcade_hud_weapons','u16',[v for row in weapons for v in row])+arr('arcade_hud_armors','u16',[v for row in armors for v in row])+arr('arcade_hud_slots','u16',slots[:len(patterns)])
 out+='#define ARCADE_HUD_TILES '+str(len(patterns))+'\n'
 (ROOT/'src/hud_data.inc').write_text(out)
-report=dict(source_set=s.lock['aggregate_sha256'],trace_sha256=hashlib.sha256((ROOT/'reference/hud_oracle_events.txt').read_bytes()).hexdigest(),glyph_tiles=len(patterns),palette=palette,scope='Original HUD glyph shapes and placement for all tiers. Source colors reduced to RGB333; armor tiers 7/8 use nearest shared-palette colors. Actor atlas is requantized to share these two palettes; backgrounds unchanged.')
+report=dict(source_set=s.lock['aggregate_sha256'],trace_sha256=hashlib.sha256((ROOT/'reference/hud_oracle_events.txt').read_bytes()).hexdigest(),glyph_tiles=len(patterns),palette=palette,scope='Original HUD glyph shapes and placement for all tiers. HUD colors use nearest existing actor-palette colors. Original hero palette and 15-color enemy palette are preserved; backgrounds unchanged.')
 (ROOT/'reference/hud_graphics.json').write_text(json.dumps(report,indent=2)+'\n');print(report)

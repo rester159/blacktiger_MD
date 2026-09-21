@@ -1,4 +1,4 @@
-"""M1 linked-ROM lifecycle/clock checks; static layouts, not full Dungeon acceptance."""
+"""Linked-ROM Dungeon lifecycle/clock and arcade HUD checks; not full Dungeon acceptance."""
 import ctypes as C,json,hashlib
 from test_runtime import ROOT,Runner,state,put,BE,U8,U16,U32
 class Dungeon(BE):
@@ -20,17 +20,31 @@ tap(r,256);d=dstate(r);assert d.freeze>0 and d.charges==0
 before=d.clock;x=state(r).p.x;r.run(20,128);assert dstate(r).clock==before and state(r).p.x>x
 vram=(C.c_uint8*65536).in_dll(r.lib,'vram');cram=(C.c_uint16*64).in_dll(r.lib,'cram')
 def word(a):return vram[a^1]*256+vram[(a+1)^1]
-def window_text(x,y,n):return ''.join(chr((word(0xd000+y*64+(x+i)*2)&2047)-1440+32) for i in range(n))
-assert window_text(0,1,11)=='XP 00000002'
-assert list(cram)[30:32]==[511,7],'immutable clock colors'
-for tile in range(1012,1023):
- values={n for i in range(32) for n in (vram[(tile*32+i)^1]>>4,vram[(tile*32+i)^1]&15)}
- assert values=={0,14},(tile,values,'clock glyph DMA')
+# Dungeon uses the same original top/bottom icon HUD, without a Window panel.
+assert word(0xc000+25*128+23*2)&2047==1440+ord('X')-32
+assert word(0xc000+25*128+24*2)&2047==1440+ord('P')-32
+# Sprite and background colors must equal the normal round palettes exactly.
+import numpy as np
+palette=np.frombuffer((ROOT/f'res/generated/pal{s.round}.bin').read_bytes(),'>u2').tolist()+np.frombuffer((ROOT/'res/generated/object_palette.bin').read_bytes(),'>u2').tolist()
+palette[63]=0xeee
+expected=[((w>>1)&7)|(((w>>5)&7)<<3)|(((w>>9)&7)<<6) for w in palette]
+assert list(cram)==expected,'Dungeon must preserve normal gameplay CRAM'
+# Verify XP digits against character-ROM transparency, independent of HUD tile IDs.
+from arcade_source import Source
+from extract import decode
+source=Source();board=json.loads((ROOT/'assets/board.json').read_text())
+chars=decode(b''.join(source.files[f['path']] for f in board['regions']['chars']['files']),board['layouts']['characters'])
+def digit_shape(x,y,digit):
+ tile=word(0xc000+y*128+x*2)&2047
+ raw=bytes(vram[(tile*32+i)^1] for i in range(32))
+ actual=np.array([p for b in raw for p in (b>>4,b&15)]).reshape(8,8)
+ assert np.array_equal(actual==0,chars[digit]==3),(x,y,digit)
+for i,ch in enumerate('00000002'):digit_shape(23+i,26,int(ch))
 r.capture('dungeon-hud-xp.png')
 s=state(r);s.mode=4;s.mode_timer=1;s.p.lives=99;put(r,s);d=dstate(r);d.freeze=0;dput(r,d);before=d.clock;r.run(1)
 d=dstate(r);assert d.deaths==1 and d.clock==before-60*15360,(d.clock,before)
 r.run(12);assert state(r).mode==1 and state(r).p.hp==8
-# All sixteen fallback entries are reachable through the same gate transition.
+# All sixteen generated stages are reachable through the same gate transition.
 for stage in range(1,17):
  s=state(r);s.mode=2;put(r,s);r.run(20)
  s=state(r);s.mode=5;put(r,s);r.run(8);d=dstate(r)
@@ -44,5 +58,5 @@ r.capture('dungeon-results.png');banked=dstate(r).banked_xp;r.run(30);assert dst
 # Fresh random run seed and immediate expiry without spending Home continues.
 tap(r,8);assert dstate(r).seed!=seed;tap(r,8);r.run(160)
 d=dstate(r);d.clock=1;dput(r,d);r.run(4);d=dstate(r);assert d.phase==5 and d.clock==0 and not d.cleared
-r.close();report=dict(passed=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),stages=16,scope=__doc__,checks=['menu entry without credits','independent seeded streams','clock persists','pause/gate stop clock','kills award XP and time','C Hourglass freezes clock while movement continues','death costs 60s and respawns','16 static stages','results bank XP once','fresh seed per run','zero clock ends immediately'])
+r.close();report=dict(passed=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),stages=16,scope=__doc__,checks=['menu entry without credits','independent seeded streams','clock persists','pause/gate stop clock','kills award XP and time','C Hourglass freezes clock while movement continues','death costs 60s and respawns','16 generated stages','results bank XP once','fresh seed per run','zero clock ends immediately'])
 (ROOT/'reports/dungeon-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

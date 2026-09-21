@@ -32,7 +32,7 @@ void dungeon_open(void){
 }
 void dungeon_start(u32 seed){
  u32 bank=dungeon.banked_xp;u8 rank=dungeon.rank?dungeon.rank:1;
- game_new();game.frame=0;game.p.lives=99;
+ dungeon_layout.ready=0;game_new();game.frame=0;game.p.lives=99;
  dungeon=(Dungeon){.active=1,.phase=D_STAGE_INTRO,.stage=1,.max_hp=8,.charges=1,.clock=180UL*CLOCK_UNIT,.banked_xp=bank,.rank=rank,.timer=150,.revision=1};
  dungeon_seed(seed);loot_random=(u16)dungeon.streams[7];progress_max_hp=8;game.p.hp=8;
  game.mode=DUNGEON_MENU;dungeon_ui_reset();
@@ -48,13 +48,13 @@ u8 dungeon_tick(u16 input,u16 pressed){
  switch(dungeon.phase){
  case D_SETUP:
   seed_entropy=dungeon_mix(seed_entropy,game.frame);
-  if(pressed&IN_JUMP){dungeon.active=0;game.mode=TITLE;frontend_return();return 1;}
+  if(pressed&IN_JUMP){dungeon.active=0;dungeon_layout.ready=0;game.mode=TITLE;frontend_return();return 1;}
   if(pressed&IN_START){u32 seed=dungeon.seed;dungeon_start(seed);game.previous_input=input;}
   return 1;
  case D_STAGE_INTRO:
   if(dungeon.timer)--dungeon.timer;
   if(!dungeon.timer){
-   progress_max_hp=dungeon.max_hp;game_round(dungeon_fallback_stages[dungeon.stage-1]);
+   progress_max_hp=dungeon.max_hp;dungeon_generate();game_round(dungeon_layout.source);
    game.p.lives=99;game.previous_input=input;dungeon.phase=D_STAGE_PLAY;
    dungeon.last_kills=game.kills;dungeon.scene_reload=1;dungeon.revision++;dungeon_ui_reset();
   }
@@ -72,7 +72,7 @@ u8 dungeon_tick(u16 input,u16 pressed){
   return 1;
  case D_RESULTS:
   if(pressed&IN_START){dungeon_open();game.previous_input=input;}
-  if(pressed&IN_JUMP){dungeon.active=0;game.mode=TITLE;frontend_return();}
+  if(pressed&IN_JUMP){dungeon.active=0;dungeon_layout.ready=0;game.mode=TITLE;frontend_return();}
   return 1;
  default:break;
  }
@@ -80,6 +80,7 @@ u8 dungeon_tick(u16 input,u16 pressed){
   u16 kills=game.kills-dungeon.last_kills;dungeon.last_kills=game.kills;
   dungeon.kills+=kills;dungeon.run_xp+=kills;dungeon_reward(kills*3);dungeon.revision++;
  }
+ if(game.mode==PLAY && dungeon_layout.ready && PX(game.p.x)>=dungeon_layout.exit_x && (pressed&IN_UP))game_boss_clear();
  if(game.mode==CLEAR){
   dungeon_reward(45);
   if(dungeon.stage==16){dungeon_reward(300);dungeon_results(1);return 1;}

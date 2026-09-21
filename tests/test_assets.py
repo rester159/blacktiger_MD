@@ -41,5 +41,9 @@ def main():
  for r in range(8):
   for v in np.frombuffer((ROOT/f'res/generated/pal{r}.bin').read_bytes(),'>u2'):assert not v&0xf111
  checks.append('Genesis RGB333 and four palette lines')
+ # Pinned pre-HUD sprite allocation (4657999); HUD changes must not recolor actors.
+ assert sha((ROOT/'res/generated/object_palette.bin').read_bytes())=='a0cb487bb5002eeffdee4fc229798fbbcfa746e591a5657756710b2507fb2cbc'
+ assert sha((ROOT/'res/generated/object_patterns.bin').read_bytes())=='57ba9b32a865803a02dcddd831ca95cd94f81879866ed49f7db97dfb0276d645'
+ checks.append('pre-HUD hero/enemy palette and entire sprite atlas preserved')
  out={'passed':len(checks),'checks':checks};(ROOT/'reports/asset-tests.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))
 if __name__=='__main__':main()

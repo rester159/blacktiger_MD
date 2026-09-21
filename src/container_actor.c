@@ -20,7 +20,7 @@ static void select_clip(AnimState *a,u16 *segment,u16 target) {
 }
 void container_spawn(u16 slot) {
  Actor *a=&game.actors[slot];ContainerState *s=&containers[slot];
- u16 id=rounds[game.round].spawns[a->source].persistent;
+ u16 id=CURRENT_ROUND.spawns[a->source].persistent;
  s->id=id>=33 && id<41?id-33:0;s->pending=0;
  /* The two closed constructors differ only in trap direction. */
  s->left=container_left[a->def];

@@ -48,7 +48,8 @@ static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
 static u16 word_at(s16 x, s16 y) {
-    const Round *r = &rounds[game.round];
+    if(dungeon_layout.ready)return x<0 || y<0?0:dungeon_word(x,y);
+    const Round *r = &CURRENT_ROUND;
     u16 w = r->width >> 3, h = r->height >> 3;
     if (x < 0 || y < 0 || x >= w || y >= h)
         return 0;
@@ -85,7 +86,7 @@ static u16 cached(u16 word) {
             logical_to_slot[old] = 65535;
         logical_to_slot[logical] = slot;
         slot_to_logical[slot] = logical;
-        VDP_loadTileData(rounds[game.round].patterns + (u32)logical * 8, 16 + slot, 1, DMA_QUEUE);
+        VDP_loadTileData(CURRENT_ROUND.patterns + (u32)logical * 8, 16 + slot, 1, DMA_QUEUE);
         video_dma_bytes += 32;
     }
     return (word & 0xf800) | (16 + slot);
@@ -125,7 +126,7 @@ static void terrain_change(u16 x,u16 y,u16 old,u16 next,u8 pass) {
  }
 }
 static void terrain_cell(u16 x,u16 y,u8 pass) {
- const Round *r=&rounds[game.round];u16 original,old,next;
+ const Round *r=&CURRENT_ROUND;u16 original,old,next;
  if(x<old_x || x>=old_x+33 || y<old_y || y>=old_y+29)return;
  original=r->map[(y<<(r->width==2048?8:7))+x];
  old=world_override(x,y,bonus_word_state(x,y,original,last_bonus_entered,last_bonus_phases),last_opened);
@@ -137,7 +138,8 @@ static void terrain_state(void){
  for(i=0;i<4;i++)last_bonus_phases[i]=bonus_phases[i];
 }
 static void terrain_updates(void) {
- const Round *r=&rounds[game.round];const BonusRound *b=&bonus_rounds[game.round];
+ if(dungeon_layout.ready)return;
+ const Round *r=&CURRENT_ROUND;const BonusRound *b=&bonus_rounds[game.round];
  u16 i,j,dx,dy,first,last,shift=r->width==2048?7:6,width=r->width>>4;u8 changed=last_opened!=world_opened || last_bonus_entered!=bonus_entered,pass;
  if(!changed && !b->count)return;
  for(i=0;i<4;i++)changed|=last_bonus_phases[i]!=bonus_phases[i];
@@ -433,10 +435,10 @@ static void sprites(void) {
         if (f)
             piece(f->code, f->palette, loot[i].x - game.cam_x, loot[i].y - game.cam_y, f->flip);
     }
-    for (i = 0; i < rounds[game.round].patch_count; i++) {
+    for (i = 0; i < CURRENT_ROUND.patch_count; i++) {
         const AnimFrame *f = world_effect(i);
         if (f) {
-            const Spawn *sp = &rounds[game.round].spawns[rounds[game.round].patches[i].source];
+            const Spawn *sp = &CURRENT_ROUND.spawns[CURRENT_ROUND.patches[i].source];
             body(f->code, f->palette, sp->x - 8 - game.cam_x, sp->y - 8 - game.cam_y, f->flip);
         }
     }
@@ -562,7 +564,7 @@ void video_round(void) {
     memset(body_stamp, 0, sizeof body_stamp);
     memset(body_keys, 255, sizeof body_keys);
     eviction = sprite_eviction = body_eviction = epoch = 0;
-    PAL_setColors(0, rounds[game.round].palette, 32, CPU);
+    PAL_setColors(0, CURRENT_ROUND.palette, 32, CPU);
     PAL_setColors(32, object_palette, 32, CPU); /* SGDK font uses foreground pen 15. */
     PAL_setColor(63, 0xeee);
     VDP_clearPlane(BG_A, TRUE);
@@ -575,10 +577,7 @@ void video_round(void) {
     last_round = game.round;
     last_mode = 255;
     ui_game_init();
-    if(dungeon.active){
-        static const u16 clock_colors[]={0xeee,0x00e};
-        ui_dungeon_font();dungeon_ui_reset();PAL_setColors(30,clock_colors,2,DMA_QUEUE);
-    }
+    if(dungeon.active)dungeon_ui_reset();
     VDP_setEnable(TRUE);
     SYS_enableInts();
 }

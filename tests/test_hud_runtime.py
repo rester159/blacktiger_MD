@@ -4,7 +4,7 @@ import numpy as np
 from test_runtime import ROOT,Runner,state,put
 from arcade_source import Source
 from extract import decode
-from hud_assets import observed
+from hud_assets import observed,color,rgb as channels
 src=Source();board=json.loads((ROOT/'assets/board.json').read_text());tx,pal,_=observed()
 chars=decode(b''.join(src.files[f['path']] for f in board['regions']['chars']['files']),board['layouts']['characters'])
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game();r.run(20)
@@ -15,10 +15,16 @@ def glyph(x,y,code,attr):
  raw=bytes(vram[(tile*32+i)^1] for i in range(32));actual=np.array([n for b in raw for n in (b>>4,b&15)]).reshape(8,8)
  expected=chars[code+((attr&224)<<3)]
  assert np.array_equal(actual==0,expected==3),(x,y,code,attr,'shape/transparency')
+ colors=[color(pal,768+(attr&31)*4+i) for i in range(3)]
+ banks=np.frombuffer((ROOT/"res/generated/object_palette.bin").read_bytes(),">u2").reshape(2,16)
+ costs=[sum(min(sum((channels(c)-channels(v))**2) for v in p[1:]) for c in colors) for p in banks]
+ assert bank==2+int(np.argmin(costs))
  for pen in range(3):
   at=768+(attr&31)*4+pen;rgb=(pal[at]>>5)|(((pal[at]&15)>>1)<<3)|(((pal[1024+at]&15)>>1)<<6)
   values=set(int(cram[bank*16+v]) for v in actual[expected==pen])
-  if attr&31 not in (26,27):assert not values or values=={rgb},(x,y,code,attr,'color',values,rgb)
+  best=banks[bank-2][1+int(np.argmin([sum((channels(colors[pen])-channels(v))**2) for v in banks[bank-2][1:]]))]
+  expected_rgb=((int(best)>>1)&7)|(((int(best)>>5)&7)<<3)|(((int(best)>>9)&7)<<6)
+  assert not values or values=={expected_rgb},(x,y,code,attr,"color",values,expected_rgb)
 def icon(x,y,ptr):
  b=src.read(6,ptr,8)
  for i in range(4):glyph(x+i%2,y+i//2,b[i*2],b[i*2+1])
@@ -41,5 +47,5 @@ for armor in range(9):
  icon(11,25,src.word(6,0xb22c+(weapon-1)*2));icon(15,25,src.word(6,0xb25e+armor*2))
  digits(7,27,armor,2);digits(19,27,2,2)
 r.capture('hud-inventory.png');r.close()
-report=dict(passed=True,cases=9,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Live BG_A VRAM: original character-ROM shapes, transparent pixels, positions and RGB333 colors for labels, score/high score, timer, Zenny, vitality, keys, antidotes and all weapon/armor tiers. Armor 7/8 verify shapes only because their colors are approximated.')
+report=dict(passed=True,cases=9,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Live BG_A VRAM: original character-ROM shapes, transparent pixels, positions and nearest actor-palette RGB333 colors for labels, score/high score, timer, Zenny, vitality, keys, antidotes and all weapon/armor tiers. Actor palettes retain their pre-HUD allocation.')
 (ROOT/'reports/hud-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
