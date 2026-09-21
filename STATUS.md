@@ -1038,3 +1038,14 @@ AI retains its original behavior. Runtime coverage walks both directions across
 the full arena for all eight bosses, checks camera deltas, arena bounds and
 cache faults, then exercises deaths, shops, rewards and the ending. This is not
 a natural weapon-only balance/playthrough certification.
+
+
+## Centered Boss Rush entry and grounded walking dragons (2026-09-20)
+
+The hero now starts at the center of the hall (world X=944, camera X=832),
+including restarts and subsequent fights. Bosses start ahead of that position.
+The two-legged wave bosses use their actual 64-pixel body height instead of the
+96-pixel flying-dragon placement. Their feet remain at the floor while alive;
+flying enemies and death sequences retain their vertical movement. Runtime
+checks cover centered entry, initial movement in either direction, both scrolling
+limits, and walking-boss ground alignment throughout all traversal frames.

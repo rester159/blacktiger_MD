@@ -13,13 +13,13 @@ static const u8 roster[]={15,25,39,44,49,55,62,65};
 void boss_rush_prepare(void){
  Actor *a=&game.actors[0];u16 i;
  for(i=0;i<160;i++)game.spawned[i]=2;
- game.cam_x=RUSH_X;game.cam_y=RUSH_Y;game.time=180;
- game.p.x=(RUSH_X+40)*FX;game.p.y=(RUSH_FLOOR-32)*FX;
+ game.cam_x=RUSH_CAMERA_X;game.cam_y=RUSH_Y;game.time=180;
+ game.p.x=RUSH_START_X*FX;game.p.y=(RUSH_FLOOR-32)*FX;
  game.p.vx=game.p.vy=0;game.p.climb=0;game.p.grounded=1;game.p.face=0;
  game.p.hp=progress_max_hp;game.p.invincible=120;
  a->active=1;a->source=159;a->def=roster[boss_rush.stage];a->hp=actor_defs[a->def].hp;
- a->face=-1;a->x=(RUSH_X+(dragon_kinds[a->def]?112:176))*FX;
- a->y=(RUSH_FLOOR-(dragon_kinds[a->def] || waveboss_kinds[a->def]?96:32))*FX;
+ a->face=-1;a->x=(RUSH_START_X+(dragon_kinds[a->def]?72:136))*FX;
+ a->y=(RUSH_FLOOR-(dragon_kinds[a->def]?96:waveboss_kinds[a->def]?64:32))*FX;
  if(layered_boss_kinds[a->def])boss_spawn(0);
  else if(hunter_kinds[a->def])hunter_spawn(0,1);
  else if(waveboss_kinds[a->def])waveboss_spawn(0);
@@ -50,7 +50,9 @@ void boss_rush_actor_bounds(Actor *a,s32 previous_x){
  else if(previous_x-game.p.x>224*FX)a->x=previous_x-2*FX;
  if(a->x<left)a->x=left;
  if(a->x>right)a->x=right;
- if(dragon || wave || hunter){
+ /* The two-legged wave bosses walk; their 64-pixel art reaches row 63. */
+ if(wave){a->y=(RUSH_FLOOR-64)*FX;a->vy=0;}
+ else if(dragon || hunter){
   s32 top=(RUSH_Y+8)*FX,bottom=(RUSH_FLOOR-height)*FX;
   if(a->y<top)a->y=top;
   if(a->y>bottom)a->y=bottom;
