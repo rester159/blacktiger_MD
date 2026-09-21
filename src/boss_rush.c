@@ -37,3 +37,22 @@ void boss_rush_shop_exit(void){
  if(++boss_rush.stage==8){boss_rush.active=0;boss_rush.complete=1;game.mode=ENDING;ending_start();ending_step();}
  else game_round(7);
 }
+
+/* Arcade steering uses an 8-bit viewport. In the wider Home arena, distant
+   bosses continue their animation but travel toward the player in world space.
+   Clamp live bodies to the hall, not to the scrolling camera. */
+void boss_rush_actor_bounds(Actor *a,s32 previous_x){
+ u8 dragon=dragon_kinds[a->def],wave=waveboss_kinds[a->def],hunter=hunter_kinds[a->def]==2;
+ s16 width=dragon?128:wave?64:32,height=dragon || wave?64:32;
+ s32 left=RUSH_X*FX,right=(RUSH_X+RUSH_WIDTH-width)*FX;
+ if(!a->active || a->state==2 || !(dragon || wave || hunter || layered_boss_kinds[a->def]))return;
+ if(game.p.x-previous_x>224*FX)a->x=previous_x+2*FX;
+ else if(previous_x-game.p.x>224*FX)a->x=previous_x-2*FX;
+ if(a->x<left)a->x=left;
+ if(a->x>right)a->x=right;
+ if(dragon || wave || hunter){
+  s32 top=(RUSH_Y+8)*FX,bottom=(RUSH_FLOOR-height)*FX;
+  if(a->y<top)a->y=top;
+  if(a->y>bottom)a->y=bottom;
+ }
+}

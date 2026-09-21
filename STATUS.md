@@ -1021,3 +1021,20 @@ four-frame activation phase and source order. This reduces CPU work, but the
 sampled cadence improvement is small; busy scenes still miss frames. The
 VBlank safety window has not been relaxed. Full natural playthroughs and real
 hardware validation remain outstanding.
+
+
+## Scrolling Boss Rush hall (2026-09-20)
+
+Replaced the fixed 256-pixel crop with the continuous upper palace hall from
+round 8: X=576..1343, original floor at Y=256, camera Y=64. The 768-pixel arena
+has 512 pixels of horizontal camera travel and no water beneath its floor.
+Player bounds and collision now cover the full hall. Ordinary spawn suppression,
+rewards, shop visits and carried equipment are unchanged.
+
+Boss Rush keeps bosses active outside the viewport. A Home-only world-space
+pursuit/bounds adapter prevents the original single-screen flying-boss steering
+from escaping the wider hall; death sequences remain unclamped. Regular-game
+AI retains its original behavior. Runtime coverage walks both directions across
+the full arena for all eight bosses, checks camera deltas, arena bounds and
+cache faults, then exercises deaths, shops, rewards and the ending. This is not
+a natural weapon-only balance/playthrough certification.

@@ -55,7 +55,7 @@ static void zero(void *p, u16 n) {
 }
 u8 terrain(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
-    if(boss_rush.active)return x<RUSH_X || x>=RUSH_X+256 || y<0 || y>=RUSH_FLOOR?3:0;
+    if(boss_rush.active)return x<RUSH_X || x>=RUSH_X+RUSH_WIDTH || y<0 || y>=RUSH_FLOOR?3:0;
     if (x < 0 || x >= r->width || y < 0)
         return 3;
     if (y >= r->height)
@@ -336,7 +336,7 @@ static void player_step(u16 in, u16 pressed) {
     game.player_low=player_motion.low && !player_motion.jumping;
     if(p->invincible)--p->invincible;
     p->attack=player_attack.active;
-    p->x=bound_axis(PX(p->x),boss_rush.active?RUSH_X:0,boss_rush.active?RUSH_X+224:rounds[game.round].width-32)*FX;
+    p->x=bound_axis(PX(p->x),boss_rush.active?RUSH_X:0,boss_rush.active?RUSH_X+RUSH_WIDTH-32:rounds[game.round].width-32)*FX;
     if(player_attack.launch && !shop_poison) {
         player_daggers_launch(PX(p->x),PX(p->y),(player_attack.selector+1)&4,player_motion.low);
         player_attack.launch=0;
@@ -400,7 +400,7 @@ static void actor_step(u16 i, u16 pressed) {
     case BEHAVIOR_TELEPORTER:case BEHAVIOR_HUNTER:case BEHAVIOR_CRAWLER:
     case BEHAVIOR_WISP:break;
     default:
-        if(skeleton_kinds[a->def]==255 &&
+        if(!boss_rush.active && skeleton_kinds[a->def]==255 &&
            (absolute(x-(s16)game.cam_x-128)>352 || absolute(y-(s16)game.cam_y-112)>300)) {
             game.spawned[a->source]&=254;a->active=0;return;
         }
@@ -879,8 +879,12 @@ void game_tick(u16 input) {
     {
         u16 i;
         for (i = 0; i < MAX_ACTORS; i++) {
-            if (game.actors[i].active)
-                actor_step(i, pressed);
+            if (game.actors[i].active){
+                if(boss_rush.active){
+                    s32 previous_x=game.actors[i].x;
+                    actor_step(i,pressed);boss_rush_actor_bounds(&game.actors[i],previous_x);
+                }else actor_step(i,pressed);
+            }
             if (game.mode != PLAY)
                 return;
         }
@@ -897,6 +901,6 @@ void game_tick(u16 input) {
             player_hurt(1);
         }
     }
-    game.cam_x = boss_rush.active?RUSH_X:bound_axis(PX(p->x) - 112, 0, rounds[game.round].width - 256);
+    game.cam_x = boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):bound_axis(PX(p->x) - 112, 0, rounds[game.round].width - 256);
     game.cam_y = boss_rush.active?RUSH_Y:bound_axis(PX(p->y) - 144, 0, rounds[game.round].height - 224);
 }
