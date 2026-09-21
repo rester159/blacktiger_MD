@@ -1,6 +1,10 @@
 #include "player_motion.h"
 /* Bank 7: 80C3 input, 8625 walk/climb, 8800 jump, 8F8D fall, 8126
  * integration. No source instructions or addresses are executed at runtime. */
+u8 player_motion_sounds[4],player_motion_sound_count,player_motion_frame;
+static void cue(u8 command) {
+    if(player_motion_sound_count<4)player_motion_sounds[player_motion_sound_count++]=command;
+}
 static u8 probe(const PlayerMotion *p, s16 x, s16 y) {
     return terrain((s16)(p->scroll_x+p->screen_x+x),
                    (s16)(p->scroll_y+p->screen_y+y));
@@ -15,10 +19,10 @@ static void detach(PlayerMotion *p) {
     p->ladder=0;p->scroll_y-=(p->scroll_y+p->screen_y)&15;
 }
 static void attach(PlayerMotion *p) {
-    p->ladder=1;p->scroll_x+=8-((p->scroll_x+p->screen_x)&15);
+    cue(0x1e);p->ladder=1;p->scroll_x+=8-((p->scroll_x+p->screen_x)&15);
 }
 static void start_fall(PlayerMotion *p) {
-    p->vx=p->vy=p->fraction=0;p->falling=1;
+    cue(0x3b);p->vx=p->vy=p->fraction=0;p->falling=1;
 }
 static void obstruction(PlayerMotion *p) {
     start_fall(p);p->below_origin=p->ladder=p->direction=0;
@@ -30,7 +34,7 @@ static void screen_floor(PlayerMotion *p) {
 static void fall(PlayerMotion *p) {
     u8 ground;
     if (p->ladder && probe(p,16,16)==1) {
-        p->vx=p->vy=p->falling=0;p->pose=12;return;
+        p->vx=p->vy=p->falling=0;p->pose=12;cue(0x1f);return;
     }
     if (p->idle) {p->selector=p->previous;p->frame=0;}
     else {
@@ -48,7 +52,7 @@ static void fall(PlayerMotion *p) {
         else p->camera_return=1;
     }
     p->vy=p->fraction=p->falling=p->jump_request=p->jumping=0;
-    p->frame=p->redirected=p->below_origin=0;detach(p);
+    p->frame=p->redirected=p->below_origin=0;cue(0x1f);cue(0x1c);detach(p);
 }
 static void walk(PlayerMotion *p) {
     static const s8 velocity[6][2]={{2,0},{0,0},{0,2},{0,0},{-2,0},{0,-2}};
@@ -116,6 +120,7 @@ static u8 jump(PlayerMotion *p,u8 input,u8 reversed,u8 attacking) {
             if (probe(p,p->direction&1?24:8,16)==2)
                 p->direction=p->direction&1?5:6;
         } else p->selector=p->previous;
+        if(!attacking)cue(0x1b);
         p->pose=6;p->jump_origin=p->camera_return?144:p->screen_y;
         p->screen_motion=p->jumping=1;
         p->vx=horizontal[p->direction];
@@ -179,7 +184,7 @@ static void attack_step(PlayerMotion *p,PlayerAttack *a,u8 tier) {
             else p->selector=p->previous;
         } else if (p->selector==5) p->selector=p->previous;
         else if (!(p->selector&3))p->previous=p->selector;
-        a->selector=p->selector;a->active=1;
+        a->selector=p->selector;a->active=1;cue(0x3a);
     }
     p->selector=a->selector;
     if (!a->count && a->counter<6) {
@@ -206,6 +211,7 @@ void player_control_step(PlayerMotion *p,PlayerAttack *attack,u8 input,u8 revers
     static const u8 selector[2][16]={{0,0,4,0,2,1,3,0,5,0,4,0,0,0,0,0},
                                    {0,4,0,0,2,4,1,0,5,4,0,0,0,0,0,0}};
     u8 nibble=input&15;
+    player_motion_sound_count=0;
     p->idle=!nibble;
     if (nibble) {
         if (!p->jumping) p->direction=direction[!!reversed][nibble];
@@ -231,7 +237,10 @@ void player_control_step(PlayerMotion *p,PlayerAttack *attack,u8 input,u8 revers
     }
     p->scroll_x+=p->vx;
     if (p->screen_motion) p->screen_y+=p->vy;
-    else p->scroll_y+=p->vy;
+    else {
+        p->scroll_y+=p->vy;
+        if((p->ladder&(((u8)p->vy>>1)|((u8)p->vy<<7))) && !(player_motion_frame&15))cue(0x1a);
+    }
 }
 
 void player_motion_step(PlayerMotion *p,u8 input,u8 reversed) {

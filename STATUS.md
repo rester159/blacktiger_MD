@@ -882,3 +882,13 @@ prefixes. Effect data shrinks from 87,114 to 5,112 bytes.
 Gameplay sound bindings beyond the audited player cues, PSG hardware adaptations,
 source command-queue contention and hardware listening remain unfinished. This
 completes the shared parameter routines, not full-game audio fidelity or the port.
+
+## Ordered movement sound bindings
+
+The shared player controller now emits the source commands for falls, fall
+completion, ladder attachment and periodic climbing, alongside jump/attack.
+Audio drains the ordered output once, preserving stop-then-land sequences.
+The controller oracle now checks 931 sound commands across 56,720 updates,
+including simultaneous jump/attack behavior. Cartridge playback verifies ordered
+consumption and no repeated output while paused. Remaining game-wide audio and
+natural full-game completion gaps above still apply.

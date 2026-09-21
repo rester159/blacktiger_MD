@@ -113,3 +113,19 @@ jump/attack and timeout death without stopping FM. The preview WAV contains
 adapted death, jump and attack samples; it is not an original arcade recording.
 These checks do not establish natural full-game audio, complete event bindings,
 waveform equivalence, or hardware/PAL listening quality.
+
+## Ordered player controller commands
+
+The shared native movement controller emits a bounded, ordered list each update.
+Audio consumes it once before damage/death dispatch, avoiding the previous
+single-event overwrite. Source bank 7 supplies jump `1B`, attack `3A`, ladder
+attach `1E`, fall start `3B`, fall completion `1F,1C`, and moving-ladder `1A`
+on the global 16-update cadence. Ordinary jump landing has no separate cue;
+attack-jump entry omits `1B`. Catching a ladder during falling stops effects.
+
+The refreshed source controller oracle captures its actual sound queue with
+attract-mode suppression disabled and an explicit global frame counter. All
+56,720 updates across 719 cases match native motion, attacks and sound output,
+including 931 commands and multi-command updates. The cartridge check also
+verifies ordered stop/landing consumption and no replay on paused frames.
+This does not establish complete game-wide command scheduling fidelity.

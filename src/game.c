@@ -297,8 +297,7 @@ static void spawn_actors(void) {
 }
 static void player_step(u16 in, u16 pressed) {
     Player *p = &game.p;
-    u8 raw=0,was_jumping=player_motion.jumping;
-    u8 old_attack=player_attack.active;
+    u8 raw=0;
     status_tick();
     /* A restart/teleport establishes a fresh logical camera origin. */
     if ((s16)(player_motion.scroll_x+player_motion.screen_x)!=PX(p->x) ||
@@ -309,6 +308,7 @@ static void player_step(u16 in, u16 pressed) {
     if(in&IN_UP)raw|=8;
     if(in&IN_JUMP)raw|=32;
     if(in&IN_ATTACK)raw|=16;
+    player_motion_frame=game.frame;
     player_control_step(&player_motion,&player_attack,raw,status_reverse,p->weapon-1);
     p->x=(s32)(s16)(player_motion.scroll_x+player_motion.screen_x)*FX;
     p->y=(s32)(s16)(player_motion.scroll_y+player_motion.screen_y)*FX;
@@ -318,10 +318,8 @@ static void player_step(u16 in, u16 pressed) {
     p->face=((player_motion.selector+1)&4)!=0;
     reinforcement_player_low=player_motion.low;
     game.player_low=player_motion.low && !player_motion.jumping;
-    if(!was_jumping && player_motion.jumping)game.sound=SND_JUMP;
     if(p->invincible)--p->invincible;
     p->attack=player_attack.active;
-    if(!old_attack && player_attack.active)game.sound=SND_PLAYER_ATTACK;
     p->x=bound_axis(PX(p->x),0,rounds[game.round].width-32)*FX;
     if(player_attack.launch && !shop_poison) {
         player_daggers_launch(PX(p->x),PX(p->y),(player_attack.selector+1)&4,player_motion.low);

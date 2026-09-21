@@ -8,6 +8,13 @@ for l in (ROOT/'reference/sfx_oracle_events.txt').read_text().splitlines():
  elif f[0]=='END':ends[command]=max(ends.get(command,0),int(f[1]))
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.run(3,8);r.run(30)
 s=state(r);s.mode=2;put(r,s);r.run(60)
+# Controller output is consumed once, in order, even on paused frames. Stop
+# before landing must clear an existing sustained effect and retain landing.
+r.write('sfx_request',0,b'\x14');r.run(3)
+r.write('player_motion_sounds',0,b'\x1f\x1c');r.write('player_motion_sound_count',0,b'\x02');r.run(3)
+assert r.read('player_motion_sound_count',1)==b'\0'
+assert r.read('sfx_slots',22)[8]==0x1c,'ordered stop/landing output lost'
+r.run(90);assert r.read('sfx_active',1)==b'\0','controller output replayed'
 # A finite FM cue ends before the effects-only capture; pause prevents reselection.
 r.write('music_request',0,b'\x32');r.run(650);assert r.read('music_active',1)==b'\0'
 cases=[];preview=[]
@@ -41,5 +48,5 @@ for _ in range(30):
  if state(r).mode==4:break
 r.run(3);assert state(r).mode==4 and r.read('sfx_slots',22)[8]==2
 assert r.read('music_active',1)==b'\1','death stopped FM music'
-r.close();report=dict(passed=True,cases=cases,mixed_music_peak=mixed_peak,player_jump=True,player_attack=True,player_death_stop_then_effect=True,death_preserves_music=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='All 36 native effects render non-silent/unclipped isolated cartridge audio and stop. Input-driven jump/attack and timeout death select witnessed source commands. Not waveform equivalence, full gameplay-event binding, sustained effects, or hardware/PAL listening.')
+r.close();report=dict(passed=True,cases=cases,mixed_music_peak=mixed_peak,ordered_controller_output=True,player_jump=True,player_attack=True,player_death_stop_then_effect=True,death_preserves_music=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='All 36 native effects render non-silent/unclipped isolated cartridge audio and stop. Input-driven jump/attack and timeout death select witnessed source commands. Not waveform equivalence, full gameplay-event binding, sustained effects, or hardware/PAL listening.')
 (ROOT/'reports/sfx-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:report[k] for k in ('passed','player_jump','player_attack','player_death_stop_then_effect','rom_sha256')}))
