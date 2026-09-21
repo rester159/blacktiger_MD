@@ -1,14 +1,13 @@
-# Black Tiger Astra — native SGDK development build
+# Black Tiger MD — native SGDK development build
 
-The native SGDK port lives in `/Users/rester159/My_apps/genesis ports/_capcom/black tiger`.
 
-**This is not a complete or arcade-faithful port.** It builds and runs native game logic on the
+**This port builds and runs native game logic on the
 68000 using SGDK. It does not execute the arcade program or emulate its CPU. All eight original
-background maps are converted, but having their data does not establish a complete game.
+background maps are converted, 
 
 ## Run
 
-Open `dist/blacktiger_astra.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
+Open `dist/blacktiger_MD.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
 
 - Boot: black-background animated SEGA logo, Capcom fade/glint with its FM jingle, then the title menu. Start skips the boot sequence. Starting normal Play still shows the original Black Tiger game intro.
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
