@@ -6,46 +6,50 @@
 #include <genesis.h>
 #include "ui_data.inc"
 static u8 title_ready,title_page=255,title_revision=255,title_message=255;
-static u32 hud_score=0xffffffff;
-static u16 hud_coins=65535,hud_time=65535;
-static u8 hud_stats[12];
-static void draw(const char *s,u16 x,u16 y){VDP_drawTextEx(title_ready?BG_A:WINDOW,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),x,y,DMA_QUEUE);}
+static u32 high_score=20000;
+static u16 hud_previous[256];
+static u8 hud_invalid=1;
+static u32 hud_score;
+static u16 hud_coins,hud_time;
+static u8 hud_hp,hud_weapon,hud_armor,hud_keys,hud_antidotes;
+#include "hud_data.inc"
+static void draw(const char *s,u16 x,u16 y){VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),x,y,DMA_QUEUE);}
 static void number(u16 x,u16 y,u32 value,u8 count){char b[9];u8 n=count;b[count]=0;while(n){b[--n]='0'+value%10;value/=10;}draw(b,x,y);}
 static void center(u16 y,const char *text){draw(text,(32-strlen(text))/2,y);}
+void ui_hud_invalidate(void){hud_invalid=1;}
 void ui_game_init(void){
- u16 i;title_ready=0;
+ u16 i;title_ready=0;hud_invalid=1;
  VDP_loadTileData(hud_font,TILE_FONT_INDEX,96,DMA);
- VDP_loadTileData(hud_icons,7,9,DMA);
- VDP_setWindowVPos(FALSE,4);
- for(i=0;i<4;i++)VDP_fillTileMapRect(WINDOW,TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,TILE_FONT_INDEX),0,i,32,1);
- hud_score=0xffffffff;hud_coins=hud_time=65535;memset(hud_stats,255,sizeof hud_stats);
+ for(i=0;i<ARCADE_HUD_TILES;i++)VDP_loadTileData(arcade_hud_patterns+i*8,arcade_hud_slots[i],1,DMA);
+ VDP_setWindowVPos(FALSE,0);
 }
+static void hud_number(u16 *p,u32 value,u8 count,u8 blue,u8 spaces){
+ const u16 *digits=arcade_hud_digits+blue*11;
+ while(count){p[--count]=digits[value%10];value/=10;if(spaces && !value){while(count)p[--count]=digits[10];break;}}
+}
+static void hud_icon(u16 *p,const u16 *icon){p[0]=icon[0];p[1]=icon[1];p[32]=icon[2];p[33]=icon[3];}
 void ui_hud(void){
- u8 stats[]={game.p.hp,progress_max_hp,game.p.armor,game.p.weapon,game.p.lives,
-  container_keys,shop_antidotes,frontend.credits,game.round,boss_rush.active,boss_rush.stage,boss_rush.shopping};
- u8 changed=memcmp(stats,hud_stats,sizeof stats)!=0;
- if(!changed && hud_score==game.score && hud_coins==game.coins && hud_time==game.time)return;
- VDP_setTextPlane(WINDOW);VDP_setTextPalette(PAL3);
- if(hud_score!=game.score || hud_time!=game.time || changed){
-  draw("SCORE          TIME       R",1,0);
-  number(7,0,game.score,8);number(21,0,game.time,3);number(28,0,game.round+1,1);
-  hud_score=game.score;hud_time=game.time;
+ u16 map[256],i,row;u8 hp=game.p.hp>5?5:game.p.hp;
+ if(!hud_invalid && hud_score==game.score && hud_coins==game.coins && hud_time==game.time &&
+    hud_hp==hp && hud_weapon==game.p.weapon && hud_armor==game.p.armor &&
+    hud_keys==container_keys && hud_antidotes==shop_antidotes)return;
+ hud_score=game.score;hud_coins=game.coins;hud_time=game.time;hud_hp=hp;
+ hud_weapon=game.p.weapon;hud_armor=game.p.armor;hud_keys=container_keys;hud_antidotes=shop_antidotes;
+ if(game.score>high_score)high_score=game.score;
+ memcpy(map,arcade_hud_map,5*64);memcpy(map+160,arcade_hud_map+25*32,3*64);
+ hud_number(map+32+2,game.score,7,1,1);hud_number(map+32+13,high_score,7,1,1);
+ hud_number(map+3*32+1,game.time/60,1,0,0);hud_number(map+3*32+3,game.time%60,2,0,0);
+ for(i=0;i<10;i++)map[3*32+7+i]=0;
+ for(i=0;i<hp;i++){u8 color=i>1?2:i;map[3*32+7+i*2]=arcade_hud_vital[color*2];map[3*32+8+i*2]=arcade_hud_vital[color*2+1];}
+ hud_number(map+4*32+26,game.coins,5,0,0);
+ hud_icon(map+160+11,arcade_hud_weapons+(game.p.weapon?game.p.weapon-1:0)*4);
+ hud_icon(map+160+15,arcade_hud_armors+(game.p.armor>8?8:game.p.armor)*4);
+ hud_number(map+224+7,container_keys,2,0,0);hud_number(map+224+19,shop_antidotes,2,0,0);
+ for(row=0;row<8;row++)if(hud_invalid || memcmp(map+row*32,hud_previous+row*32,64)){
+  VDP_setTileMapDataRow(BG_A,map+row*32,row<5?row:row+20,0,32,DMA_QUEUE_COPY);
+  memcpy(hud_previous+row*32,map+row*32,64);
  }
- if(changed){
-  u16 bars[8],i;
-  draw("ENERGY",1,1);draw("ARMOR",16,1);
-  for(i=0;i<5;i++)bars[i]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,i>=progress_max_hp?9:i<game.p.hp?7:8);
-  VDP_setTileMapDataRow(WINDOW,bars,1,8,5,DMA_QUEUE_COPY);
-  for(i=0;i<8;i++)bars[i]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,i<game.p.armor?7:8);
-  VDP_setTileMapDataRow(WINDOW,bars,1,22,8,DMA_QUEUE_COPY);
-  draw("KEY     WPN    LIFE    ANT",1,2);
-  number(5,2,container_keys,2);number(12,2,game.p.weapon,1);number(20,2,game.p.lives,1);number(27,2,shop_antidotes,2);
-  draw("ZENNY       CR              ",1,3);number(16,3,frontend.credits,2);
-  if(boss_rush.active){draw("BOSS",21,3);number(26,3,boss_rush.stage+1,1);draw("/8",27,3);}
-  memcpy(hud_stats,stats,sizeof stats);
- }
- if(changed || hud_coins!=game.coins){number(7,3,game.coins,5);hud_coins=game.coins;}
- VDP_setTextPlane(BG_A);
+ hud_invalid=0;
 }
 static void title_load(void){
  SYS_disableInts();VDP_setEnable(FALSE);DMA_flushQueue();
@@ -100,6 +104,6 @@ void ui_title(void){
   if(page==0)center(24,"START TO SELECT");
   else if(!home)center(24,message?"INSERT COIN":"SELECT COIN  START PLAY");
   else {draw("CREDIT LIMIT",8,24);number(22,24,s->credits,2);}
-  draw("CREDIT",22,27);number(29,27,home && page==1?s->credits:frontend.credits,2);
+  draw("RESTER159 2026",1,27);draw("CREDIT",22,27);number(29,27,home && page==1?s->credits:frontend.credits,2);
  }
 }

@@ -28,7 +28,7 @@
 #include "npc.h"
 #include "world.h"
 #include <genesis.h>
-#define BG_SLOTS 1056
+#define BG_SLOTS 996
 #define SPR_BASE 1088
 #define SPR_SLOTS 80
 static u16 logical_to_slot[1700], slot_to_logical[BG_SLOTS], sprite_keys[SPR_SLOTS],
@@ -39,7 +39,7 @@ static u16 visible[1700];
 static u16 visible_words[2048];
 /* A body occupies four existing 16x16 cache slots; both formats share the same VRAM. */
 static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
-static u8 line_count[28], sprite_slot_for_key[16384];
+static u8 line_count[28], sprite_slot_for_key[16384],body_lookup[64];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
 static u8 clear_screen_active,ending_screen_active,ending_screen_scene,ending_screen_palette;
@@ -267,8 +267,12 @@ static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
             body_pieces(code, pal, x, y, flip);
             return;
         }
-    for (block = 0; block < SPR_SLOTS / 4; block++)
-        if (body_keys[block] == key) break;
+    /* A small hint table avoids rescanning twenty cached bodies per actor.
+       Validate the key on every hit; piece uploads can invalidate any body. */
+    block=body_lookup[(key^(key>>8))&63];
+    if(body_keys[block]!=key)
+        for (block = 0; block < SPR_SLOTS / 4; block++)
+            if (body_keys[block] == key) break;
     if (block == SPR_SLOTS / 4) {
         if (sprite_uploads > 28) {
             body_pieces(code, pal, x, y, flip);
@@ -302,6 +306,7 @@ static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
         sprite_uploads += 4;
         video_dma_bytes += 512;
     }
+    body_lookup[(key^(key>>8))&63]=block;
     body_stamp[block] = epoch;
     for (i = start; i < end; i++) line_count[i] += 2;
     VDP_setSpriteFull(sprite_count, x, y, SPRITE_SIZE(4, 4),
@@ -461,9 +466,10 @@ static void overlay(void) {
     char b[40];
     if (changed) {
         if(!clear_screen_active && !ending_screen_active)VDP_clearPlane(BG_A, TRUE);
+        ui_hud_invalidate();
         last_mode = m;
     }
-    ui_hud();
+    if(!clear_screen_active && !ending_screen_active)ui_hud();
     VDP_setTextPlane(BG_A);
     if(m==RESCUE && (changed || last_npc_page!=npc_sequence.page)) {
         u16 i,tiles[128];const u16 *page=npc_dialogue();
