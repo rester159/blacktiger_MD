@@ -55,11 +55,14 @@ for rush in (False,True):
  for cx in (928,936,944,952,944,936,928):
   s=state(r);s.cam_x=cx;put(r,s);r.run(6)
   entries=columns();assert entries,(rush,cx,'missing columns')
-  xs.append(min(x for x,y,tile in entries))
+  shafts=sorted(set(x for x,y,tile in entries if tile==860))
+  assert len(shafts)>=3,(rush,cx,'all columns must use the foreground layer',shafts)
+  assert all(b-a==80 for a,b in zip(shafts,shafts[1:])),shafts
+  xs.append(shafts[0]%80)
   assert word(0xf000+10*32+2)==(-cx)&65535
   assert word(0xf000+10*32)==(-cx//2)&65535
   assert all(40<=y<200 for x,y,tile in entries)
- assert [xs[i+1]-xs[i] for i in range(6)]==[-10,-10,-10,10,10,10],xs
+ assert [(xs[i+1]-xs[i])%80 for i in range(6)]==[70,70,70,10,10,10],xs
  # Art resident in the dedicated band is not overwritten by the HUD or cache.
  pattern_at=r.symbols['arena_columns'];rom=(ROOT/'out/release/rom.bin').read_bytes()
  assert bytes(v[(844*32+i)^1] for i in range(40*32))==rom[pattern_at:pattern_at+40*32]

@@ -13,6 +13,10 @@ def validate_sat(r):
   w=(size>>2)+1;h=(size&3)+1;tile=attr&2047
   for line in range(max(0,y),min(224,y+h*8)):
    counts[line]+=1;pixels[line]+=w*8
+  if tile<1088: # Resident scenery is checked by the parallax pixel/VRAM tests.
+   assert state(r).round in (3,7) and 756<=tile<1012
+   if not link:break
+   continue
   if (w,h)==(4,4):
    assert (tile-1088)%16==0;key=bodies[(tile-1088)//16];expected=b''
    for col in range(4):
@@ -82,6 +86,9 @@ for level in range(8):
   for si in range(64):
    sy,size,link,attr,sx=struct.unpack_from('>HBBHH',sat,si*8);sx-=128;sy-=128
    w=((size>>2)+1)*8;h=((size&3)+1)*8;tile=attr&2047
+   if tile<1088:
+    if not link:break
+    continue
    key=bodies[(tile-1088)//16] if (w,h)==(32,32) else pieces[(tile-1088)//4]
    for py in range(0,h,16):
     for px in range(0,w,16):

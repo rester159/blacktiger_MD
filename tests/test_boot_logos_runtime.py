@@ -34,8 +34,8 @@ assert rms[1]<5 and rms[2]>100,(rms,'SEGA is silent; Capcom must play its FM jin
 r.run(30);assert state(r).mode==0 and r.read('frontend',2)==b'\0\0'
 assert not np.any(r.frame[208:216]),'blank row between copyright lines'
 r.capture('title-spaced.png')
-# A normal Home start still enters the original Black Tiger game intro.
-r.run(4,32);r.run(4);r.run(4,8);r.run(4);r.run(4,8);r.run(20)
+# An Arcade start still enters the original Black Tiger game intro.
+r.run(4,8);r.run(4);r.run(4,4);r.run(4);r.run(4,8);r.run(20)
 assert state(r).mode==9,'original game intro must remain'
 r.close()
 # Skip from either logo, consume held Start, then prove the title is idle.

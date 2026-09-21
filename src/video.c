@@ -453,7 +453,7 @@ static void sprites(void) {
             body(f->code, f->palette, sp->x - 8 - game.cam_x, sp->y - 8 - game.cam_y, f->flip);
         }
     }
-    if(arena_video_active)sprite_count=arena_video_columns(sprite_count);
+    if(arena_video_active)sprite_count=arena_video_columns(sprite_count,line_count);
     if (sprite_count)
         VDP_setSpriteLink(sprite_count - 1, 0);
     else {
@@ -552,7 +552,7 @@ void video_round(void) {
     terrain_backdrop=backdrop_for_round(game.round);
     terrain_map=game.round==7?arena_video_map():rounds[game.round].map;
     terrain_patterns=game.round==7?arena_video_pattern(0):rounds[game.round].patterns;
-    terrain_slots=terrain_backdrop?684:game.round==7?828:BG_SLOTS;
+    terrain_slots=terrain_backdrop?(game.round==3?640:684):game.round==7?828:BG_SLOTS;
     shop_screen_active=0;
     clear_screen_active=ending_screen_active=0;
     terrain_state();

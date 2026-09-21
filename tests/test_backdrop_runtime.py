@@ -30,6 +30,20 @@ for level,cx,cy in [(3,48,784),(5,976,656),(6,784,304)]:
  assert mask.sum()>1000,(level,'insufficient exposed backdrop')
  assert len(np.unique(a[:,8:][mask],axis=0))>2,(level,'backdrop is blank')
  assert np.array_equal(a[:,8:][mask],b[:,:-8][mask]),(level,'background did not move exactly 8px')
+ if level==3:
+  # Transparent HUD cells must reveal the tiled scenery, not black bands.
+  hud_clear=np.zeros((224,256),bool)
+  for yy in list(range(40))+list(range(200,224)):
+   for xx in range(256):
+    w=word(0xc000+(yy//8)*128+(xx//8)*2)
+    tx=7-(xx&7) if w&0x800 else xx&7;ty=7-(yy&7) if w&0x1000 else yy&7
+    byte=v[((w&2047)*32+ty*4+tx//2)^1]
+    hud_clear[yy,xx]=(byte&15 if tx&1 else byte>>4)==0
+  exposed=(nb==0)&hud_clear
+  assert exposed.sum()>100,(level,'no exposed HUD backdrop tested')
+  assert not (b[exposed]==0).all(axis=1).any(),'Black holes behind HUD'
+  shifted=(na[:,8:]==0)&(nb[:,:-8]==0)&hud_clear[:,8:]&hud_clear[:,:-8]
+  assert np.array_equal(a[:,8:][shifted],b[:,:-8][shifted]),'HUD scenery does not scroll with the cave backdrop'
  for row in range(28):
   assert word(0xf000+row*32+2)==(-(cx+16))&65535
   assert word(0xf000+row*32)==((-(cx+16)//2)&65535 if 5<=row<25 else 0)

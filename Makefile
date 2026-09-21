@@ -15,6 +15,7 @@ assets: .venv/bin/python
 src/ui_data.inc: tools/build_ui.py assets/ui/title_arcade.png art/black_tiger_md_logo_concept.png assets/board.json | .venv/bin/python
 	.venv/bin/python tools/build_ui.py
 test: all
+	.venv/bin/python tests/test_level_select_runtime.py
 	.venv/bin/python tests/test_backdrop_runtime.py
 	.venv/bin/python tests/test_home_logo_runtime.py
 	.venv/bin/python tests/test_arena_parallax_runtime.py

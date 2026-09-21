@@ -73,6 +73,9 @@ class Runner:
   if "frontend" in self.symbols:
    self.run(3,32);self.run(2);self.run(3,8);self.run(2)
   self.run(frames,8)
+  if "frontend" in self.symbols and self.read("frontend",2)[1]==3:
+   self.run(2);self.run(frames,8)
+   return
   if "intro_tick" in self.symbols:
    for _ in range(1000):
     if int.from_bytes(self.read("intro_tick"),"big")>=842:break

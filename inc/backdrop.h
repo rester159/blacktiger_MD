@@ -6,5 +6,6 @@ typedef struct {
  const u16 *remap0,*remap1,*map;
  u16 original_tiles,far_tiles;
 } Backdrop;
+const u32 *backdrop_hud_patterns(void);
 const Backdrop *backdrop_for_round(u8 round);
 #endif

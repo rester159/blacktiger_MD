@@ -4,7 +4,7 @@
 extern u8 arena_video_active;
 const u16 *arena_video_map(void);
 const u32 *arena_video_pattern(u16 tile);
-u16 arena_video_columns(u16 count);
+u16 arena_video_columns(u16 count,u8 *lines);
 void arena_video_init(void);
 void arena_video_reset(void);
 void arena_video_frame(void);

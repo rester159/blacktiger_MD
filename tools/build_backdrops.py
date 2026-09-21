@@ -69,11 +69,24 @@ for level in (3,5,6):
     pens=d.argmin(2);choices.append((int(np.take_along_axis(d,pens[:,:,None],2).sum()),bank,pens))
    _,bank,pens=min(choices,key=lambda c:c[0]);b=pack(pens.astype(np.uint8))
    if b not in far_lookup:far_lookup[b]=len(far_tiles);far_tiles.append(b)
-   far_map.append(700+far_lookup[b]+(bank<<13))
+   far_map.append((656 if level==3 else 700)+far_lookup[b]+(bank<<13))
  assert len(far_tiles)<=312,(level,len(far_tiles))
  output+=patterns(f'backdrop_{level}_extra',extra)+patterns(f'backdrop_{level}_far',far_tiles)
  for bank in range(2):output+=array(f'backdrop_{level}_remap{bank}','u16',remaps[bank])
  output+=array(f'backdrop_{level}_map','u16',far_map)
+ hud_tiles=[]
+ if level==3:
+  # Continue exactly the same repeating texture through screen rows 0..4 and 25..27.
+  for sy,h in [(0,32),(32,8),(200,24)]:
+   for sx in range(0,256,32):
+    for tx in range(0,32,8):
+     for ty in range(0,h,8):
+      block=patch[np.arange(sy+ty-40,sy+ty-32)%256][:,np.arange(sx+tx,sx+tx+8)%256]
+      d=((rgb[block][:,:,None,:]-rgb[:16][None,None,:,:])**2).sum(3)
+      hud_tiles.append(pack(d.argmin(2).astype(np.uint8)))
+  assert len(far_tiles)<=92 and len(hud_tiles)==256
+  output+=patterns('backdrop_hud',hud_tiles)
+  output+='#define BACKDROP_HUD_TILES '+str(len(hud_tiles))+'\n'
  output+=f'static const Backdrop backdrop_{level}={{backdrop_{level}_extra,backdrop_{level}_far,backdrop_{level}_remap0,backdrop_{level}_remap1,backdrop_{level}_map,{n},{len(far_tiles)}}};\n'
  (ROOT/f'res/generated/backdrop_bg{level}.bin').write_bytes(raw+b''.join(extra))
  (ROOT/f'res/generated/backdrop_remap{level}.bin').write_bytes(np.array(remaps,dtype='>u2').tobytes())

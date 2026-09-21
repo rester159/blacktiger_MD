@@ -40,12 +40,29 @@ def tile(indexed,opaque=False):
  b=pack(p)
  if b not in unique:unique[b]=len(patterns);patterns.append(b)
  return (16+unique[b])|(bank<<13)|(0x8000 if opaque else 0)
+# Move every full-height palace column off the wall layer. Preserve arches,
+# torches and window openings; patch the former shafts using original wall art.
+wall_canvas=canvas.copy()
+for top,left,right in [(64,568,1896),(448,632,1256)]:
+ for x in range(left,right,80):
+  for dy in range(192):
+   half=16 if dy<48 or dy>=160 else 8
+   center=x+16
+   for xx in range(center-half,center+half):
+    # Repeating unadorned masonry, sampled away from torches and pillars.
+    wall_canvas[top+dy,xx]=canvas[112+((dy-48)%32),680+((xx-center+16)%32)]
+  # Window scenery must extend through the old column position.
+  if top==64:
+   for y in range(144,256):
+    for wx in (720,1008,1280,1520,1744):
+     at=np.flatnonzero(mask[y,wx:wx+96])
+     if len(at):mask[y,wx+at[0]:wx+at[-1]+1]=True
 fg=[]
 for y in range(128):
  for x in range(256):
   cut=mask[y*8:y*8+8,x*8:x*8+8]
-  if not cut.any():fg.append(int(wm[y,x])|0x8000);continue
-  a=canvas[y*8:y*8+8,x*8:x*8+8].copy();a[cut]=255
+  if not cut.any() and np.array_equal(wall_canvas[y*8:y*8+8,x*8:x*8+8],canvas[y*8:y*8+8,x*8:x*8+8]):fg.append(int(wm[y,x])|0x8000);continue
+  a=wall_canvas[y*8:y*8+8,x*8:x*8+8].copy();a[cut]=255
   fg.append(tile(a,True))
 far=[]
 # Screen rows 5..24. Only the original window openings expose this plane.

@@ -13,7 +13,7 @@ Injected actor/ending tests do not establish natural full-game completion.
 
 Boot presentation: user-supplied black-background Shinobi SEGA kit and SF2 Capcom animation/jingle now run before the title. Start skips either sequence with clean sound teardown. Copyright lines are separated by a blank row; the credit counter is above the logo.
 
-New presentation/modes: original arcade title artwork with Arcade/Home menus, native source-derived start intro in both normal-game modes, bounded credits, expanded HUD and eight-boss Home rush with a shop after each fight. Shared settings include source weapon damage and shop-price difficulty, lives, coinage, continue and audio toggles. The remaining original difficulty effects and physical arcade DIP functions are not yet fully reproduced.
+New presentation/modes: original arcade title artwork with Arcade/Home menus, native source-derived start intro in Arcade and a direct Levels 1–8 selector under Home Play, bounded credits, expanded HUD and eight-boss Home rush with a shop after each fight. Shared settings include source weapon damage and shop-price difficulty, lives, coinage, continue and audio toggles. The remaining original difficulty effects and physical arcade DIP functions are not yet fully reproduced.
 
 Scroll registers and HUD changes now commit in VBlank. A linked-ROM pixel test covers 32 horizontal/vertical camera transitions with no split old/new image; host compositor and physical-display tearing are separate.
 
@@ -1079,9 +1079,9 @@ Boss Rush runtime checks were repeated successfully after relocation.
 
 Level 8 and Boss Rush share masked palace windows with half-speed blue scenery.
 The existing architecture/torch walls and collision-bearing floors retain normal
-world speed. A sparse foreground colonnade reuses palace column artwork at 1.25
-camera speed in the upper and lower halls; original wall pilasters remain part
-of the middle layer. These decorative columns do not alter collisions.
+world speed. All full-height columns now reuse palace column artwork at 1.25
+camera speed in the upper and lower halls, with the former column images
+removed from the middle layer. These decorative columns do not alter collisions.
 
 The two background planes supply walls/scenery; foreground column sprites are
 submitted after actors, clipped away from HUD rows, and omitted when the sprite
@@ -1113,8 +1113,9 @@ purple cave texture, blue sky/distant islands, and stained-glass windows,
 respectively. Foreground graphics use masked variants of the original tiles;
 backgrounds repeat source-art sections. No collision maps or actor palettes
 change. Tile remaps also apply to hidden-area and animated-background updates.
-Each of these levels reserves 684 terrain-cache tiles and up to 312 resident
-background tiles; other levels retain their prior cache allocation. Bonus and
+Levels 6 and 7 reserve 684 terrain-cache tiles and up to 312 resident
+background tiles. Level 4 reserves 640 terrain tiles, with additional resident
+patterns for the scenery behind the HUD; other levels retain their prior cache allocation. Bonus and
 ending presentation explicitly reset parallax scrolling.
 
 Validation: Home/Arcade logo isolation and all three version stamps pass in
@@ -1129,3 +1130,7 @@ the old stationary-background hashes. Existing timing shortfalls remain; the
 180-frame entry samples for levels 4/6/7 recorded 166/148/161 logic updates,
 compared with 176/149/163 before this change. These are short route samples,
 not a full-level performance guarantee.
+
+Parallax correction: Level 4 now repeats the cave texture behind both HUD bands. Resident low-priority scenery strips share the cave palette; a small plane strip fills the right edge within the H32 sprite budget. The cave base color also prevents black fallback on sprite overflow. Original palace shafts are removed from the masonry and all tall hall columns now use the faster foreground layer, spaced 80 pixels apart, in both regular Level 8 and Boss Rush. Terrain and collision remain unchanged. Decorative sprites remain lower in submission order than actors, and can lose detail to hardware sprite limits in busy frames.
+
+Home Play now opens a two-column Levels 1–8 selector. Confirmation starts a fresh run at the selected round, consumes one of the configured Home credits, and skips the intro. Cancel spends no credit. Arcade retains its original start intro.

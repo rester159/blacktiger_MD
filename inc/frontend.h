@@ -2,7 +2,7 @@
 #define FRONTEND_H
 #include "game.h"
 typedef struct {u8 lives,difficulty,coinage,continues,music,sfx,credits;} GameSettings;
-typedef struct {u8 mode,page,selected,option,credits,coin_meter,message,revision,arcade_credits;} Frontend;
+typedef struct {u8 mode,page,selected,option,credits,coin_meter,message,revision,arcade_credits,level;} Frontend;
 extern Frontend frontend;
 extern GameSettings settings[2];
 void frontend_init(void);

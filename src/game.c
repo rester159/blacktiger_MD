@@ -743,7 +743,7 @@ void game_tick(u16 input) {
         u8 start=frontend_step(pressed);
         if(start){
             game_new();game.previous_input=input;
-            if(start==2){boss_rush.active=1;progress_max_hp=4;game_round(7);game.previous_input=input;}else intro_start();
+            if(start==2){boss_rush.active=1;progress_max_hp=4;game_round(7);game.previous_input=input;}else if(start==3){game_round(frontend.level);game.previous_input=input;}else intro_start();
         }
         return;
     }

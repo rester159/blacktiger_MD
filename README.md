@@ -10,11 +10,11 @@ background maps are converted, but having their data does not establish a comple
 
 Open `dist/blacktiger_MD_v1.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
 
-- Boot: black-background animated SEGA logo, Capcom fade/glint with its FM jingle, then the title menu. Start skips the boot sequence. Starting normal Play still shows the original Black Tiger game intro.
+- Boot: black-background animated SEGA logo, Capcom fade/glint with its FM jingle, then the title menu. Start skips the boot sequence. Arcade Play shows the original Black Tiger intro; Home Play goes through level selection.
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
 - A: chain attack and dagger volley (release to attack again); B: jump.
 - Select (Genesis six-button Mode): insert an Arcade coin. Start: play, pause/resume, accept a paid continue, or skip the intro after its first half-second. C does not insert coins.
-- Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/Options. Normal Play preserves the original animated arcade intro in both modes.
+- Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/Options. Home Play opens Levels 1–8: Up/Down selects a level, Left/Right switches columns, Start/A begins, B returns. Home level selection skips the intro; Arcade retains it.
 - Home defaults to three total credits: the initial game and two continues. Options sets 1–99 credits for a new run; Select cannot refill them.
 - Both settings menus provide lives, difficulty, coinage, continues, music and sound effects. Difficulty currently changes original weapon-damage tables and shop prices; full arcade difficulty behavior is not yet certified.
 - Home Boss Rush uses a three-screen-wide, horizontally scrolling palace hall for eight bosses, awards 1,000–4,500 Zenny, and opens a shop after every victory, including the last. Equipment, keys and remaining currency carry over. Each fight starts in the center with scrolling available left and right. Scenery through the palace windows scrolls at half speed for depth.

@@ -45,6 +45,7 @@ void ui_hud(void){
  hud_icon(map+160+11,arcade_hud_weapons+(game.p.weapon?game.p.weapon-1:0)*4);
  hud_icon(map+160+15,arcade_hud_armors+(game.p.armor>8?8:game.p.armor)*4);
  hud_number(map+224+7,container_keys,2,0,0);hud_number(map+224+19,shop_antidotes,2,0,0);
+ if(game.round==3)for(row=0;row<8;row++)map[row*32+31]=748+row;
  for(row=0;row<8;row++)if(hud_invalid || memcmp(map+row*32,hud_previous+row*32,64)){
   VDP_setTileMapDataRow(BG_A,map+row*32,row<5?row:row+20,0,32,DMA_QUEUE_COPY);
   memcpy(hud_previous+row*32,map+row*32,64);
@@ -74,7 +75,7 @@ void ui_title(void){
  if(title_page!=page){
   VDP_clearPlane(BG_A,TRUE);VDP_clearPlane(BG_B,TRUE);
   if(page!=2)VDP_setTileMapDataRectEx(BG_B,title_map,0,0,0,32,28,32,CPU);
-  if(page==1 && home)VDP_setTileMapDataRectEx(BG_B,home_md_map,0,12,13,8,4,8,CPU);
+  if((page==1 || page==3) && home)VDP_setTileMapDataRectEx(BG_B,home_md_map,0,12,13,8,4,8,CPU);
  }
  title_page=page;title_revision=frontend.revision;title_message=message;
  VDP_setTextPlane(BG_A);VDP_setTextPalette(PAL3);VDP_setTextPriority(TRUE);
@@ -96,6 +97,14 @@ void ui_title(void){
    }
   }
   center(24,"LEFT / RIGHT TO CHANGE");center(26,"B BACK");
+ }else if(page==3){
+  u8 i;center(17,"SELECT LEVEL");
+  for(i=0;i<8;i++){
+   u8 x=i<4?4:18,y=19+(i&3);
+   draw(i==frontend.level?">":" ",x-2,y);draw("LEVEL",x,y);number(x+6,y,i+1,1);
+  }
+  center(24,"START PLAY   B BACK");center(27,"RESTER159 2026");
+  VDP_setTileMapDataRectEx(BG_A,title_version_map,0,29,27,2,1,2,CPU);
  }else{
   u8 i,count=page==0?2:home?3:2;
   VDP_clearTextArea(0,16,32,10);

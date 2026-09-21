@@ -26,12 +26,23 @@ u8 frontend_step(u16 pressed){
   if(pressed&(IN_START|IN_ATTACK)){frontend.mode=frontend.selected;frontend.credits=frontend.mode?settings[1].credits:frontend.arcade_credits;frontend.page=1;frontend.selected=0;frontend.coin_meter=0;}
   return 0;
  }
+ if(frontend.page==3){
+  if(pressed&IN_JUMP){frontend.page=1;frontend.selected=0;return 0;}
+  if(pressed&IN_UP)frontend.level=cycle(frontend.level,8,1);
+  if(pressed&IN_DOWN)frontend.level=cycle(frontend.level,8,0);
+  if(pressed&(IN_LEFT|IN_RIGHT))frontend.level^=4;
+  if(pressed&(IN_START|IN_ATTACK)){
+   frontend.credits=settings[1].credits;frontend_spend();return 3;
+  }
+  return 0;
+ }
  if(frontend.page==1){
   if(pressed&IN_JUMP){frontend.page=0;frontend.selected=frontend.mode;return 0;}
   if(pressed&IN_UP)frontend.selected=cycle(frontend.selected,home?3:2,1);
   if(pressed&IN_DOWN)frontend.selected=cycle(frontend.selected,home?3:2,0);
   if(pressed&(IN_START|IN_ATTACK)){
    if(frontend.selected==(home?2:1)){frontend.page=2;frontend.option=0;return 0;}
+   if(home && frontend.selected==0){frontend.page=3;frontend.level=0;return 0;}
    if(!(pressed&IN_START))return 0;
    if(home)frontend.credits=settings[1].credits;
    if(!frontend.credits){frontend.message=120;return 0;}

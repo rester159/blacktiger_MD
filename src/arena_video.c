@@ -32,6 +32,7 @@ void arena_video_restore(u8 shop){
  scroll();
 }
 /* Far scenery occupies fixed, shared patterns above the terrain cache. */
+static void cave_hud_edge(void);
 void arena_video_init(void){
  u16 y,i,row[33];s16 x=game.cam_x>>3;
  arena_video_active=1;shop_rows=0;previous_x=x;backdrop=backdrop_for_round(game.round);
@@ -43,14 +44,26 @@ void arena_video_init(void){
   }
  }
  VDP_setScrollingMode(HSCROLL_TILE,VSCROLL_PLANE);
- if(backdrop)VDP_loadTileData(backdrop->far,700,backdrop->far_tiles,DMA);
+ if(backdrop)VDP_loadTileData(backdrop->far,game.round==3?656:700,backdrop->far_tiles,DMA);
  else {VDP_loadTileData(arena_far_patterns,884,ARENA_FAR_TILES,DMA);
  VDP_loadTileData(arena_columns,844,ARENA_COLUMN_TILES,DMA);}
+ if(game.round==3){VDP_setBackgroundColor(4);VDP_loadTileData(backdrop_hud_patterns(),756,256,DMA);cave_hud_edge();}
  arena_video_restore(0);
 }
 void arena_video_reset(void){
- arena_video_active=0;VDP_setScrollingMode(HSCROLL_PLANE,VSCROLL_PLANE);
+ arena_video_active=0;VDP_setBackgroundColor(0);VDP_setScrollingMode(HSCROLL_PLANE,VSCROLL_PLANE);
  VDP_setHorizontalScroll(BG_A,0);VDP_setVerticalScroll(BG_A,0);
+}
+static void cave_hud_edge(void){
+ u32 tiles[64];const u32 *source=backdrop_hud_patterns();
+ u16 row,line,x=(game.cam_x/2+248)&255,shift=(x&7)*4;
+ for(row=0;row<8;row++){
+  u16 band=row<4?0:row==4?1:2,height=band==0?4:band==1?1:3;
+  u16 y=band==0?row:band==1?0:row-5,base=band==0?0:band==1?128:160;
+  u16 a=base+(x/8)*height+y,b=base+(((x/8)+1)&31)*height+y;
+  for(line=0;line<8;line++)tiles[row*8+line]=shift?(source[a*8+line]<<shift)|(source[b*8+line]>>(32-shift)):source[a*8+line];
+ }
+ VDP_loadTileData(tiles,748,8,DMA_QUEUE_COPY);
 }
 void arena_video_frame(void){
  s16 x=game.cam_x>>3;u16 i,column[29];
@@ -60,6 +73,7 @@ void arena_video_frame(void){
   VDP_setTileMapDataColumn(BG_B,column,add&63,8,29,1,DMA_QUEUE_COPY);
   previous_x=x;
  }
+ if(game.round==3 && (scroll_x!=game.cam_x || scroll_y==65535))cave_hud_edge();
  scroll();
 }
 u16 arena_video_text_x(u16 x,u16 y){
@@ -95,18 +109,46 @@ static void columns_prepare(void){
   }
  }
 }
-u16 arena_video_columns(u16 count){
- s16 base;u16 i;
+static u8 *line_budget;
+static u8 reserve_decoration(s16 y,u16 height,u16 width){
+ s16 first=y<0?0:y/8,last=(y+height+7)/8,i;u8 units=(width+15)/16;
+ if(last>28)last=28;
+ for(i=first;i<last;i++)if(line_budget[i]+units>16)return 0;
+ for(i=first;i<last;i++)line_budget[i]+=units;
+ return 1;
+}
+static u16 cave_hud(u16 count){
+ s16 x,offset=-(s16)(game.cam_x/2 & 31);u16 band,i,tile,height,y,skip,width;
+ for(band=0;band<3;band++){
+  height=band==0?4:band==1?1:3;y=band==0?0:band==1?32:200;
+  if(shop_rows && band==2)continue;
+  for(i=0;i<9 && count<63;i++){
+   x=offset+(s16)i*32;
+   if(x>=248)continue;
+   skip=x<0?(-x)/8:0;width=4-skip;x+=skip*8;
+   if(x+width*8>248)width=(248-x+7)/8;
+   if(!width)continue;
+   tile=756+(band==0?0:band==1?128:160)+(((game.cam_x/2)/32+i)&7)*4*height+skip*height;
+   if(!reserve_decoration(y,height*8,width*8))continue;
+   VDP_setSpriteFull(count,x,y,SPRITE_SIZE(width,height),TILE_ATTR_FULL(PAL0,FALSE,FALSE,FALSE,tile),count+1);count++;
+  }
+ }
+ return count;
+}
+u16 arena_video_columns(u16 count,u8 *lines){
+ s16 base;u16 i;line_budget=lines;
+ if(arena_video_active && game.round==3)return cave_hud(count);
  if(!arena_video_active || game.round!=7 || game.cam_x<384 || game.cam_x>1920)return count;
  if(column_y!=game.cam_y)columns_prepare();
  if(!column_count)return count;
- base=720-(s16)(game.cam_x+game.cam_x/4);
- while(base < -32)base+=320;
- for(;base<256;base+=320){
+ base=(game.cam_y>=256?632:568)-(s16)(game.cam_x+game.cam_x/4);
+ while(base < -32)base+=80;
+ for(;base<256;base+=80){
   if(base+game.cam_x<column_left || base+game.cam_x+32>column_right)continue;
   for(i=0;i<column_count && count<63;i++){
    const VDPSprite *s=&column_template[i];s16 x=base+s->x;
    if(x<=-32 || x>=256)continue;
+   if(!reserve_decoration(s->y-128,((s->size&3)+1)*8,((s->size>>2)+1)*8))continue;
    vdpSpriteCache[count]=*s;vdpSpriteCache[count].x=x+128;
    vdpSpriteCache[count].link=count+1;count++;
   }
