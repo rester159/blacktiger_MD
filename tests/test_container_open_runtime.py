@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json,hashlib,struct
+import json,hashlib,struct,ctypes as C
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);r.write('progress_max_hp',0,b'\x05');checks=[]
 rom=(ROOT/'out/release/rom.bin').read_bytes()
@@ -21,11 +21,11 @@ for pc in (0xacbe,0xacd3):
   r.write('container_contents',persistent,bytes([content+16]))
   s=hold_contact(slot,4)
   assert not r.read('container_opened',8)[persistent]
-  assert r.read('container_locked_hint',1)[0]>0
+  vram=(C.c_uint8*65536).in_dll(r.lib,'vram')
+  assert all(vram[(0xc000+24*128+i)^1]==0 for i in range(64)), 'locked chest must not display a message'
   if pc==0xacbe and content==0:r.capture('container-locked.png')
   r.write('container_keys',0,b'\x02');s=hold_contact(slot,4)
   assert r.read('container_keys',1)==b'\x01'
-  assert r.read('container_locked_hint',1)==b'\0'
   assert r.read('container_opened',8)[persistent]==1
   assert r.read('container_collected',8)[persistent]==(content==0)
   assert s.coins==123 and s.p.hp==1 and s.score==987
@@ -56,5 +56,5 @@ for pc in (0xacbe,0xacd3):
   s.mode=2;put(r,s);r.run(5)
   if content in (0,5):r.capture('container-%x-%d.png'%(pc,content))
   checks.append(dict(constructor=pc,content=content,key_debit_once=True,persistent_empty_respawn=True))
-r.close();report={'passed':True,'cases':checks,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Injected key inventory and contents exercise actual source rows: refusal without key, opening delay, trap allocation, coin/heal collection and empty reconstruction. Natural key acquisition, source startup inventory and equipment maximum remain unported.'}
+r.close();report={'passed':True,'cases':checks,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Injected key inventory and contents exercise actual source rows: silent refusal without key, opening delay, trap allocation, coin/heal collection and empty reconstruction. Natural key acquisition, source startup inventory and equipment maximum remain unported.'}
 (ROOT/'reports/container-open-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

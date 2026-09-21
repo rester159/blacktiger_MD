@@ -3,7 +3,7 @@
 Deliverable: an SGDK development cartridge and a reproducible new repository.
 User's requested complete native Black Tiger port: **not achieved**.
 
-Dungeon correction: seeded source-slice routes now replace the original static maps. It uses 119 validated slices, bounded compatible-neighbour selection, independently randomized population, original gameplay palettes and the arcade icon HUD with XP. This is an initial horizontal generator, not the complete supplied roguelike specification. See `docs/dungeon/IMPLEMENTATION.md` and generation/runtime reports for the tested scope and remaining work.
+Dungeon was removed at the user’s request. Active scope is the regular Arcade/Home port and Boss Rush. The arcade HUD, restored sprite colors, original intro/title and normal-speed emulator settings remain. Locked chests now refuse silently when no key is held.
 
 The main remaining shared systems are compound-boss contact
 geometry and screen-edge behavior, global camera/scanner

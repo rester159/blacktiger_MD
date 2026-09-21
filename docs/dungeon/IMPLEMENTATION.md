@@ -1,3 +1,7 @@
+# Archived experiment — cancelled
+
+The user cancelled Dungeon. Its menu, runtime, generator and build/test dependencies were removed. The notes below describe the retired experiment, not the current cartridge.
+
 # THE DUNGEON implementation
 
 User-facing entry: HOME > THE DUNGEON. The supplied document calls the mode THE LAST HOUR; retain that name as the run's subtitle. Arcade, normal Home, and Boss Rush remain separate.

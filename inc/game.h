@@ -21,11 +21,10 @@ typedef int32_t s32;
 #define IN_ATTACK 32
 #define IN_START 64
 #define IN_COIN 128
-#define IN_HOURGLASS 256
 #define FX 256
 #define PX(v) ((v) / FX)
 enum { WALKER, FLYER, TURRET, ROCK, HAZARD, CHEST, CAPTIVE, PICKUP, BOSS, HIDDEN_WALL };
-enum { TITLE, PLAY, PAUSED, SHOP, DEAD, CLEAR, ENDING, GAMEOVER, RESCUE, INTRO, DUNGEON_MENU };
+enum { TITLE, PLAY, PAUSED, SHOP, DEAD, CLEAR, ENDING, GAMEOVER, RESCUE, INTRO };
 enum {
     SND_NONE,
     SND_ATTACK,
@@ -65,12 +64,6 @@ typedef struct {
     const u16 *open_tile;
     u8 patch_count, open_collision;
 } Round;
-/* Host subsystem fixtures use their supplied original rounds. */
-#ifdef HOST_TEST
-#define CURRENT_ROUND (rounds[game.round])
-#else
-#define CURRENT_ROUND (*(dungeon_layout.ready ? &dungeon_round : &rounds[game.round]))
-#endif
 typedef struct {
     s32 x, y;
     s16 vx, vy;
@@ -118,7 +111,4 @@ void video_round(void);
 void video_frame(void);
 void audio_tick(void);
 void game_boss_clear(void);
-#ifndef HOST_TEST
-#include "dungeon_layout.h"
-#endif
 #endif

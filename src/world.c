@@ -6,7 +6,7 @@ u8 world_opened, world_rows[256];
 static u8 taken, effect_active[6];
 static AnimState animations[MAX_ACTORS], effects[6];
 static u8 patch_for(u16 source) {
-    const Round *r = &CURRENT_ROUND;
+    const Round *r = &rounds[game.round];
     u8 i;
     for (i = 0; i < r->patch_count; i++)
         if (r->patches[i].source == source)
@@ -14,7 +14,7 @@ static u8 patch_for(u16 source) {
     return 255;
 }
 void world_reset(void) {
-    const Round *r = &CURRENT_ROUND;
+    const Round *r = &rounds[game.round];
     u16 i, j, shift = r->width == 2048 ? 7 : 6;
     world_opened = taken = 0;
     for (i = 0; i < 256; i++)
@@ -32,7 +32,7 @@ void world_restart(void) {
     world_reset();world_opened=opened;taken=collected;
 }
 u16 world_override(u16 x, u16 y, u16 original,u8 opened) {
-    const Round *r = &CURRENT_ROUND;
+    const Round *r = &rounds[game.round];
     u8 mask = world_rows[y] & opened, i;
     u16 shift = r->width == 2048 ? 7 : 6;
     for (i = 0; mask; i++, mask >>= 1)
@@ -45,7 +45,7 @@ u16 world_override(u16 x, u16 y, u16 original,u8 opened) {
 }
 u16 world_word(u16 x,u16 y,u16 original){original=bonus_word(x,y,original);return world_opened?world_override(x,y,original,world_opened):original;}
 u8 world_collision(u16 cell, u8 original) {
-    const Round *r = &CURRENT_ROUND;
+    const Round *r = &rounds[game.round];
     u8 i, mask = world_opened;
     u16 width = r->width >> 4;
     for (i = 0; mask; i++, mask >>= 1)

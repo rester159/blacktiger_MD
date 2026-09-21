@@ -13,7 +13,6 @@ u8 frontend_continue(void);
 void frontend_return(void);
 void frontend_spend(void);
 void ui_game_init(void);
-void ui_dungeon_font(void);
 void ui_hud(void);
 void ui_hud_invalidate(void);
 void ui_title(void);

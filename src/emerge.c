@@ -15,7 +15,7 @@ void emerge_reset(void) {
     emerge_contact=0;
 }
 u8 emerge_spawn_ready(u16 row) {
-    const Spawn *sp=&CURRENT_ROUND.spawns[row];
+    const Spawn *sp=&rounds[game.round].spawns[row];
     u8 target;
     if (!emerge_kinds[sp->def]) return 1;
     target=emerge_seen[row]?30:3;

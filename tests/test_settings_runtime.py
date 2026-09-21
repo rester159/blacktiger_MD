@@ -7,10 +7,10 @@ for difficulty in range(8):
  r=Runner(ROOT/'out/release/rom.bin');r.run(100)
  # Select Home/Options, then adjust the same difficulty row used by Arcade.
  def tap(mask):r.run(8,mask);r.run(8)
- tap(32);tap(8);tap(32);tap(32);tap(32);tap(8);tap(32)
+ tap(32);tap(8);tap(32);tap(32);tap(8);tap(32)
  for _ in range((difficulty-4)%8):tap(128)
  assert r.read('settings',14)[8]==difficulty
- tap(1);tap(16);tap(16);tap(16);tap(8);r.run(900)
+ tap(1);tap(16);tap(16);tap(8);r.run(900)
  assert r.read('combat_difficulty',1)[0]==difficulty and r.read('shop_difficulty',1)[0]==difficulty
  expected=list(source.read(6,0xb6f0+difficulty*5,5));actual=[]
  for tier in range(5):

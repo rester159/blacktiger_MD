@@ -10,7 +10,6 @@
 #include "round_clear.h"
 #include "game_over.h"
 #include "player_dagger.h"
-#include "dungeon.h"
 #include "assets.h"
 #include "clear_screen_data.inc"
 #include "ending_visual_data.inc"
@@ -48,8 +47,7 @@ static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
 static u16 word_at(s16 x, s16 y) {
-    if(dungeon_layout.ready)return x<0 || y<0?0:dungeon_word(x,y);
-    const Round *r = &CURRENT_ROUND;
+    const Round *r = &rounds[game.round];
     u16 w = r->width >> 3, h = r->height >> 3;
     if (x < 0 || y < 0 || x >= w || y >= h)
         return 0;
@@ -86,7 +84,7 @@ static u16 cached(u16 word) {
             logical_to_slot[old] = 65535;
         logical_to_slot[logical] = slot;
         slot_to_logical[slot] = logical;
-        VDP_loadTileData(CURRENT_ROUND.patterns + (u32)logical * 8, 16 + slot, 1, DMA_QUEUE);
+        VDP_loadTileData(rounds[game.round].patterns + (u32)logical * 8, 16 + slot, 1, DMA_QUEUE);
         video_dma_bytes += 32;
     }
     return (word & 0xf800) | (16 + slot);
@@ -126,7 +124,7 @@ static void terrain_change(u16 x,u16 y,u16 old,u16 next,u8 pass) {
  }
 }
 static void terrain_cell(u16 x,u16 y,u8 pass) {
- const Round *r=&CURRENT_ROUND;u16 original,old,next;
+ const Round *r=&rounds[game.round];u16 original,old,next;
  if(x<old_x || x>=old_x+33 || y<old_y || y>=old_y+29)return;
  original=r->map[(y<<(r->width==2048?8:7))+x];
  old=world_override(x,y,bonus_word_state(x,y,original,last_bonus_entered,last_bonus_phases),last_opened);
@@ -138,8 +136,7 @@ static void terrain_state(void){
  for(i=0;i<4;i++)last_bonus_phases[i]=bonus_phases[i];
 }
 static void terrain_updates(void) {
- if(dungeon_layout.ready)return;
- const Round *r=&CURRENT_ROUND;const BonusRound *b=&bonus_rounds[game.round];
+ const Round *r=&rounds[game.round];const BonusRound *b=&bonus_rounds[game.round];
  u16 i,j,dx,dy,first,last,shift=r->width==2048?7:6,width=r->width>>4;u8 changed=last_opened!=world_opened || last_bonus_entered!=bonus_entered,pass;
  if(!changed && !b->count)return;
  for(i=0;i<4;i++)changed|=last_bonus_phases[i]!=bonus_phases[i];
@@ -435,10 +432,10 @@ static void sprites(void) {
         if (f)
             piece(f->code, f->palette, loot[i].x - game.cam_x, loot[i].y - game.cam_y, f->flip);
     }
-    for (i = 0; i < CURRENT_ROUND.patch_count; i++) {
+    for (i = 0; i < rounds[game.round].patch_count; i++) {
         const AnimFrame *f = world_effect(i);
         if (f) {
-            const Spawn *sp = &CURRENT_ROUND.spawns[CURRENT_ROUND.patches[i].source];
+            const Spawn *sp = &rounds[game.round].spawns[rounds[game.round].patches[i].source];
             body(f->code, f->palette, sp->x - 8 - game.cam_x, sp->y - 8 - game.cam_y, f->flip);
         }
     }
@@ -454,7 +451,7 @@ static void sprites(void) {
 static void text(u16 x, u16 y, const char *s) {
     VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),x,y,DMA_QUEUE);
 }
-static u8 last_shop = 255,last_npc_page=255,last_locked_hint;
+static u8 last_shop = 255,last_npc_page=255;
 static void digits(char *p, u16 v, u16 count) {
     while (count) {
         p[--count] = '0' + v % 10;
@@ -472,8 +469,7 @@ static void overlay(void) {
         ui_hud_invalidate();
         last_mode = m;
     }
-    if(dungeon.active)dungeon_hud();
-    else if(!clear_screen_active && !ending_screen_active)ui_hud();
+    if(!clear_screen_active && !ending_screen_active)ui_hud();
     VDP_setTextPlane(BG_A);
     if(m==RESCUE && (changed || last_npc_page!=npc_sequence.page)) {
         u16 i,tiles[128];const u16 *page=npc_dialogue();
@@ -490,12 +486,7 @@ static void overlay(void) {
         VDP_setTileMapDataRectEx(BG_A,tiles,0,0,6,32,4,32,CPU);
         last_npc_page=npc_sequence.page;
     }
-    {
-        u8 hint=m==PLAY && container_locked_hint!=0;
-        if(hint!=last_locked_hint || (changed && hint))
-            text(3,24,hint?"LOCKED: BUY A KEY IN SHOP":"                        ");
-        last_locked_hint=hint;
-    }
+
     if (!changed && !(m == SHOP && last_shop != game.shop_item))
         return;
     last_shop = game.shop_item;
@@ -505,7 +496,6 @@ static void overlay(void) {
         text(10, 14, "PRESS START");
         text(8, 18, "A ATTACK  B JUMP");
         text(4, 20, "RESCUE OLD MEN FOR SHOPS");
-        text(5, 22, "CHESTS NEED SHOP KEYS");
     } else if (m == PAUSED)
         text(13, 12, "PAUSED");
     else if (m == SHOP) {
@@ -564,7 +554,7 @@ void video_round(void) {
     memset(body_stamp, 0, sizeof body_stamp);
     memset(body_keys, 255, sizeof body_keys);
     eviction = sprite_eviction = body_eviction = epoch = 0;
-    PAL_setColors(0, CURRENT_ROUND.palette, 32, CPU);
+    PAL_setColors(0, rounds[game.round].palette, 32, CPU);
     PAL_setColors(32, object_palette, 32, CPU); /* SGDK font uses foreground pen 15. */
     PAL_setColor(63, 0xeee);
     VDP_clearPlane(BG_A, TRUE);
@@ -577,7 +567,6 @@ void video_round(void) {
     last_round = game.round;
     last_mode = 255;
     ui_game_init();
-    if(dungeon.active)dungeon_ui_reset();
     VDP_setEnable(TRUE);
     SYS_enableInts();
 }
@@ -647,8 +636,6 @@ volatile u16 video_cost[3];
 void video_frame(void) {
     u32 t = getSubTick();
     video_dma_bytes = 0;
-    if(dungeon.active && dungeon.phase!=D_STAGE_PLAY && dungeon.phase!=D_DEATH){dungeon_screen();last_mode=DUNGEON_MENU;return;}
-    if(dungeon.active && dungeon.scene_reload){video_round();dungeon.scene_reload=0;}
     if(game.mode==TITLE){ui_title();video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;last_mode=TITLE;return;}
     if(game.mode==INTRO){intro_video();last_mode=INTRO;return;}
     if(last_mode==TITLE || last_mode==INTRO)video_round();
