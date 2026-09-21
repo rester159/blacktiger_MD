@@ -549,6 +549,8 @@ def main():
     report['clear_screens']=generate_clear_screen(Source(args.source),emit,decode,pack,words)
     from extract_sfx import generate as generate_sfx
     generate_sfx()
+    from extract_npc_sequence import generate as generate_npc_sequence
+    report['npc_sequence']=generate_npc_sequence(Source(args.source),emit,decode,pack,words)
     from extract_ending import generate as generate_ending
     report['ending']=generate_ending(Source(args.source),emit,decode,pack,words,colors,groups,pm,raw)
     (ROOT/'res/assets.res').write_text('\n'.join(resources)+'\n')

@@ -32,6 +32,7 @@ clear_screen=json.loads((ROOT/'reports/clear-screen-runtime-tests.json').read_te
 clear_runtime=json.loads((ROOT/'reports/round-clear-runtime-tests.json').read_text());assert clear_runtime['passed'] and clear_runtime['rom_sha256']==sha(rom)
 bonus_source=json.loads((ROOT/'reports/bonus-tests.json').read_text());assert bonus_source['passed']
 assets=json.loads((ROOT/'reports/asset-tests.json').read_text());tests=json.loads((ROOT/'reports/runtime-tests.json').read_text());assert tests['rom_sha256']==sha(rom)
+npc_sequence=json.loads((ROOT/'reports/npc-sequence-tests.json').read_text());assert npc_sequence['passed']
 npc=json.loads((ROOT/'reports/npc-runtime-tests.json').read_text());assert npc['passed'] and npc['rom_sha256']==sha(rom)
 anim=json.loads((ROOT/'reports/animation-tests.json').read_text());assert anim['passed']
 actors=json.loads((ROOT/'reports/actor-contract-tests.json').read_text());assert actors['passed'] and actors['rom_sha256']==sha(rom)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """All eight NPC variants through native spawn/contact/cutscene/reward paths."""
-import json,sys,struct,hashlib
+import json,sys,struct,hashlib,ctypes as C
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'tools'))
 from test_runtime import Runner,state,put
@@ -30,12 +30,31 @@ def run_case(kind,defs):
   if s.mode==8:break
  else:raise AssertionError(('source spawn/contact not reached',kind))
  assert s.rescue_kind==kind and s.actors[s.rescue_actor].definition==d
- actor=s.rescue_actor;r.run(20);r.capture(f'npc-{kind}.png');before_time=s.time;before_hp=s.p.hp
+ actor=s.rescue_actor;before_time=s.time;before_hp=s.p.hp
+ vram=(C.c_ubyte*65536).in_dll(r.lib,'vram')
+ def read(at,n):return bytes(vram[(at+i)^1] for i in range(n))
+ glyphs=struct.unpack('>2048H',(ROOT/'res/generated/npc_dialogue_glyphs.bin').read_bytes())
+ font=(ROOT/'res/generated/npc_dialogue_font.bin').read_bytes()
+ events=[l.split('|') for l in (ROOT/'reference/npc_sequence_oracle_events.txt').read_text().splitlines() if l.startswith(('TEXT|'+str(kind)+'|','ATTR|'+str(kind)+'|'))]
+ checkpoints=[100]+([190] if kind not in (2,8) else [])+([240] if kind in (5,7) else [])
+ checked=[]
  # Wait for the production animation to finish, bounded independently of video cadence.
- for _ in range(300):
+ for _ in range(600):
   r.run(1);s=state(r)
   if s.mode!=8:break
+  tick=struct.unpack('>H',r.read('npc_sequence',2))[0]
+  if checkpoints and tick>=checkpoints[0]:
+   checkpoint=checkpoints.pop(0);cells=[32]*128
+   for tag,k,t,a,b in events:
+    if int(t)<tick:
+     i=int(a)-256;cells[i]=(cells[i]&0x700)|int(b) if tag=='TEXT' else (cells[i]&255)|((int(b)&224)<<3)
+   assert read(1408*32,min(1024,len(font)))==font[:1024]
+   if len(font)>1024:assert read(1072*32,min(512,len(font)-1024))==font[1024:1536]
+   if len(font)>1536:assert read(32,len(font)-1536)==font[1536:]
+   for y in range(4):assert read(0xc000+(y+6)*128,64)==struct.pack('>32H',*[glyphs[c] for c in cells[y*32:(y+1)*32]]),(kind,tick,y,'dialogue VRAM')
+   r.capture(f'npc-{kind}-{checkpoint}.png');checked.append(checkpoint)
  else:raise AssertionError(('rescue did not finish',kind))
+ assert not checkpoints,(kind,'missed dialogue checks')
  assert s.actors[actor].state==2
  expected_mode=3 if kind in (2,8) else 1
  assert s.mode==expected_mode,(kind,s.mode)
@@ -49,11 +68,11 @@ def run_case(kind,defs):
  s=state(r);s.p.x=(x+64)*256;s.p.invincible=10000;put(r,s);r.run(150);s=state(r)
  if kind==8:assert s.spawned[row]!=2,'repeatable shop incorrectly retired permanently'
  else:assert s.spawned[row]==2,('one-shot NPC respawned',kind,s.spawned[row])
- r.close();return {'kind':kind,'round':level+1,'source_row':row,'definition':d,'spawn_contact':True,'reward':True,'persistence':True}
+ r.close();return {'kind':kind,'round':level+1,'source_row':row,'definition':d,'spawn_contact':True,'reward':True,'persistence':True,'dialogue_checkpoints':checked}
 
 def main():
  metadata=json.loads((ROOT/'reports/assets.json').read_text());defs={d['id']:d for d in metadata['actor_definitions']}
  results=[run_case(k,defs) for k in range(1,9)]
- report={'passed':True,'variants':results,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),'scope':'All eight actual source NPC rows through native spawn/contact, cutscene completion, distinct rewards, one-shot/repeatable retirement. Detailed arcade cutscene timing and shop inventory remain unverified.'}
+ report={'passed':True,'variants':results,'rom_sha256':hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),'scope':'All eight actual source NPC rows through native spawn/contact, cutscene completion, distinct rewards, one-shot/repeatable retirement. Source text cells and native glyph VRAM checked at stable dialogue checkpoints; task-relative timing has separate host coverage. Whole-board scheduler and original multicolor glyph palettes remain unverified.'}
  (ROOT/'reports/npc-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
 if __name__=='__main__':main()

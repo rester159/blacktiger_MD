@@ -163,3 +163,11 @@ antidote storage/cure. Its existing presentation/task bypasses are unchanged.
 Native cartridge checks also assert the selected command after actual loot
 contact and purchases through the shop controls. NPC rewards, dialogue cues,
 shop cursor/presentation sounds and enemy event bindings remain separate.
+
+## NPC rescue timeline cues
+
+All eight NPC variants now issue their 19 source-observed dialogue/reward
+commands through the shared timeline: dialogue `3D`, coins `06`, heal `12`,
+and time extension `05`. The initial prototype rescue chirp is removed; the
+first dialogue cue occurs at task-relative update 76. The full native timeline
+and source scheduler bypasses are documented in `player_audit.md`.

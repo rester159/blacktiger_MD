@@ -10,6 +10,7 @@
 #include "assets.h"
 #include "clear_screen_data.inc"
 #include "ending_visual_data.inc"
+#include "npc_sequence_visual.inc"
 #include "container.h"
 #include "shop.h"
 #include "progress.h"
@@ -456,7 +457,7 @@ static void text(u16 x, u16 y, const char *s) {
 }
 static u32 last_score = 0xffffffff;
 static u16 last_coins = 65535, last_time = 65535, last_stats = 65535;
-static u8 last_shop = 255,last_keys=255,last_max_hp=255;
+static u8 last_shop = 255,last_keys=255,last_max_hp=255,last_npc_page=255;
 static void digits(char *p, u16 v, u16 count) {
     while (count) {
         p[--count] = '0' + v % 10;
@@ -499,6 +500,21 @@ static void overlay(void) {
         last_time = game.time;
     }
     VDP_setTextPlane(BG_A);
+    if(m==RESCUE && (changed || last_npc_page!=npc_sequence.page)) {
+        u16 i,tiles[128];const u16 *page=npc_dialogue();
+        if(changed){
+            VDP_loadTileData(npc_dialogue_font,1408,NPC_FONT_TILES>32?32:NPC_FONT_TILES,DMA);
+#if NPC_FONT_TILES > 32
+            VDP_loadTileData(npc_dialogue_font+32*8,1072,NPC_FONT_TILES>48?16:NPC_FONT_TILES-32,DMA);
+#endif
+#if NPC_FONT_TILES > 48
+            VDP_loadTileData(npc_dialogue_font+48*8,1,NPC_FONT_TILES-48,DMA);
+#endif
+        }
+        for(i=0;i<128;i++)tiles[i]=npc_dialogue_glyphs[page[i]];
+        VDP_setTileMapDataRectEx(BG_A,tiles,0,0,6,32,4,32,CPU);
+        last_npc_page=npc_sequence.page;
+    }
     if (!changed && !(m == SHOP && last_shop != game.shop_item))
         return;
     last_shop = game.shop_item;
@@ -508,8 +524,6 @@ static void overlay(void) {
         text(10, 14, "PRESS START");
         text(8, 18, "A ATTACK  B JUMP");
         text(6, 20, "UP: CLIMB / ENTER SHOP");
-    } else if (m == RESCUE) {
-        text(9, 5, "THANK YOU!");
     } else if (m == PAUSED)
         text(13, 12, "PAUSED");
     else if (m == SHOP) {

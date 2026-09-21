@@ -221,3 +221,31 @@ is compiled by extract_armor_break.py. Original 2FE7 observations cover all four
 profiles and five starting positions (3,600 updates). The source allocation pool
 is not reproduced here; native effects reserve four slots. Original sound 17 and
 palette/task side effects remain part of the broader audio/presentation work.
+
+## Shared NPC rescue presentation
+
+The former animation-only rescue omitted the dialogue and all reward/hint waits.
+`npc_sequence_oracle.lua` now runs the original 5F72 sequence for all eight actor
+categories, capturing body writes, text and attribute writes, actual sound-queue
+writes, explicit reward entry points, delays and the game/shop terminal branch.
+It bypasses task-list helpers 0109/00F6, accumulates 0116 delays instead of running
+the board scheduler, and bypasses the coin HUD refresh at 4FAF. Text routine 6946
+and ordinary sound dispatch execute unmodified. This is task-relative evidence,
+not a whole-board schedule capture.
+
+The native shared timeline retains 166 common updates, then applies the source
+reward/hint paths. Shop entry occurs at 166; coin, healing, time and gratitude
+rescues finish at 256; the two two-page hints finish at 316. Rewards occur at
+226, followed by the final 30-update hold. Nine shared page images and one event
+player cover all variants. Original text attributes supply the high glyph bits;
+the source glyph patterns are adapted to existing PAL3 black/white/gray pens,
+with source pen 3 transparent. The 54 patterns occupy unused tiles 1408–1439,
+1072–1087 and 1–6 without changing sprite or background cache capacity.
+
+The host check compares all 1,996 task-relative updates, every text/glyph cell,
+body code, reward, terminal branch and 19 sound commands. Cartridge checks cover
+all eight actual NPC spawn/contact paths, dialogue VRAM and font patterns at
+16 stable checkpoints, rewards and one-shot/repeatable persistence. Rendered
+pages were inspected. Source multicolor dialogue palette and global task-list
+scheduling remain adaptations/gaps; this does not establish natural full-game
+completion or exact board presentation.

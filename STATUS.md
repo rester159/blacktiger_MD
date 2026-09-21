@@ -909,3 +909,15 @@ source collection/purchase effects. Original sound queues match seven reward
 cases and 322 purchase/refusal cases; failed purchases remain silent. Cartridge
 checks cover loot contact and purchases through the native shop controls.
 NPC, enemy and presentation cue fidelity remains unfinished.
+
+## Source-derived NPC dialogue and reward timelines
+
+Replaced the animation-only rescue and generic THANK YOU overlay with one shared
+native presentation routine for all eight NPC types. It retains original body
+frames, dialogue and hint pages, pauses, reward timing, cues and shop/game return.
+Nine shared pages use 54 source glyph patterns adapted to existing grayscale
+colors. Tests match 1,996 original task-relative updates and 19 commands; linked
+cartridge checks verify dialogue VRAM at 16 stable checkpoints across all types.
+Rendered pages were inspected. Original multicolor text palettes and whole-board
+task scheduling remain distinct fidelity gaps. Natural full-game completion and
+frame-budget issues above still prevent claiming the requested port complete.
