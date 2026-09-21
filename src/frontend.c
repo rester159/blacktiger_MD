@@ -28,11 +28,12 @@ u8 frontend_step(u16 pressed){
  }
  if(frontend.page==1){
   if(pressed&IN_JUMP){frontend.page=0;frontend.selected=frontend.mode;return 0;}
-  if(pressed&IN_UP)frontend.selected=cycle(frontend.selected,home?3:2,1);
-  if(pressed&IN_DOWN)frontend.selected=cycle(frontend.selected,home?3:2,0);
+  if(pressed&IN_UP)frontend.selected=cycle(frontend.selected,home?4:2,1);
+  if(pressed&IN_DOWN)frontend.selected=cycle(frontend.selected,home?4:2,0);
   if(pressed&(IN_START|IN_ATTACK)){
-   if(frontend.selected==(home?2:1)){frontend.page=2;frontend.option=0;return 0;}
+   if(frontend.selected==(home?3:1)){frontend.page=2;frontend.option=0;return 0;}
    if(!(pressed&IN_START))return 0;
+   if(home && frontend.selected==2)return 3;
    if(home)frontend.credits=settings[1].credits;
    if(!frontend.credits){frontend.message=120;return 0;}
    frontend_spend();return home && frontend.selected==1?2:1;

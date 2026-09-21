@@ -2,7 +2,7 @@ JAVA ?= $(or $(wildcard /opt/homebrew/opt/openjdk/bin/java),java)
 GDK ?= $(HOME)/mars/m68k-elf
 .DEFAULT_GOAL := all
 .PHONY: all assets test clean
-all: src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
+all: src/dungeon_palette_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
 	$(MAKE) -f $(GDK)/makefile.gen JAVA=$(JAVA) LIBGCC="$(shell $(GDK)/bin/m68k-elf-gcc -m68000 -print-libgcc-file-name)"
 	python3 tools/finalize_rom.py out/release/rom.bin
 .venv/bin/python: requirements.txt
@@ -15,6 +15,8 @@ assets: .venv/bin/python
 src/ui_data.inc: tools/build_ui.py assets/ui/title_arcade.png assets/board.json | .venv/bin/python
 	.venv/bin/python tools/build_ui.py
 test: all
+	.venv/bin/python tools/build_dungeon_palette.py
+	.venv/bin/python tests/test_dungeon_runtime.py
 	.venv/bin/python tests/test_hud_runtime.py
 	.venv/bin/python tests/test_settings_runtime.py
 	.venv/bin/python tests/test_frontend_runtime.py
@@ -158,3 +160,6 @@ src/intro_data.inc: tools/build_intro.py reference/intro_oracle_events.txt.gz as
 
 src/hud_data.inc: tools/build_hud.py tools/hud_assets.py reference/hud_oracle_events.txt res/generated/object_patterns.bin
 	.venv/bin/python tools/build_hud.py
+
+src/dungeon_palette_data.inc: tools/build_dungeon_palette.py
+	.venv/bin/python tools/build_dungeon_palette.py

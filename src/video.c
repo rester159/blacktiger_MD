@@ -10,6 +10,7 @@
 #include "round_clear.h"
 #include "game_over.h"
 #include "player_dagger.h"
+#include "dungeon.h"
 #include "assets.h"
 #include "clear_screen_data.inc"
 #include "ending_visual_data.inc"
@@ -469,7 +470,8 @@ static void overlay(void) {
         ui_hud_invalidate();
         last_mode = m;
     }
-    if(!clear_screen_active && !ending_screen_active)ui_hud();
+    if(dungeon.active)dungeon_hud();
+    else if(!clear_screen_active && !ending_screen_active)ui_hud();
     VDP_setTextPlane(BG_A);
     if(m==RESCUE && (changed || last_npc_page!=npc_sequence.page)) {
         u16 i,tiles[128];const u16 *page=npc_dialogue();
@@ -573,6 +575,10 @@ void video_round(void) {
     last_round = game.round;
     last_mode = 255;
     ui_game_init();
+    if(dungeon.active){
+        static const u16 clock_colors[]={0xeee,0x00e};
+        ui_dungeon_font();dungeon_ui_reset();PAL_setColors(30,clock_colors,2,DMA_QUEUE);
+    }
     VDP_setEnable(TRUE);
     SYS_enableInts();
 }
@@ -642,6 +648,8 @@ volatile u16 video_cost[3];
 void video_frame(void) {
     u32 t = getSubTick();
     video_dma_bytes = 0;
+    if(dungeon.active && dungeon.phase!=D_STAGE_PLAY && dungeon.phase!=D_DEATH){dungeon_screen();last_mode=DUNGEON_MENU;return;}
+    if(dungeon.active && dungeon.scene_reload){video_round();dungeon.scene_reload=0;}
     if(game.mode==TITLE){ui_title();video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;last_mode=TITLE;return;}
     if(game.mode==INTRO){intro_video();last_mode=INTRO;return;}
     if(last_mode==TITLE || last_mode==INTRO)video_round();

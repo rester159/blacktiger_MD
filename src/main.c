@@ -29,6 +29,7 @@ int main(bool hardReset) {
         if (joy & BUTTON_START)
             in |= IN_START;
         if (joy & BUTTON_MODE)in |= IN_COIN;
+        if (joy & BUTTON_C)in |= IN_HOURGLASS;
         u32 t0 = getSubTick();
         game_tick(in);
         frame_cost[0] = getSubTick() - t0; /* PAL maintains the same 60 Hz rule clock. */

@@ -94,16 +94,25 @@ void ui_title(void){
   }
   center(24,"LEFT / RIGHT TO CHANGE");center(26,"B BACK");
  }else{
-  u8 i,count=page==0?2:home?3:2;
+  u8 i,count=page==0?2:home?4:2;
   VDP_clearTextArea(0,16,32,10);
-  if(page==1)center(16,home?"HOME":"ARCADE");
+  if(page==1)center(home?15:16,home?"HOME":"ARCADE");
   for(i=0;i<count;i++){
-   const char *label=page==0?(i?"HOME":"ARCADE"):i==0?"PLAY":home?(i==1?"BOSS RUSH":"OPTIONS"):"DIP SWITCHES";
-   center(18+i*2,label);draw(i==frontend.selected?">":" ",7,18+i*2);
+   const char *label=page==0?(i?"HOME":"ARCADE"):i==0?"PLAY":home?(i==1?"BOSS RUSH":i==2?"THE DUNGEON":"OPTIONS"):"DIP SWITCHES";
+   center((page==1 && home?16:18)+i*2,label);draw(i==frontend.selected?">":" ",7,(page==1 && home?16:18)+i*2);
   }
   if(page==0)center(24,"START TO SELECT");
   else if(!home)center(24,message?"INSERT COIN":"SELECT COIN  START PLAY");
   else {draw("CREDIT LIMIT",8,24);number(22,24,s->credits,2);}
   draw("RESTER159 2026",1,27);draw("CREDIT",22,27);number(29,27,home && page==1?s->credits:frontend.credits,2);
  }
+}
+
+/* Existing font glyphs, recolored to the immutable white clock entry. */
+void ui_dungeon_font(void){
+ u32 tiles[11*8];u16 i,j;
+ for(i=0;i<11;i++)for(j=0;j<8;j++){
+  u32 word=hud_font[(i<10?16+i:26)*8+j];tiles[i*8+j]=word&0xeeeeeeeeUL;
+ }
+ VDP_loadTileData(tiles,1012,11,CPU);
 }

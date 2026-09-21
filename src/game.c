@@ -1,3 +1,4 @@
+#include "dungeon.h"
 #include "ending.h"
 #include "frontend.h"
 #include "intro.h"
@@ -733,9 +734,11 @@ void game_tick(u16 input) {
     game.frame++;
     loot_random_tick();
     frontend_coin(pressed);
+    if(dungeon_tick(input,pressed))return;
     if (game.mode == TITLE) {
         u8 start=frontend_step(pressed);
         if(start){
+            if(start==3){dungeon_open();game.previous_input=input;return;}
             game_new();game.previous_input=input;
             if(start==2){boss_rush.active=1;progress_max_hp=4;game_round(7);game.previous_input=input;}else intro_start();
         }
@@ -831,6 +834,7 @@ void game_tick(u16 input) {
     if (game.mode != PLAY)
         return;
     loot_tick();
+    if(dungeon.active && dungeon.freeze)goto enemies_done;
     {
     u8 moving_missiles=(missiles_occupied?missile_tick():0);
     u8 shells=(shell_pools_occupied[0]?statue_shell_tick():0);shells|=(shell_pools_occupied[1]?hunter_shell_tick():0);
@@ -880,8 +884,9 @@ void game_tick(u16 input) {
                 return;
         }
     }
+enemies_done:
     player_weapons_contact();
-    shots_step();
+    if(!dungeon.active || !dungeon.freeze)shots_step();
     if (++game.clock == 60) {
         game.clock = 0;
         if (game.time)
