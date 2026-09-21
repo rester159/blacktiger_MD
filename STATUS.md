@@ -936,3 +936,17 @@ Updates per 180 video frames improve from [155,172,121,156,172,132,139,162] to
 gameplay after optimization; they are not state-identical workloads. Full frame
 rate, dense-route worst cases and PAL remain unproven. Exact ROM hashes and
 measurements are in `reports/projectile-scan-performance.json`.
+
+## Empty shell and missile contact scans
+
+Shared hunter/statue shell updates now report whether either shells or blasts
+were occupied, and missiles report conservative occupancy. Empty contact scans
+are skipped; the original combined shell/blast order still handles explosions
+created during contact. Inactive/immune/pending shells also bypass geometric
+weapon checks. No persistent activity flags are introduced.
+
+Median game-logic costs fall another 15–40 subticks in all eight entry samples.
+Updates per 180 video frames change from [168,176,133,162,173,138,154,168] to
+[171,175,141,164,171,140,157,170]. Six windows improve; two regress slightly as
+simulation progress and presentation phase change. These observations remain
+short benchmarks, not full-speed proof. See `reports/shell-scan-performance.json`.

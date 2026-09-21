@@ -9,9 +9,10 @@ u8 missile_spawn(s16 x,s16 y,const AnimClip *flight,const AnimClip *death,u8 dam
  }
  return 0;
 }
-void missile_tick(void) {
+u8 missile_tick(void) {
+ u8 occupied=0;
  u16 i;for(i=0;i<MAX_MISSILES;i++) {
-  Missile *m=&missiles[i];if(!m->active)continue;
+  Missile *m=&missiles[i];if(!m->active)continue;occupied=1;
   if(animation_tick(&m->animation,m->clip)) {
    m->x+=m->animation.vx;
    if(!small_actor_axis_active(m->x-game.cam_x,0)){m->active=0;continue;}
@@ -20,6 +21,7 @@ void missile_tick(void) {
   }
   else m->active=0;
  }
+ return occupied;
 }
 u8 missile_hit(u16 slot,u8 damage) {
  Missile *m=&missiles[slot];if(!m->active || m->dying || !damage)return 0;

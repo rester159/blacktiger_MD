@@ -816,9 +816,10 @@ void game_tick(u16 input) {
     if (game.mode != PLAY)
         return;
     loot_tick();
-    missile_tick();
-    statue_shell_tick();hunter_shell_tick();
-    {u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++) {
+    {
+    u8 moving_missiles=missile_tick();
+    u8 shells=statue_shell_tick();shells|=hunter_shell_tick();
+    if(shells){u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++) {
         if(hunter_shells[i].active && !game.p.invincible && hunter_shell_player_contact(i,0))hunter_shell_contact(i);
         if(hunter_blasts[i].active && hunter_shell_player_contact(i,1))player_hurt_from(1,hunter_blasts[i].x);
         if(statue_shells[i].active && !game.p.invincible && statue_shell_player_contact(i,0))statue_shell_contact(i);
@@ -837,11 +838,12 @@ void game_tick(u16 input) {
     if(flailers){u16 i;for(i=0;i<MAX_ACTORS;i++){u8 contact;if(!flailer_weapons[i].active)continue;contact=flailer_weapon_contact(i);if(contact==1)player_hurt_from(1,flailer_weapons[i].x);else if(contact==2 && status_poison_cloud_contact())player_hurt_from(2,flailer_weapons[i].x);}}
     if(traps){u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact;if(!container_traps[i].active)continue;contact=container_trap_contact(i);if(contact==1)player_hurt_from(1,container_traps[i].x);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
     }
-    {
+    if(moving_missiles){
         u16 i;for(i=0;i<MAX_MISSILES;i++) {
             Missile *m=&missiles[i];
             if(m->active && missile_player_contact(i))player_hurt_from(m->damage,m->x);
         }
+    }
     }
     {
         u16 i;u32 active=skeleton_weapons_tick();

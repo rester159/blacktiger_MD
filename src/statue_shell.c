@@ -74,12 +74,14 @@ static void step(StatueShell *s,StatueShell *blasts,u8 small,u8 hunter) {
   select_segment(s,target);
  }
 }
-static void tick_pools(StatueShell *shells,StatueShell *blasts,u8 hunter) {
- u16 i;for(i=0;i<MAX_STATUE_SHELLS;i++)if(shells[i].active)step(&shells[i],blasts,1,hunter);
- for(i=0;i<MAX_STATUE_SHELLS;i++)if(blasts[i].active)step(&blasts[i],blasts,0,hunter);
+static u8 tick_pools(StatueShell *shells,StatueShell *blasts,u8 hunter) {
+ u8 occupied=0;u16 i;
+ for(i=0;i<MAX_STATUE_SHELLS;i++)if(shells[i].active){occupied=1;step(&shells[i],blasts,1,hunter);}
+ for(i=0;i<MAX_STATUE_SHELLS;i++)if(blasts[i].active){occupied=1;step(&blasts[i],blasts,0,hunter);}
+ return occupied;
 }
-void statue_shell_tick(void) {tick_pools(statue_shells,statue_blasts,0);}
-void hunter_shell_tick(void) {tick_pools(hunter_shells,hunter_blasts,1);}
+u8 statue_shell_tick(void) {return tick_pools(statue_shells,statue_blasts,0);}
+u8 hunter_shell_tick(void) {return tick_pools(hunter_shells,hunter_blasts,1);}
 static const AnimFrame *frame(const StatueShell *s,u8 hunter) {
  return s->active && s->animation.remaining?animation_current(&s->animation,segments(hunter)[s->segment].clip):0;
 }
@@ -89,7 +91,9 @@ static u8 hit_at(StatueShell *pool,s16 x,s16 y,u8 kind,u8 hunter) {
  u16 i;u8 w=(kind?dagger_width:8)+(hunter?2:4),h=(kind?dagger_height:4)+(hunter?2:4);
  if(kind && (game.frame&1))return 0;
  for(i=0;i<MAX_STATUE_SHELLS;i++) {
-  StatueShell *s=&pool[i];s16 dx=x-s->x,dy=y-s->y;
+  StatueShell *s=&pool[i];s16 dx,dy;
+  if(!s->active || (s->mode&1) || s->pending)continue;
+  dx=x-s->x;dy=y-s->y;
   if(dx>=-w && dx<=w && dy>=-h && dy<=h && hit(s))return 1;
  }return 0;
 }
