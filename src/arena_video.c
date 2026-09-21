@@ -1,9 +1,11 @@
 #include "arena_video.h"
 #include "game.h"
 #include "boss_rush.h"
+#include "backdrop.h"
 #include "arena_parallax_data.inc"
 u8 arena_video_active;
 static u8 shop_rows;
+static const Backdrop *backdrop;
 static s16 previous_x;
 static u16 wall(s16 x,s16 y){return x<72 || x>=169 || y<8 || y>=37?0:arena_near[(y-8)*97+x-72];}
 static u16 scroll_x=65535,scroll_y=65535;
@@ -24,7 +26,7 @@ static void scroll(void){
 void arena_video_restore(u8 shop){
  u16 y,x,row[64];shop_rows=shop;scroll_x=scroll_y=65535;
  for(y=5;y<(shop?14:25);y++){
-  for(x=0;x<64;x++)row[x]=arena_far[(y-5)*16+(x&15)];
+  for(x=0;x<64;x++)row[x]=backdrop?backdrop->map[(y-5)*64+x]:arena_far[(y-5)*16+(x&15)];
   VDP_setTileMapDataRow(BG_A,row,y,0,64,DMA_QUEUE_COPY);
  }
  scroll();
@@ -32,7 +34,7 @@ void arena_video_restore(u8 shop){
 /* Far scenery occupies fixed, shared patterns above the terrain cache. */
 void arena_video_init(void){
  u16 y,i,row[33];s16 x=game.cam_x>>3;
- arena_video_active=1;shop_rows=0;previous_x=x;
+ arena_video_active=1;shop_rows=0;previous_x=x;backdrop=backdrop_for_round(game.round);
  if(boss_rush.active){
   VDP_loadTileData(arena_near_patterns,16,ARENA_NEAR_TILES,DMA);
   for(y=8;y<37;y++){
@@ -41,8 +43,9 @@ void arena_video_init(void){
   }
  }
  VDP_setScrollingMode(HSCROLL_TILE,VSCROLL_PLANE);
- VDP_loadTileData(arena_far_patterns,884,ARENA_FAR_TILES,DMA);
- VDP_loadTileData(arena_columns,844,ARENA_COLUMN_TILES,DMA);
+ if(backdrop)VDP_loadTileData(backdrop->far,700,backdrop->far_tiles,DMA);
+ else {VDP_loadTileData(arena_far_patterns,884,ARENA_FAR_TILES,DMA);
+ VDP_loadTileData(arena_columns,844,ARENA_COLUMN_TILES,DMA);}
  arena_video_restore(0);
 }
 void arena_video_reset(void){
@@ -94,7 +97,7 @@ static void columns_prepare(void){
 }
 u16 arena_video_columns(u16 count){
  s16 base;u16 i;
- if(!arena_video_active || game.cam_x<384 || game.cam_x>1920)return count;
+ if(!arena_video_active || game.round!=7 || game.cam_x<384 || game.cam_x>1920)return count;
  if(column_y!=game.cam_y)columns_prepare();
  if(!column_count)return count;
  base=720-(s16)(game.cam_x+game.cam_x/4);

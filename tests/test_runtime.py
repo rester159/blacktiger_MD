@@ -18,7 +18,10 @@ def finish_clear(r,s):
 def save(r,name):r.capture(name+'.png')
 def check_video_cache(r,s):
  level=s.round;width=128 if level==2 else 256;height=256 if level==2 else 128
- world=(ROOT/('res/generated/palace_map.bin' if level==7 else f'res/generated/map{level}.bin')).read_bytes();patterns=(ROOT/('res/generated/palace_patterns.bin' if level==7 else f'res/generated/bg{level}.bin')).read_bytes()
+ world=(ROOT/('res/generated/palace_map.bin' if level==7 else f'res/generated/map{level}.bin')).read_bytes();patterns=(ROOT/('res/generated/palace_patterns.bin' if level==7 else f'res/generated/backdrop_bg{level}.bin' if level in (3,5,6) else f'res/generated/bg{level}.bin')).read_bytes()
+ remap=None
+ if level in (3,5,6):
+  data=(ROOT/f'res/generated/backdrop_remap{level}.bin').read_bytes();n=len(data)//4;remap=struct.unpack('>'+str(n*2)+'H',data)
  v=(C.c_uint8*65536).in_dll(r.lib,'vram')
  def word(a):return (v[a^1]<<8)|v[(a+1)^1]
  for y in range(s.cam_y//8,s.cam_y//8+29):
@@ -36,6 +39,7 @@ def check_video_cache(r,s):
      at=ptr+pi*40
      if int.from_bytes(rom[at:at+2],'big')==cell:
       expected=struct.unpack_from('>H',rom,at+2+(r.read('bonus_entered',1)[0]*2+r.read('bonus_phases',4)[rom[at+38]])*8+((y&1)*2+(x&1))*2)[0];break
+   if remap is not None:expected=(expected&0xf800)|0x8000|remap[((expected>>13)&1)*n+(expected&2047)]
    assert actual&0xf800==expected&0xf800,(level,x,y,'attribute')
    original=(expected&2047)-16;physical=actual&2047
    assert bytes(v[(physical*32+k)^1] for k in range(32))==patterns[original*32:original*32+32],(level,x,y,'tile')

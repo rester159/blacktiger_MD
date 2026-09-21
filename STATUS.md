@@ -1099,3 +1099,33 @@ VBlank overruns. Resident sprite templates and the original direct arena
 terrain path keep the simpler fights close to baseline; the large final boss
 still has slowdown and pays an additional rendering cost. This effect does
 not establish locked 60 FPS. See `reports/palace-parallax-performance.json`.
+
+## Home identity and additional backdrops (2026-09-21)
+
+The approved MD monogram appears after selecting Home, including return from
+Home Options. The original arcade wordmark, its palette and the Arcade/mode
+picker logo remain intact. The monogram is compiled to 64x32 native pixels;
+Home menu rows move down one tile to leave room. Main, Home and Arcade menus
+carry a separate 13x5-pixel `v1.1` stamp at bottom right.
+
+Levels 4, 6 and 7 share the palace's hardware half-speed background scroll:
+purple cave texture, blue sky/distant islands, and stained-glass windows,
+respectively. Foreground graphics use masked variants of the original tiles;
+backgrounds repeat source-art sections. No collision maps or actor palettes
+change. Tile remaps also apply to hidden-area and animated-background updates.
+Each of these levels reserves 684 terrain-cache tiles and up to 312 resident
+background tiles; other levels retain their prior cache allocation. Bonus and
+ending presentation explicitly reset parallax scrolling.
+
+Validation: Home/Arcade logo isolation and all three version stamps pass in
+actual ROM frames. Cave, sky and window tests compare 16-pixel foreground
+motion against 8-pixel background motion, fixed HUD cells, resident terrain
+pixels and shop/title restoration. These checks also pass on the installed
+RetroArch core. All ROM-dependent regression checks pass; packaging validates
+14 asset checks and 47 integration checks against the exact 4 MiB ROM.
+The pinned sprite baseline retains geometry/atlas checks on every level;
+intentionally changed backdrops use their dedicated pixel checks instead of
+the old stationary-background hashes. Existing timing shortfalls remain; the
+180-frame entry samples for levels 4/6/7 recorded 166/148/161 logic updates,
+compared with 176/149/163 before this change. These are short route samples,
+not a full-level performance guarantee.

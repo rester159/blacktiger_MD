@@ -59,6 +59,8 @@ static void title_load(void){
  VDP_setHorizontalScroll(BG_A,0);VDP_setVerticalScroll(BG_A,0);
  PAL_setColors(0,title_palette,64,CPU);
  VDP_loadTileData(title_tiles,16,TITLE_TILE_COUNT,DMA);
+ VDP_loadTileData(home_md_tiles,16+TITLE_TILE_COUNT,HOME_MD_TILE_COUNT,DMA);
+ VDP_loadTileData(title_version_tiles,16+TITLE_TILE_COUNT+HOME_MD_TILE_COUNT,2,DMA);
  VDP_loadTileData(title_font,TILE_FONT_INDEX,96,DMA);
  VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);VDP_updateSprites(1,DMA);
  VDP_setEnable(TRUE);SYS_enableInts();title_ready=1;title_page=255;
@@ -72,6 +74,7 @@ void ui_title(void){
  if(title_page!=page){
   VDP_clearPlane(BG_A,TRUE);VDP_clearPlane(BG_B,TRUE);
   if(page!=2)VDP_setTileMapDataRectEx(BG_B,title_map,0,0,0,32,28,32,CPU);
+  if(page==1 && home)VDP_setTileMapDataRectEx(BG_B,home_md_map,0,12,13,8,4,8,CPU);
  }
  title_page=page;title_revision=frontend.revision;title_message=message;
  VDP_setTextPlane(BG_A);VDP_setTextPalette(PAL3);VDP_setTextPriority(TRUE);
@@ -96,13 +99,14 @@ void ui_title(void){
  }else{
   u8 i,count=page==0?2:home?3:2;
   VDP_clearTextArea(0,16,32,10);
-  if(page==1)center(16,home?"HOME":"ARCADE");
+  if(page==1)center(home?17:16,home?"HOME":"ARCADE");
   for(i=0;i<count;i++){
    const char *label=page==0?(i?"HOME":"ARCADE"):i==0?"PLAY":home?(i==1?"BOSS RUSH":"OPTIONS"):"DIP SWITCHES";
-   center(18+i*2,label);draw(i==frontend.selected?">":" ",7,18+i*2);
+   u8 y=(page==1 && home?19:18)+i*2;
+   center(y,label);draw(i==frontend.selected?">":" ",7,y);
   }
   if(page==0)center(23,"START TO SELECT");
   else if(!home)center(23,message?"INSERT COIN":"SELECT COIN  START PLAY");
-  center(27,"RESTER159 2026");draw("CREDIT",22,2);number(29,2,home && page==1?s->credits:frontend.credits,2);
+  center(27,"RESTER159 2026");VDP_setTileMapDataRectEx(BG_A,title_version_map,0,29,27,2,1,2,CPU);draw("CREDIT",22,2);number(29,2,home && page==1?s->credits:frontend.credits,2);
  }
 }

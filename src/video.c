@@ -3,6 +3,7 @@
 #include "intro.h"
 #include "boss_rush.h"
 #include "arena_video.h"
+#include "backdrop.h"
 #include "actor_dispatch.h"
 #include "bonus.h"
 #include "armor_break.h"
@@ -32,9 +33,9 @@
 #define BG_SLOTS 996
 #define SPR_BASE 1088
 #define SPR_SLOTS 80
-static u16 logical_to_slot[1700], slot_to_logical[BG_SLOTS], sprite_keys[SPR_SLOTS],
+static u16 logical_to_slot[1800], slot_to_logical[BG_SLOTS], sprite_keys[SPR_SLOTS],
     sprite_stamp[SPR_SLOTS];
-static u16 visible[1700];
+static u16 visible[1800];
 /* Logical words already resolved for the ring-buffer viewport. Reuse them
    when unpinning and submitting rows instead of re-querying dynamic terrain. */
 static u16 visible_words[2048];
@@ -46,11 +47,16 @@ static s16 old_x, old_y;
 static const u16 *terrain_map;
 static const u32 *terrain_patterns;
 static u16 terrain_slots;
+static const Backdrop *terrain_backdrop;
 static u8 shop_screen_active;
 static u8 clear_screen_active,ending_screen_active,ending_screen_scene,ending_screen_palette;
 static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
+static u16 backdrop_word(u16 word){
+ if(terrain_backdrop)return (word&0xf800)|0x8000|(word&0x2000?terrain_backdrop->remap1:terrain_backdrop->remap0)[word&2047];
+ return word;
+}
 static u16 word_at(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
     u16 w = r->width >> 3, h = r->height >> 3;
@@ -58,7 +64,8 @@ static u16 word_at(s16 x, s16 y) {
         return 0;
     {
         u16 word = terrain_map[((u16)y << (r->width == 2048 ? 8 : 7)) + x];
-        return ((world_opened & world_rows[y]) || bonus_rows[y>>1]) ? world_word(x, y, word) : word;
+        if((world_opened & world_rows[y]) || bonus_rows[y>>1])word=world_word(x,y,word);
+        return backdrop_word(word);
     }
 }
 static u16 cached(u16 word) {
@@ -67,7 +74,7 @@ static u16 cached(u16 word) {
     if (logical < 16)
         return 0;
     logical -= 16;
-    if (logical >= 1700) {
+    if (logical >= 1800) {
         video_cache_faults++;
         return 0;
     }
@@ -90,7 +97,7 @@ static u16 cached(u16 word) {
             logical_to_slot[old] = 65535;
         logical_to_slot[logical] = slot;
         slot_to_logical[slot] = logical;
-        VDP_loadTileData(terrain_patterns + (u32)logical * 8, 16 + slot, 1, DMA_QUEUE);
+        VDP_loadTileData(terrain_backdrop && logical>=terrain_backdrop->original_tiles?terrain_backdrop->extra+(u32)(logical-terrain_backdrop->original_tiles)*8:terrain_patterns + (u32)logical * 8, 16 + slot, 1, DMA_QUEUE);
         video_dma_bytes += 32;
     }
     return (word & 0xf800) | (16 + slot);
@@ -108,7 +115,7 @@ static void column(s16 x,s16 y) {
 static void pin(s16 x,s16 y,s16 delta) {
  u16 at=((y&31)<<6)|(x&63),word,v;
  if(delta>0){word=word_at(x,y);visible_words[at]=word;}else word=visible_words[at];
- v=word&2047;if(v>=16 && v<1716)visible[v-16]+=delta;
+ v=word&2047;if(v>=16 && v<1816)visible[v-16]+=delta;
 }
 static void pin_column(s16 x,s16 y,s16 delta) {
  u16 i;for(i=0;i<29;i++)pin(x,y+i,delta);
@@ -118,6 +125,7 @@ static void pin_row(s16 x,s16 y,s16 delta) {
 }
 static void terrain_change(u16 x,u16 y,u16 old,u16 next,u8 pass) {
  u16 v;
+ old=backdrop_word(old);next=backdrop_word(next);
  if(x<old_x || x>=old_x+33 || y<old_y || y>=old_y+29 || old==next)return;
  if(!pass){
   v=old&2047;if(v>=16)visible[v-16]--;
@@ -541,9 +549,10 @@ void video_init(void) {
     VDP_setBackgroundColor(0);
 }
 void video_round(void) {
+    terrain_backdrop=backdrop_for_round(game.round);
     terrain_map=game.round==7?arena_video_map():rounds[game.round].map;
     terrain_patterns=game.round==7?arena_video_pattern(0):rounds[game.round].patterns;
-    terrain_slots=game.round==7?828:BG_SLOTS;
+    terrain_slots=terrain_backdrop?684:game.round==7?828:BG_SLOTS;
     shop_screen_active=0;
     clear_screen_active=ending_screen_active=0;
     terrain_state();
@@ -567,7 +576,7 @@ void video_round(void) {
     VDP_clearPlane(WINDOW, TRUE);
     for (i = 0; i < 2; i++)
         VDP_fillTileMapRect(WINDOW, TILE_ATTR_FULL(PAL2, TRUE, FALSE, FALSE, 0), 0, i, 32, 1);
-    if(game.round==7){arena_video_init();if(!boss_rush.active)scene(1);old_x=game.cam_x>>3;old_y=game.cam_y>>3;}
+    if(game.round==7 || terrain_backdrop){arena_video_init();if(!boss_rush.active)scene(1);old_x=game.cam_x>>3;old_y=game.cam_y>>3;}
     else {arena_video_reset();scene(1);}
     DMA_flushQueue();
     last_round = game.round;
@@ -581,6 +590,7 @@ static void bonus_screen(void) {
     SYS_disableInts();
     VDP_setEnable(FALSE);
     DMA_flushQueue();
+    if(arena_video_active)arena_video_reset();
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
     PAL_setColors(0, clear_screen_palette, 48, CPU);
@@ -604,6 +614,7 @@ static void ending_screen(void) {
     u16 y;
     if(!ending_screen_active) {
         SYS_disableInts();VDP_setEnable(FALSE);DMA_flushQueue();
+        if(arena_video_active)arena_video_reset();
         VDP_clearPlane(BG_A,TRUE);
         VDP_loadTileData(ending_font,1408,ENDING_FONT_TILES>32?32:ENDING_FONT_TILES,DMA);
 #if ENDING_FONT_TILES > 32
@@ -643,7 +654,7 @@ void video_frame(void) {
     u32 t = getSubTick();
     video_dma_bytes = 0;
     if(arena_video_active && (game.mode==TITLE || game.mode==INTRO))arena_video_reset();
-    else if(arena_video_active && game.round!=7)video_round();
+    else if(arena_video_active && game.round!=last_round)video_round();
     if(game.mode==TITLE){ui_title();video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;last_mode=TITLE;return;}
     if(game.mode==INTRO){intro_video();last_mode=INTRO;return;}
     if(last_mode==TITLE || last_mode==INTRO)video_round();

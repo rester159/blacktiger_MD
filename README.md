@@ -208,3 +208,8 @@ GitHub checkout: install Git LFS before cloning, or run `git lfs install` and
 `git lfs pull` afterward. Three large regression fixtures use LFS. The ignored
 arcade source package and local emulator core must be supplied separately on a
 new machine; they are not uploaded to GitHub.
+
+The Home title adds the approved MD monogram; Arcade retains the original
+logo. Main/Home/Arcade menus show `v1.1`. Level 4 cave stone, Level 6 sky/islands
+and Level 7 windows now scroll at half foreground speed, alongside the palace
+parallax in Level 8/Boss Rush. Updated native screenshots are in `screenshots/`.

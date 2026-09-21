@@ -2,7 +2,7 @@ JAVA ?= $(or $(wildcard /opt/homebrew/opt/openjdk/bin/java),java)
 GDK ?= $(HOME)/mars/m68k-elf
 .DEFAULT_GOAL := all
 .PHONY: all assets test clean
-all: src/arena_parallax_data.inc src/shop_visual_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
+all: src/backdrop_data.inc src/arena_parallax_data.inc src/shop_visual_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
 	$(MAKE) -f $(GDK)/makefile.gen JAVA=$(JAVA) LIBGCC="$(shell $(GDK)/bin/m68k-elf-gcc -m68000 -print-libgcc-file-name)"
 	python3 tools/finalize_rom.py out/release/rom.bin
 .venv/bin/python: requirements.txt
@@ -12,9 +12,11 @@ res/generated/object_patterns.bin: tools/hud_assets.py reference/hud_oracle_even
 	.venv/bin/python tools/extract.py
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
-src/ui_data.inc: tools/build_ui.py assets/ui/title_arcade.png assets/board.json | .venv/bin/python
+src/ui_data.inc: tools/build_ui.py assets/ui/title_arcade.png art/black_tiger_md_logo_concept.png assets/board.json | .venv/bin/python
 	.venv/bin/python tools/build_ui.py
 test: all
+	.venv/bin/python tests/test_backdrop_runtime.py
+	.venv/bin/python tests/test_home_logo_runtime.py
 	.venv/bin/python tests/test_arena_parallax_runtime.py
 	.venv/bin/python tests/test_boot_logos_runtime.py
 	.venv/bin/python tests/test_hud_runtime.py
@@ -166,3 +168,6 @@ src/shop_visual_data.inc: tools/build_shop.py reference/shop_screen_oracle.json 
 
 src/arena_parallax_data.inc: tools/build_arena_parallax.py res/generated/object_patterns.bin
 	.venv/bin/python tools/build_arena_parallax.py
+
+src/backdrop_data.inc: tools/build_backdrops.py res/generated/object_patterns.bin
+	.venv/bin/python tools/build_backdrops.py

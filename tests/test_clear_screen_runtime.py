@@ -11,6 +11,7 @@ for level in range(7):
  # Deliberately leave actors/projectiles present: none may leak onto the bonus screen.
  r.write('round_clear',0,bytes([2,1,0,0,0,0,0,0]));put(r,s);r.run(30)
  assert state(r).mode==5 and r.read('clear_screen_active',1)[0]==level+1
+ assert r.read('arena_video_active',1)==b'\0','Parallax still active on bonus screen'
  v=(C.c_uint8*65536).in_dll(r.lib,'vram')
  def read(at,n):return bytes(v[(at+i)^1] for i in range(n))
  assert read(16*32,len(patterns))==patterns,(level,'patterns')

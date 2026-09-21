@@ -101,6 +101,13 @@ if not baseline:validate_sat(r);assert crowded_drops==0
 r.close();out=ROOT/'reports/sprite-render-geometry-baseline.json'
 if '--record' in sys.argv:out.write_text(json.dumps(checks,indent=2)+'\n')
 else:
- expected=json.loads(out.read_text());assert checks==expected,[(a,b) for a,b in zip(checks,expected) if a!=b]
- report={'passed':True,'pixel_fixtures':len(checks),'mean_sprite_subticks':sum(costs)/len(costs),'crowded_drops_in_20_frames':crowded_drops,'sprite_cache_vram_and_scanlines_checked':not baseline,'rom_sha256':hashlib.sha256(((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin')).read_bytes()).hexdigest(),'baseline_rom_sha256':'308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','scope':'Pinned baseline sprite positions, dimensions, flips, source texture IDs and background pixel equivalence (HUD and sprite rectangles excluded) across all rounds. Original hero and earlier enemy palette allocation restored; active atlas pixels independently checked against VRAM. A crowded fixture checks hardware scanline limits and removal of old false-positive drops; active cache textures are compared directly with VRAM.'}
+ expected=json.loads(out.read_text());assert len(checks)==len(expected)
+ for actual,reference in zip(checks,expected):
+  assert all(actual[k]==reference[k] for k in ('round','phase','sprites')),(actual,reference)
+  # These three backgrounds now intentionally move on a separate plane.
+  # Their pixel displacement and terrain cache are checked independently by
+  # test_backdrop_runtime; retain the original sprite/atlas baseline here.
+  if baseline or actual['round'] not in (4,6,7):
+   assert actual['background_sha256']==reference['background_sha256'],(actual['round'],actual['phase'])
+ report={'passed':True,'pixel_fixtures':len(checks),'mean_sprite_subticks':sum(costs)/len(costs),'crowded_drops_in_20_frames':crowded_drops,'sprite_cache_vram_and_scanlines_checked':not baseline,'rom_sha256':hashlib.sha256(((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin')).read_bytes()).hexdigest(),'baseline_rom_sha256':'308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','scope':'Pinned baseline sprite positions, dimensions, flips, source texture IDs across all rounds, plus background pixel equivalence in unchanged rounds (HUD and sprite rectangles excluded). Levels 4/6/7 use separate parallax pixel/terrain checks. Original hero and earlier enemy palette allocation restored; active atlas pixels independently checked against VRAM. A crowded fixture checks hardware scanline limits and removal of old false-positive drops; active cache textures are compared directly with VRAM.'}
  (ROOT/('reports/sprite-render-before.json' if baseline else 'reports/sprite-render-tests.json')).write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

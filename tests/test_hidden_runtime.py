@@ -29,7 +29,10 @@ def place(r,level,row,x,y):
    s.mode=1;put(r,s);return slot
  raise AssertionError(('wall did not spawn',level,row))
 def vram_patch(r,level,patch):
- s=state(r);v=(C.c_uint8*65536).in_dll(r.lib,'vram');patterns=(ROOT/f'res/generated/bg{level}.bin').read_bytes()
+ s=state(r);v=(C.c_uint8*65536).in_dll(r.lib,'vram');patterns=(ROOT/(f'res/generated/backdrop_bg{level}.bin' if level in (3,5,6) else f'res/generated/bg{level}.bin')).read_bytes()
+ remap=None
+ if level in (3,5,6):
+  data=(ROOT/f'res/generated/backdrop_remap{level}.bin').read_bytes();n=len(data)//4;remap=struct.unpack('>'+str(n*2)+'H',data)
  start=r.symbols[f'open_tile{level}'];words=struct.unpack_from('>4H',rom,start)
  checked=0
  for dy in range(4):
@@ -37,6 +40,7 @@ def vram_patch(r,level,patch):
    x=patch['x']//8+dx;y=patch['y']//8+dy
    if not(s.cam_x//8<=x<s.cam_x//8+33 and s.cam_y//8<=y<s.cam_y//8+29):continue
    at=0xe000+((y&31)*64+(x&63))*2;actual=(v[at^1]<<8)|v[(at+1)^1];expected=words[(dy%2)*2+dx]
+   if remap is not None:expected=(expected&0xf800)|0x8000|remap[((expected>>13)&1)*n+(expected&2047)]
    assert actual&0xf800==expected&0xf800,('patch attributes',level,patch,x,y)
    tile=(expected&2047)-16;physical=actual&2047
    assert bytes(v[(physical*32+k)^1] for k in range(32))==patterns[tile*32:tile*32+32],('patch pixels',level,patch,x,y,hex(actual),hex(expected),r.read('world_opened',1).hex(),(s.cam_x,s.cam_y),r.read('old_x').hex(),r.read('old_y').hex(),r.read('video_cache_faults').hex(),r.read('logical_to_slot',2*(tile+1))[-2:].hex())
