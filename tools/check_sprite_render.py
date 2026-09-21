@@ -32,7 +32,7 @@ baseline='--baseline-rom' in sys.argv
 baseline_dir=Path(os.environ.get('BLACKTIGER_RENDER_BASELINE',str(ROOT/'dist')))
 if baseline:assert hashlib.sha256((baseline_dir/'blacktiger_astra.bin').read_bytes()).hexdigest()=='308f65f977665b39b09223d8ddb66f9c3c13389ee601a9d678de13742d826096','Baseline mode requires the d0b1baf cartridge and its matching symbols.'
 if '--record' in sys.argv:assert baseline,'Record pixel references only from the pinned baseline cartridge.'
-r=Runner((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin'))
+r=Runner((baseline_dir/'blacktiger_astra.bin') if baseline else (ROOT/'out/release/rom.bin'),skip_boot=not baseline)
 if baseline:
  r.symbols={v[2]:int(v[0],16) for line in (baseline_dir/'symbols.txt').read_text().splitlines() if len(v:=line.split())>=3}
 r.run(100);r.start_game(3);r.run(30);checks=[];costs=[]

@@ -4,7 +4,7 @@
 #include "container.h"
 /* Prevent GCC 16 LTO from widening the masked byte load to an odd-address long. */
 volatile u8 shop_difficulty;
-u8 shop_antidotes,shop_poison;
+u8 shop_antidotes,shop_poison,shop_result;
 void shop_new(void) {status_new();shop_difficulty=shop_default_difficulty;shop_antidotes=shop_poison=0;}
 u16 shop_price(u8 item,u8 difficulty) {
  if(item>=1 && item<=8)return shop_prices[(item-1)>>2][difficulty&7][(item-1)&3];
@@ -27,16 +27,20 @@ u8 shop_buy(u8 item) {
  ShopInventory s;
  s.coins=game.coins;s.invincible=game.p.invincible;s.weapon=game.p.weapon?game.p.weapon-1:0;
  s.armor=game.p.armor;s.keys=container_keys;s.antidotes=shop_antidotes;s.poison=shop_poison || status_reverse;
- if(!shop_purchase(item,shop_difficulty,&s))return 0;
+ if(!shop_purchase(item,shop_difficulty,&s)){
+  shop_result=s.coins<shop_price(item,shop_difficulty)?2:item<=8?3:4;return 0;
+ }
+ shop_result=1;
  game.coins=s.coins;game.p.invincible=s.invincible;game.p.weapon=s.weapon+1;game.p.armor=s.armor;
  container_keys=s.keys;shop_antidotes=s.antidotes;if(item==10 && !s.poison){shop_poison=0;status_reverse=0;}game_sound(0x12);return 1;
 }
 void shop_move(u16 pressed) {
- u8 column=game.shop_item/6,row=game.shop_item%6;
- if(pressed&IN_LEFT)column=0;
- if(pressed&IN_RIGHT)column=1;
- if((pressed&IN_UP) && row)row--;
- if((pressed&IN_DOWN) && row<5)row++;
- if(!column && row>4)row=4;
- game.shop_item=column*6+row;
+ u8 row=game.shop_item/6,column=game.shop_item%6,old=game.shop_item;
+ if(pressed&IN_UP)row=0;
+ if(pressed&IN_DOWN)row=1;
+ if((pressed&IN_LEFT) && column)column--;
+ if((pressed&IN_RIGHT) && column<5)column++;
+ if(!row && column>4)column=4;
+ game.shop_item=row*6+column;
+ if(old!=game.shop_item)shop_result=0;
 }

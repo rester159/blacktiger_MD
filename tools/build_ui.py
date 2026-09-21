@@ -9,7 +9,9 @@ path=ROOT/'assets/ui/title_arcade.png';rgb=np.asarray(Image.open(path).convert('
 assert rgb.shape==(224,256,3)
 # Genesis RGB333, with the original logo geometry unchanged.
 colors=(rgb.astype(np.uint16)//32);words=colors[:,:,0]*2+colors[:,:,1]*32+colors[:,:,2]*512
-words=words.copy();words[128:200]=0;words[216:224]=0
+words=words.copy();words[128:200]=0
+# Footer: original copyright on row 25, blank row 26, creator on row 27.
+words[200:208,:248]=words[208:216,8:].copy();words[208:224]=0
 sets=[]
 for y in range(0,224,8):
  for x in range(0,256,8):sets.append(frozenset(map(int,words[y:y+8,x:x+8].flat))|{0})

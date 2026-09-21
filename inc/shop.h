@@ -2,7 +2,9 @@
 #define SHOP_H
 #include "game.h"
 extern volatile u8 shop_difficulty;
-extern u8 shop_antidotes,shop_poison;
+extern u8 shop_antidotes,shop_poison,shop_result;
+void shop_video_init(void);
+void shop_video_frame(void);
 typedef struct {u16 coins,invincible;u8 weapon,armor,keys,antidotes,poison;} ShopInventory;
 u16 shop_price(u8 item,u8 difficulty);
 u8 shop_purchase(u8 item,u8 difficulty,ShopInventory *state);

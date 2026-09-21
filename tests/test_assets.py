@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate complete exported worlds through an independent Genesis tile decoder."""
-import json,hashlib
+import json,hashlib,re
 from pathlib import Path
 import numpy as np
 from PIL import Image
@@ -29,6 +29,13 @@ def main():
  for name,expected in report['outputs'].items():
   b=(ROOT/'res/generated'/name).read_bytes();assert sha(b)==expected['sha256'] and len(b)==expected['bytes']
  checks.append('all asset output hashes')
+ # The native activation search requires globally X-sorted spawn rows.
+ source=(ROOT/'src/data.c').read_text()
+ for r in range(8):
+  rows=re.search(r'const Spawn spawn'+str(r)+r'\[\]=\{(.*?)\};',source).group(1)
+  xs=[int(v) for v in re.findall(r'\{(\d+),',rows)]
+  assert xs and xs==sorted(xs),(r,'spawn X order')
+ checks.append('all eight spawn tables satisfy spatial search ordering')
  for r in range(8):
   expected=np.asarray(Image.open(ROOT/f'reports/round{r+1}.png'))
   assert np.array_equal(np.asarray(compose(r)),expected),f'round {r+1} Genesis decode'

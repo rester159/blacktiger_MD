@@ -11,6 +11,8 @@ cadence, presentation and audio. All eight maps use one renderer and game loop;
 normal locomotion and the known major enemy/boss families now have native routines.
 Injected actor/ending tests do not establish natural full-game completion.
 
+Boot presentation: user-supplied black-background Shinobi SEGA kit and SF2 Capcom animation/jingle now run before the title. Start skips either sequence with clean sound teardown. Copyright lines are separated by a blank row; the credit counter is above the logo.
+
 New presentation/modes: original arcade title artwork with Arcade/Home menus, native source-derived start intro in both normal-game modes, bounded credits, expanded HUD and eight-boss Home rush with a shop after each fight. Shared settings include source weapon damage and shop-price difficulty, lives, coinage, continue and audio toggles. The remaining original difficulty effects and physical arcade DIP functions are not yet fully reproduced.
 
 Scroll registers and HUD changes now commit in VBlank. A linked-ROM pixel test covers 32 horizontal/vertical camera transitions with no split old/new image; host compositor and physical-display tearing are separate.
@@ -1002,3 +1004,20 @@ kill rewards; a separate hunter-boss case retains retirement suppression. Fresh
 boots isolate those fixtures from source scanner delays and spawn quotas.
 
 Latest front-end/renderer pass: skips empty projectile updates and repeated weapon-pool scans, narrows animated-patch searches to their row, caches recent patch lookups, and reuses resolved terrain words while scrolling. The 180-frame injected-entry benchmark now records 178, 180, 168, 179, 178, 155, 168, 180 updates across rounds 1–8 (previous build: 177, 179, 161, 174, 177, 145, 164, 180). Intro/RNG timing and the expanded HUD differ between builds; this is not a controlled isolated speedup measurement. Dense routes still miss frames, especially round 6. The sprite DMA batching experiment did not improve cadence and was discarded.
+
+
+## Shop presentation and spawn search (2026-09-20)
+
+Replaced the text list with source-derived arcade border tiles, ten item icons,
+original price positions and EXIT sign. The panel uses an opaque black backing
+and the existing actor palettes; colors are adapted, not arcade-exact. Two-row
+navigation matches the visible items. Purchase success, insufficient funds,
+owned equipment and quantity-cap refusals are displayed. Gameplay sprite VRAM
+is borrowed while shopping and restored on exit. Native purchase rules and
+merchant/Boss Rush entry remain covered by linked-ROM tests.
+
+Spawn processing now binary-searches the X-sorted source rows, preserving the
+four-frame activation phase and source order. This reduces CPU work, but the
+sampled cadence improvement is small; busy scenes still miss frames. The
+VBlank safety window has not been relaxed. Full natural playthroughs and real
+hardware validation remain outstanding.

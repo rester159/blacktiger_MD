@@ -13,7 +13,7 @@ class Geometry(C.Structure):_fields_=[('base_width',C.c_uint),('base_height',C.c
 class Timing(C.Structure):_fields_=[('fps',C.c_double),('sample_rate',C.c_double)]
 class AVInfo(C.Structure):_fields_=[('geometry',Geometry),('timing',Timing)]
 class Runner:
- def __init__(self,path,core=CORE):
+ def __init__(self,path,core=CORE,skip_boot=True):
   self.lib=l=C.CDLL(str(core));self.frame=None;self.mask=0;self.pixel=2;self.frames=0;self.audio=0
   def env(cmd,p):
    if cmd==10:self.pixel=C.cast(p,C.POINTER(C.c_int))[0];return self.pixel in (0,1,2)
@@ -54,6 +54,18 @@ class Runner:
    if '.lto_priv.' in name:aliases.setdefault(name.split('.lto_priv.')[0],[]).append(address)
   for name,addresses in aliases.items():
    if len(addresses)==1:self.symbols.setdefault(name,addresses[0])
+  # Most fixtures begin at the title. Use the real Start skip, not RAM edits;
+  # boot-specific tests set skip_boot=False and watch the complete sequences.
+  if skip_boot and "boot_done" in self.symbols:
+   for _ in range(120):
+    self.run(1)
+    if int.from_bytes(self.read("boot_tick"),"big")>=1:break
+   else:raise AssertionError("Boot logo did not start")
+   self.run(2,8)
+   for _ in range(90):
+    self.run(1)
+    if self.read("boot_done",1)==b'\x01':break
+   else:raise AssertionError("Boot skip did not finish")
  def run(self,n,mask=0):
   self.mask=mask
   for _ in range(n):self.lib.retro_run();self.frames+=1

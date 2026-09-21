@@ -1,5 +1,6 @@
 #include "game.h"
 #include "frontend.h"
+#include "boot_logos.h"
 #include <genesis.h>
 volatile u16 frame_cost[3], early_vblank_flushes, vblank_flush_overruns;
 int main(bool hardReset) {
@@ -7,6 +8,7 @@ int main(bool hardReset) {
     u32 last_presented=0xffffffff;
     (void)hardReset;
     JOY_init();
+    boot_logos();
     video_init();
     frontend_init();
     game_new();

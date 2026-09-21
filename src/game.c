@@ -235,11 +235,17 @@ static u8 any_boss(u8 locked) {
 }
 static void spawn_actors(void) {
     const Round *r = &rounds[game.round];
-    u16 i, j;
+    u16 i, j, lo=0, hi=r->spawn_count;
+    s16 left=(s16)game.cam_x-48,right=(s16)game.cam_x+304;
     if(boss_rush.active || any_boss(0))return;
-    for (i = game.frame & 3; i < r->spawn_count; i += 4) {
+    /* Source rows are sorted by X. Keep the original four-frame phase and
+       source order, but skip rows outside the activation strip altogether. */
+    while(lo<hi){u16 mid=(lo+hi)>>1;if((s16)r->spawns[mid].x<left)lo=mid+1;else hi=mid;}
+    i=lo+(((game.frame&3)-(lo&3))&3);
+    for (; i < r->spawn_count; i += 4) {
         const Spawn *s = &r->spawns[i];
         s16 sx=s->x,sy=s->y;
+        if(sx>right)break;
         if (game.spawned[i] && !eruption_kinds[s->def] && !(game.spawned[i]==1 && zombie_kinds[s->def]))
             continue;
         if (absolute((s16)s->x - (s16)game.cam_x - 128) > 176 ||

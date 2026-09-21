@@ -10,6 +10,7 @@ background maps are converted, but having their data does not establish a comple
 
 Open `dist/blacktiger_astra.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
 
+- Boot: black-background animated SEGA logo, Capcom fade/glint with its FM jingle, then the title menu. Start skips the boot sequence. Starting normal Play still shows the original Black Tiger game intro.
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
 - A: chain attack and dagger volley (release to attack again); B: jump.
 - Select (Genesis six-button Mode): insert an Arcade coin. Start: play, pause/resume, accept a paid continue, or skip the intro after its first half-second. C does not insert coins.
@@ -19,7 +20,7 @@ Open `dist/blacktiger_astra.bin` in a Genesis emulator, or run `tools/launch.sh`
 - Home Boss Rush uses one palace arena for eight bosses, awards 1,000–4,500 Zenny, and opens a shop after every victory, including the last. Equipment, keys and remaining currency carry over.
 - Arcade HUD: original top/bottom glyph layout, score/high score, TIME, VITALITY, Zenny, keys, weapon, armor and antidotes. Title screens retain CAPCOM 1987 and add RESTER159 2026.
 - RetroArch: use a six-button pad; keyboard Right Shift = Select, Enter = Start, A = attack, Z = jump. `tools/launch.sh` applies these bindings, audio sync and VSync, and disables fast-forward/slow-motion keyboard shortcuts for this run. Space is not jump. Global RetroArch settings are unchanged.
-- Contact a petrified NPC to rescue it. Merchant rescues open the shop; A buys, B/Start exits.
+- Contact a petrified NPC to rescue it. Merchant rescues open the arcade-style icon shop. Left/right selects within a row; up/down switches weapons/armor rows. A buys, B/Start exits. Purchases and refusals have feedback.
 - Chests need a key: buy KEY for 30 Zenny in a merchant shop, then touch the chest. Attacking does not unlock it. The HUD shows your key count.
 
 ## Build

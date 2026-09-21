@@ -42,6 +42,7 @@ static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
 static u8 line_count[28], sprite_slot_for_key[16384],body_lookup[64];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
+static u8 shop_screen_active;
 static u8 clear_screen_active,ending_screen_active,ending_screen_scene,ending_screen_palette;
 static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
@@ -499,16 +500,7 @@ static void overlay(void) {
     } else if (m == PAUSED)
         text(13, 12, "PAUSED");
     else if (m == SHOP) {
-        u16 i;static const char *const names[]={"", "WEAPON 2", "WEAPON 3", "WEAPON 4", "WEAPON 5", "ARMOR 1", "ARMOR 2", "ARMOR 3", "ARMOR 4", "KEY", "ANTIDOTE", "EXIT"};
-        text(5, 6, "THE OLD MAN'S SHOP");
-        if(boss_rush.active && boss_rush.shopping){text(4,4,"VICTORY! ZENNY +");digits(b,boss_rush.reward,4);b[4]=0;text(20,4,b);}
-        for(i=0;i<12;i++) {
-            u8 item=shop_grid[i],x=2+(i/6)*16,y=9+(i%6)*2;
-            if(!item)continue;
-            text(x-1,y,game.shop_item==i?">":" ");text(x,y,names[item]);
-            if(item!=11){u16 pad;digits(b,shop_price(item,shop_difficulty),5);b[5]=0;for(pad=0;pad<4 && b[pad]=='0';pad++)b[pad]=' ';text(x+9,y,b);}
-        }
-        text(3, 23, "A BUY   B / START EXIT");
+        /* The arcade panel is handled by shop_video_frame. */
     } else if (m == CLEAR) {
         /* The source bonus artwork is installed by video_frame. */
     } else if (m == DEAD)
@@ -540,6 +532,7 @@ void video_init(void) {
     VDP_setBackgroundColor(0);
 }
 void video_round(void) {
+    shop_screen_active=0;
     clear_screen_active=ending_screen_active=0;
     terrain_state();
     u16 i;
@@ -641,6 +634,23 @@ void video_frame(void) {
     if(last_mode==TITLE || last_mode==INTRO)video_round();
     if(game.mode==ENDING || (game.mode==GAMEOVER && ending.complete)) {
         ending_screen();overlay();
+        video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;return;
+    }
+    if(shop_screen_active && game.mode!=SHOP){
+        /* Only sprite VRAM was borrowed: retain the terrain cache on return. */
+        SYS_disableInts();VDP_setEnable(FALSE);DMA_flushQueue();
+        memset(sprite_keys,255,sizeof sprite_keys);
+        memset(sprite_slot_for_key,255,sizeof sprite_slot_for_key);
+        memset(sprite_stamp,0,sizeof sprite_stamp);
+        memset(body_keys,255,sizeof body_keys);memset(body_stamp,0,sizeof body_stamp);
+        sprite_eviction=body_eviction=epoch=0;
+        VDP_clearPlane(BG_A,TRUE);ui_hud_invalidate();
+        shop_screen_active=0;last_mode=255;
+        VDP_setEnable(TRUE);SYS_enableInts();
+    }
+    if(game.mode==SHOP){
+        if(!shop_screen_active){shop_video_init();shop_screen_active=1;}
+        shop_video_frame();last_mode=SHOP;
         video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;return;
     }
     if(ending_screen_active)video_round();
