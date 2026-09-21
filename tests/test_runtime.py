@@ -18,7 +18,7 @@ def finish_clear(r,s):
 def save(r,name):r.capture(name+'.png')
 def check_video_cache(r,s):
  level=s.round;width=128 if level==2 else 256;height=256 if level==2 else 128
- world=(ROOT/f'res/generated/map{level}.bin').read_bytes();patterns=(ROOT/f'res/generated/bg{level}.bin').read_bytes()
+ world=(ROOT/('res/generated/palace_map.bin' if level==7 else f'res/generated/map{level}.bin')).read_bytes();patterns=(ROOT/('res/generated/palace_patterns.bin' if level==7 else f'res/generated/bg{level}.bin')).read_bytes()
  v=(C.c_uint8*65536).in_dll(r.lib,'vram')
  def word(a):return (v[a^1]<<8)|v[(a+1)^1]
  for y in range(s.cam_y//8,s.cam_y//8+29):

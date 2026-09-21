@@ -8,7 +8,7 @@ background maps are converted, but having their data does not establish a comple
 
 ## Run
 
-Open `dist/blacktiger_astra.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
+Open `dist/blacktiger_MD_v1.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
 
 - Boot: black-background animated SEGA logo, Capcom fade/glint with its FM jingle, then the title menu. Start skips the boot sequence. Starting normal Play still shows the original Black Tiger game intro.
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
@@ -202,7 +202,7 @@ arcade package in `assets/source/arcade`, and the pinned test core in
 are ignored by Git; keep them when moving the repository. `BLACKTIGER_SOURCE`
 and `BLACKTIGER_CORE` can override their locations. SGDK remains installed at
 `~/mars/m68k-elf`. Run `make` to build, `make test` to verify, and
-`tools/launch.sh` to play `dist/blacktiger_astra.bin`.
+`tools/launch.sh` to play `dist/blacktiger_MD_v1.bin`.
 
 GitHub checkout: install Git LFS before cloning, or run `git lfs install` and
 `git lfs pull` afterward. Three large regression fixtures use LFS. The ignored

@@ -1074,3 +1074,28 @@ build/test tools no longer depend on the deleted directories. Unused Dungeon
 files and duplicate oracle scratch output were removed. A clean rebuild at the
 new location matches the fully tested ROM byte for byte; parallax and all eight
 Boss Rush runtime checks were repeated successfully after relocation.
+
+## Three-depth palace parallax (2026-09-21)
+
+Level 8 and Boss Rush share masked palace windows with half-speed blue scenery.
+The existing architecture/torch walls and collision-bearing floors retain normal
+world speed. A sparse foreground colonnade reuses palace column artwork at 1.25
+camera speed in the upper and lower halls; original wall pilasters remain part
+of the middle layer. These decorative columns do not alter collisions.
+
+The two background planes supply walls/scenery; foreground column sprites are
+submitted after actors, clipped away from HUD rows, and omitted when the sprite
+budget is full. Column and scenery patterns stay resident in reserved VRAM;
+Level 8 retains 828 cached terrain tiles. Other levels retain their original
+996-tile cache. HUD and actor palettes are preserved. The ROM remains 4 MiB.
+
+Runtime checks read actual VDP scroll/SAT data to verify 10/8/4-pixel motion for
+an 8-pixel camera step, in both directions and both game modes. They also check
+lower-hall columns and their resident tile data after HUD/cache updates.
+
+Matched 600-frame Boss Rush traversal samples measured 599/594/534 logic
+updates for bosses 1/5/8 versus 599/595/546 in the previous ROM, with zero
+VBlank overruns. Resident sprite templates and the original direct arena
+terrain path keep the simpler fights close to baseline; the large final boss
+still has slowdown and pays an additional rendering cost. This effect does
+not establish locked 60 FPS. See `reports/palace-parallax-performance.json`.

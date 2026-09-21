@@ -43,6 +43,9 @@ static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
 static u8 line_count[28], sprite_slot_for_key[16384],body_lookup[64];
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
+static const u16 *terrain_map;
+static const u32 *terrain_patterns;
+static u16 terrain_slots;
 static u8 shop_screen_active;
 static u8 clear_screen_active,ending_screen_active,ending_screen_scene,ending_screen_palette;
 static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
@@ -54,12 +57,13 @@ static u16 word_at(s16 x, s16 y) {
     if (x < 0 || y < 0 || x >= w || y >= h)
         return 0;
     {
-        u16 word = r->map[((u16)y << (r->width == 2048 ? 8 : 7)) + x];
+        u16 word = terrain_map[((u16)y << (r->width == 2048 ? 8 : 7)) + x];
         return ((world_opened & world_rows[y]) || bonus_rows[y>>1]) ? world_word(x, y, word) : word;
     }
 }
 static u16 cached(u16 word) {
     u16 logical = (word & 2047), slot, old;
+    const u16 slots=terrain_slots;
     if (logical < 16)
         return 0;
     logical -= 16;
@@ -70,15 +74,15 @@ static u16 cached(u16 word) {
     slot = logical_to_slot[logical];
     if (slot == 65535) {
         u16 n;
-        for (n = 0; n < BG_SLOTS; n++) {
+        for (n = 0; n < slots; n++) {
             slot = eviction;
-            if (++eviction == BG_SLOTS)
+            if (++eviction == slots)
                 eviction = 0;
             old = slot_to_logical[slot];
             if (old == 65535 || !visible[old])
                 break;
         }
-        if (n == BG_SLOTS) {
+        if (n == slots) {
             video_cache_faults++;
             return 0;
         }
@@ -86,7 +90,7 @@ static u16 cached(u16 word) {
             logical_to_slot[old] = 65535;
         logical_to_slot[logical] = slot;
         slot_to_logical[slot] = logical;
-        VDP_loadTileData(rounds[game.round].patterns + (u32)logical * 8, 16 + slot, 1, DMA_QUEUE);
+        VDP_loadTileData(terrain_patterns + (u32)logical * 8, 16 + slot, 1, DMA_QUEUE);
         video_dma_bytes += 32;
     }
     return (word & 0xf800) | (16 + slot);
@@ -441,6 +445,7 @@ static void sprites(void) {
             body(f->code, f->palette, sp->x - 8 - game.cam_x, sp->y - 8 - game.cam_y, f->flip);
         }
     }
+    if(arena_video_active)sprite_count=arena_video_columns(sprite_count);
     if (sprite_count)
         VDP_setSpriteLink(sprite_count - 1, 0);
     else {
@@ -536,6 +541,9 @@ void video_init(void) {
     VDP_setBackgroundColor(0);
 }
 void video_round(void) {
+    terrain_map=game.round==7?arena_video_map():rounds[game.round].map;
+    terrain_patterns=game.round==7?arena_video_pattern(0):rounds[game.round].patterns;
+    terrain_slots=game.round==7?828:BG_SLOTS;
     shop_screen_active=0;
     clear_screen_active=ending_screen_active=0;
     terrain_state();
@@ -559,7 +567,7 @@ void video_round(void) {
     VDP_clearPlane(WINDOW, TRUE);
     for (i = 0; i < 2; i++)
         VDP_fillTileMapRect(WINDOW, TILE_ATTR_FULL(PAL2, TRUE, FALSE, FALSE, 0), 0, i, 32, 1);
-    if(boss_rush.active){arena_video_init();old_x=game.cam_x>>3;old_y=game.cam_y>>3;}
+    if(game.round==7){arena_video_init();if(!boss_rush.active)scene(1);old_x=game.cam_x>>3;old_y=game.cam_y>>3;}
     else {arena_video_reset();scene(1);}
     DMA_flushQueue();
     last_round = game.round;
@@ -635,7 +643,7 @@ void video_frame(void) {
     u32 t = getSubTick();
     video_dma_bytes = 0;
     if(arena_video_active && (game.mode==TITLE || game.mode==INTRO))arena_video_reset();
-    else if(arena_video_active && !boss_rush.active)video_round();
+    else if(arena_video_active && game.round!=7)video_round();
     if(game.mode==TITLE){ui_title();video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;last_mode=TITLE;return;}
     if(game.mode==INTRO){intro_video();last_mode=INTRO;return;}
     if(last_mode==TITLE || last_mode==INTRO)video_round();
@@ -673,8 +681,8 @@ void video_frame(void) {
         old_x - (game.cam_x >> 3) > 1 || (game.cam_y >> 3) - old_y > 1 ||
         old_y - (game.cam_y >> 3) > 1)
         video_round();
-    if(arena_video_active){arena_video_frame();old_x=game.cam_x>>3;}
-    else {terrain_updates();scene(0);}
+    if(boss_rush.active){arena_video_frame();old_x=game.cam_x>>3;old_y=game.cam_y>>3;}
+    else {terrain_updates();scene(0);if(arena_video_active)arena_video_frame();}
     video_cost[0] = getSubTick() - t;
     t = getSubTick();
     if(!arena_video_active){VDP_setHorizontalScrollVSync(BG_B, -game.cam_x);
