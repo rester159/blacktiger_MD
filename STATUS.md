@@ -868,3 +868,17 @@ endings. Other gameplay-event bindings still use provisional cues. PSG voice cou
 noise gating/timbre and frequency range require documented adaptations; source
 command-queue contention, detailed listening and hardware/PAL validation remain
 unfinished. See `reference/audio_audit.md`.
+
+## Shared native effect ramps and repeats
+
+Replaced the finite SSG recordings with one native parameter-driven effect routine.
+It implements pitch, volume and noise ramps, source timer phases, phrase holds and
+bounded repeats for all 36 effects. The two previously unsupported programs are
+finite phrases repeated 255 times; original-driver captures now verify their full
+35,956/17,341-update lifetimes in all four phases. Native checks match their private
+state and register output at 5,908 checkpoints, alongside the existing 144 source
+prefixes. Effect data shrinks from 87,114 to 5,112 bytes.
+
+Gameplay sound bindings beyond the audited player cues, PSG hardware adaptations,
+source command-queue contention and hardware listening remain unfinished. This
+completes the shared parameter routines, not full-game audio fidelity or the port.

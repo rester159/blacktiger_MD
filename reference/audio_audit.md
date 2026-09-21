@@ -56,53 +56,60 @@ presentation/event ports. The entire catalog is available without inventing even
 bindings. Boss requests are issued by the native spawn path and cannot be replaced
 by the fallback round-music selection in the same frame.
 
-## Native finite SSG effects
+## Native SSG effect programs
 
-`tools/sfx_oracle.lua` isolates the original audio CPU, initializes its driver,
-submits each of 36 SSG commands, and records register writes from the 0A50 update
-routine at all four C022 timer phases. Commands 14 and 3C did not terminate or
-repeat within 4,096 updates. Their bounded observations are retained, but they
-are excluded from playback data; no invented timeout or loop is applied.
-The other 34 commands have witnessed finite termination in all four phases.
-An initial capture exceeded the runner timeout after a nonterminating-case
-assertion; it was rejected and replaced by this explicitly bounded capture.
+`tools/sfx_oracle.lua` isolates the original audio CPU and captures all 36 SSG
+commands at all four C022 timer phases. Its 4,096-update ceiling covers complete
+runs of 34 effects and prefixes of commands 14/3C. A separate full original-driver
+capture, `sfx_long_oracle.lua`, proves that those two commands are finite phrases
+repeated 255 times: they end at updates 35,956 and 17,341 in every phase.
 
-`tools/extract_sfx.py` emits 118 deduplicated streams (87,114 bytes) for 136
-command/phase profiles. `sfx.c` implements two native effect slots, source priority
-replacement, stop command 1F, source-rate timing and PSG output. Only timed data
-is compiled; the original sound CPU program is never executed on Genesis.
-The same NTSC/PAL clock accumulators as music advance effects across missed
-simulation frames. Register updates are rendered at the audio/game update cadence,
-not individually scheduled at sub-frame times.
+`tools/extract_sfx.py` compiles original effect parameters into typed duration,
+pitch, volume, noise and bounded-repeat records. Shared native C performs the
+fixed-point ramps, byte wrapping, every-fourth-tick volume/noise updates, phrase
+loading, repeat counting, source priority replacement and stop command 1F.
+All 36 programs now share 5,112 bytes of parameter data instead of 87,114 bytes
+of recorded register streams. No sound CPU instructions are linked or executed.
+
+Pitch accumulators use 12.4 fixed point and signed byte increments; volume and
+noise accumulators wrap as bytes. Zero/keep parameter cases preserve the original
+asymmetry: zero volume silences output without clearing its saved accumulator.
+A new phrase loads parameters and decrements its hold without applying a ramp
+on that first update. Source loop counts are byte-sized, including wrap semantics.
+The native NTSC/PAL timer accumulators advance across missed simulation frames.
+Output remains updated at the audio/game cadence, rather than sub-frame scheduling.
 
 The hardware adaptation follows the primary implementations:
 [YM2203 prescale](https://github.com/mamedev/mame/blob/master/3rdparty/ymfm/src/ymfm_opn.cpp),
-[SSG tone/noise clock and amplitude](https://github.com/mamedev/mame/blob/master/3rdparty/ymfm/src/ymfm_ssg.cpp),
-and the pinned local Genesis Plus GX `core/sound/psg.c`. With source prescale 2D,
+[SSG clock and amplitude](https://github.com/mamedev/mame/blob/master/3rdparty/ymfm/src/ymfm_ssg.cpp),
+and the pinned local Genesis Plus GX `core/sound/psg.c`. At source prescale 2D,
 tone periods map directly to NTSC Genesis periods; PAL periods receive clock
-correction. Values above the SN76489 ten-bit range clamp to 1023. Source amplitude
-steps map to nearest PSG attenuation with 6 dB headroom. These are adaptations,
+correction. Periods above the SN76489 ten-bit range clamp to 1023. Amplitudes map
+to nearest PSG attenuation with 6 dB headroom. These are hardware adaptations,
 not waveform equivalence.
 
-The mixer selects the strongest available tones across both slots. Source noise
-uses the fixed divisor when possible, otherwise reserves the third tone's clock
-and leaves two audible tones. It selects the strongest noise contribution;
-source tone/noise AND gating becomes additive and excess voices can be omitted.
-Noise polynomial/timbre and low-frequency limits remain hardware differences.
+The mixer selects the strongest tones across both source slots. Noise uses the
+fixed divisor when possible; otherwise it reserves the third tone's clock and
+leaves two audible tones. It selects the strongest noise contribution. Source
+AND gating becomes additive, excess voices can be omitted, and noise polynomial,
+timbre and low-frequency limits differ from the arcade hardware.
 
-Audited production bindings are player attack 3A (bank7 8B74), jump 1B (88EE),
-and death's 1F stop followed by 02 (8524). Player attack now has a separate event
-from generic enemy attack sounds. The invented clear chirp is suppressed because
-the source clear FM cue is already present. Other generic gameplay effects remain
-provisional; while a source effect plays, the old fallback cannot overwrite it.
-Further movement, impact, NPC/shop/enemy bindings, the two sustained programs,
-original command-queue contention, and detailed hardware listening remain open.
+Audited production bindings remain player attack 3A (bank7 8B74), jump 1B (88EE),
+and death's 1F stop followed by 02 (8524). Player attack has its own event, separate
+from generic enemy attack sounds. The extra prototype clear chirp is suppressed
+because the source FM cue is present. Other generic gameplay cues remain
+provisional and cannot overwrite an active source effect. Further movement,
+impact, NPC/shop/enemy bindings, original command-queue contention and detailed
+hardware listening remain open.
 
-`tests/test_sfx.py` compares 5,120 native register-state batches with the source
-across all 136 profiles in both regions, including completion, priorities, two-slot
-operation, stop, rejected unsupported commands, and explicit PSG chord/noise
-fixtures. `tests/test_sfx_runtime.py` renders all 34 effects through the cartridge,
-checks isolated and music-mixed peak levels, finite completion, input-driven
-jump/attack, and timeout death without stopping FM. `reports/sfx-preview.wav`
-contains adapted death, jump and attack samples. These are not source recordings
-or natural full-game audio verification.
+`tests/test_sfx.py` compares 19,511 register-state batches against the original
+144 command/phase prefixes in both regions. Another 5,908 original checkpoints
+cover the full long programs, including each phrase boundary, private pitch,
+volume/noise accumulators, slopes, loop count, remaining duration, program
+position and termination. Priority, stop and explicit PSG chord/noise fixtures
+are also checked. `tests/test_sfx_runtime.py` renders all 36 complete effects,
+checks isolated and music-mixed peaks, finite termination, input-driven
+jump/attack and timeout death without stopping FM. The preview WAV contains
+adapted death, jump and attack samples; it is not an original arcade recording.
+These checks do not establish natural full-game audio, complete event bindings,
+waveform equivalence, or hardware/PAL listening quality.

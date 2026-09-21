@@ -1,40 +1,52 @@
-"""Compile finite SSG effects to native timed register data; no sound CPU code."""
-import hashlib,json,math
+"""Compile source effect parameters to typed native operations, never CPU code."""
+import hashlib,json
 from arcade_source import Source,ROOT
 
 def generate():
- s=Source();ref=json.loads((ROOT/'reference/sfx_oracle.json').read_text())
- assert ref['source_set']==s.lock['aggregate_sha256']
- for k,p in [('trace_sha256','reference/sfx_oracle_events.txt'),('lua_sha256','tools/sfx_oracle.lua')]:assert hashlib.sha256((ROOT/p).read_bytes()).hexdigest()==ref[k]
- cases=[]
- for l in (ROOT/'reference/sfx_oracle_events.txt').read_text().splitlines():
-  f=l.split('|')
-  if f[0]=='CASE':current=dict(command=int(f[1]),phase=int(f[2]),writes=[]);cases.append(current)
-  elif f[0] in ('END','LOOP','BOUNDED'):current.update(kind=f[0],end=int(f[-1]))
-  elif f[0]=='WRITE':current['writes'].append(tuple(map(int,f[1:])))
- data=s.files['bd-06.1l'];rows=[];tracks={};unique={};sizes=[];unsupported=set()
- for c in cases:
-  if c['kind']!='END':unsupported.add(c['command']);continue
-  cmd=c['command'];ptr=int.from_bytes(data[0xdc1+cmd*2:0xdc3+cmd*2],'little');flags=data[ptr];assert flags&128
-  chip=(flags>>6)&1;groups={};cache={}
-  for tick,part,reg,value in c['writes']:
-   assert part==chip and reg<=10
-   if reg in (8,9,10):assert value<16
-   if cache.get(reg)!=value:groups.setdefault(tick,[]).append((reg,value));cache[reg]=value
-  raw=bytearray()
-  for tick,events in sorted(groups.items()):raw+=tick.to_bytes(2,'big')+bytes([len(events)])+bytes(v for pair in events for v in pair)
-  raw=bytes(raw)
-  if raw not in unique:
-   name='sfx_data_'+str(len(unique));unique[raw]=name;rows.append('static const u8 '+name+'[]={'+','.join(map(str,raw))+'};');sizes.append(len(raw))
-  tracks[cmd,c['phase']]=(unique[raw],len(raw),c['end'],flags)
- rows.append('static const SfxTrack sfx_tracks[64][4]={'+','.join('[%d]={%s}'%(cmd,','.join('{%s,%d,%d,%d}'%tracks[cmd,p] for p in range(4))) for cmd in sorted({c for c,p in tracks}))+'};')
- # YM2149 odd amplitude steps -> nearest SN76489 2 dB attenuation, 6 dB mix headroom.
- amplitudes=[0,141,222,306,441,585,836,1112,1595,2146,3081,4135,6006,8155,11976,16382]
+ s=Source();b=s.files['bd-06.1l'];rows=[];programs=[];total=0
+ for command in [*range(1,31),*range(0x3a,0x40)]:
+  ptr=int.from_bytes(b[0xdc1+command*2:0xdc3+command*2],'little');flags=b[ptr];at=ptr+1;ops=[];mark=None;addresses=[]
+  assert flags&128
+  while True:
+   addresses.append(at);op=b[at];at+=1;group=op>>5
+   if group==0:
+    kind=(op>>2)&7
+    if kind==0:value=(op<<8)|b[at];at+=1;ops.append((value,0,0))
+    elif kind==1:mark=len(ops);ops.append((0,9,0))
+    elif kind==2:
+     assert mark is not None;ops.append((mark+1,10,b[at]));at+=1
+    else:
+     assert kind>=4,'Unsupported source return operation';ops.append((0,11,0));break
+   elif group<=3:
+    assert not(op&16);value=((op&15)<<8)|b[at];delta=b[at+1];at+=2;ops.append((value,group+1,delta))
+   elif group<=6:
+    value=op&31;assert value<=15 or value==31;ops.append((value,group+1,b[at]));at+=1
+   else:
+    value=((op&31)<<8)|(b[at]&56);delta=b[at+1];at+=2;ops.append((value,8,delta))
+   assert len(ops)<512
+  # Independently resolve the bounded source loop structure into its duration.
+  pc=counter=updates=0
+  for guard in range(100000):
+   value,kind,delta=ops[pc];pc+=1
+   if kind==0:updates+=value or 65536
+   elif kind==9:counter=0
+   elif kind==10:
+    counter=(counter+1)&255
+    if counter!=delta:pc=value
+   elif kind==11:updates+=1;break
+  else:raise AssertionError('Unbounded effect program')
+  name=f'sfx_program_{command:02x}'
+  rows.append('static const SfxOp '+name+'[]={'+','.join('{%d,%d,%d}'%(v,k,d) for v,k,d in ops)+'};')
+  total+=len(ops)*4
+  programs.append(dict(command=command,flags=flags,ops=len(ops),updates=updates,address=ptr,bytes=at-ptr,source_sha256=hashlib.sha256(b[ptr:at]).hexdigest(),addresses=addresses))
+ rows.append('static const SfxTrack sfx_tracks[64]={'+','.join('[%d]={sfx_program_%02x,%d,%d}'%(p['command'],p['command'],p['ops'],p['flags']) for p in programs)+'};')
+ # Existing documented YM2149 -> SN76489 attenuation adaptation, 6 dB headroom.
  levels=[10**(-i/10) for i in range(15)]+[0]
+ amplitudes=[0,141,222,306,441,585,836,1112,1595,2146,3081,4135,6006,8155,11976,16382]
  attenuation=[min(range(16),key=lambda j:abs(levels[j]-a/32764)) for a in amplitudes]
  rows.append('static const u8 sfx_attenuation[16]={'+','.join(map(str,attenuation))+'};')
- (ROOT/'src/sfx_data.inc').write_text('/* Native timed SSG register data. Unbounded captures are excluded. */\n'+'\n'.join(rows)+'\n')
+ (ROOT/'src/sfx_data.inc').write_text('/* Typed duration, pitch, volume, noise and bounded-loop parameters. */\n'+'\n'.join(rows)+'\n')
  for bank,pc,raw in [(7,0x88ee,'3e1bcde203'),(7,0x8b74,'3e3acde203'),(7,0x8524,'3e1fcde2033e02cde203')]:s.expect(bank,pc,raw)
- report=dict(source_set=ref['source_set'],commands=sorted({c for c,p in tracks}),profiles=len(tracks),unique_streams=len(unique),bytes=sum(sizes),unsupported=sorted(unsupported),attenuation=attenuation,event_witnesses=list(s.witnesses.values()),scope='34 finite source effects, four timer phases each. Sustained commands 14/3C did not terminate or repeat within capture and are not represented as finite sounds.')
- (ROOT/'reference/sfx.json').write_text(json.dumps(report,indent=2)+'\n');print({k:report[k] for k in ('profiles','unique_streams','bytes','unsupported')})
+ report=dict(source_set=s.lock['aggregate_sha256'],commands=[p['command'] for p in programs],programs=programs,bytes=total,unsupported=[],attenuation=attenuation,event_witnesses=list(s.witnesses.values()),scope='All 36 source effect parameter programs compiled to typed operations. Native pitch/volume/noise ramps and bounded repeats replace recorded streams; source observations separately validate behavior.')
+ (ROOT/'reference/sfx.json').write_text(json.dumps(report,indent=2)+'\n');print({k:report[k] for k in ('bytes','unsupported')})
 if __name__=='__main__':generate()

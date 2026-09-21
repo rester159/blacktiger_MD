@@ -1,7 +1,7 @@
 """Render native effects through the cartridge and exercise actual player events."""
 import array,hashlib,json,math,wave
 from test_runtime import ROOT,Runner,state,put
-meta=json.loads((ROOT/'reference/sfx.json').read_text());ends={};command=0
+meta=json.loads((ROOT/'reference/sfx.json').read_text());ends={p['command']:p['updates'] for p in meta['programs']};command=0
 for l in (ROOT/'reference/sfx_oracle_events.txt').read_text().splitlines():
  f=l.split('|')
  if f[0]=='CASE':command=int(f[1])
@@ -41,5 +41,5 @@ for _ in range(30):
  if state(r).mode==4:break
 r.run(3);assert state(r).mode==4 and r.read('sfx_slots',22)[8]==2
 assert r.read('music_active',1)==b'\1','death stopped FM music'
-r.close();report=dict(passed=True,cases=cases,mixed_music_peak=mixed_peak,player_jump=True,player_attack=True,player_death_stop_then_effect=True,death_preserves_music=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='All 34 finite native effects render non-silent/unclipped isolated cartridge audio and stop. Input-driven jump/attack and timeout death select witnessed source commands. Not waveform equivalence, full gameplay-event binding, sustained effects, or hardware/PAL listening.')
+r.close();report=dict(passed=True,cases=cases,mixed_music_peak=mixed_peak,player_jump=True,player_attack=True,player_death_stop_then_effect=True,death_preserves_music=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='All 36 native effects render non-silent/unclipped isolated cartridge audio and stop. Input-driven jump/attack and timeout death select witnessed source commands. Not waveform equivalence, full gameplay-event binding, sustained effects, or hardware/PAL listening.')
 (ROOT/'reports/sfx-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:report[k] for k in ('passed','player_jump','player_attack','player_death_stop_then_effect','rom_sha256')}))

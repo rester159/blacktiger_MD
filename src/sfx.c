@@ -9,33 +9,69 @@ static u8 last_volume[4],last_noise;
 void sfx_invalidate(void){u8 i;for(i=0;i<3;i++)last_tone[i]=65535;for(i=0;i<4;i++)last_volume[i]=255;last_noise=255;}
 static void active(void){sfx_active=sfx_slots[0].active|sfx_slots[1].active;}
 void sfx_reset(void){sfx_slots[0]=(SfxSlot){0};sfx_slots[1]=(SfxSlot){0};sfx_active=sfx_phase=sfx_request=0;sfx_ticks=fraction=0;sfx_invalidate();}
-static void apply(SfxSlot *s){
- const SfxTrack *t=s->track;
- while(s->position<t->length){
-  const u8 *p=t->data+s->position;u16 at=((u16)p[0]<<8)|p[1];u8 n;
-  if(at>s->tick)return;
-  n=p[2];s->position+=3;
-  while(n--){p=t->data+s->position;s->regs[p[0]]=p[1];s->position+=2;}
+static void reset_registers(SfxSlot *s){u8 i;for(i=0;i<11;i++)s->regs[i]=0;s->regs[7]=0xf8;}
+static void tone_registers(SfxSlot *s,u8 ch){u16 p=s->pitch[ch]>>4;s->regs[ch*2]=p;s->regs[ch*2+1]=p>>8;}
+static void parameters(SfxSlot *s,const SfxOp *op){
+ u16 value=op->value;u8 ch;
+ if(op->kind<=4){
+  ch=op->kind-2;
+  if(value!=4095){s->pitch[ch]=value<<4;tone_registers(s,ch);}
+  s->pitch_delta[ch]=value?op->delta:0;
+ } else if(op->kind<=7){
+  ch=op->kind-5;
+  if(value && value!=31){s->volume[ch]=value<<4;s->regs[8+ch]=s->volume[ch]>>4;}
+  if(!value)s->regs[8+ch]=0;
+  s->volume_delta[ch]=value?op->delta:0;
+ } else {
+  s->noise=(value>>8)<<3;s->mixer=(s->mixer&0xc7)|(value&56);
+  s->regs[6]=s->noise>>3;s->regs[7]=s->mixer;s->noise_delta=op->delta;
+ }
+}
+static void load_segment(SfxSlot *s){
+ while(s->position<s->track->length){
+  const SfxOp *op=&s->track->data[s->position++];
+  if(op->kind==9)s->repeat=0;
+  else if(op->kind==10){if(++s->repeat!=op->delta)s->position=op->value;}
+  else if(op->kind==11){s->active=0;reset_registers(s);return;}
+  else if(op->kind==0){
+   s->remaining=op->value-1;
+   while(s->position<s->track->length){
+    op=&s->track->data[s->position];if(op->kind<2 || op->kind>8)break;
+    s->position++;parameters(s,op);
+   }
+   return;
+  }
+ }
+}
+static void step(SfxSlot *s){
+ u8 ch;s->tick++;
+ if(!s->remaining){load_segment(s);return;}
+ s->remaining--;
+ for(ch=0;ch<3;ch++)if(s->pitch_delta[ch]){s->pitch[ch]+=(s8)s->pitch_delta[ch];tone_registers(s,ch);}
+ if(!sfx_phase){
+  for(ch=0;ch<3;ch++)if(s->volume_delta[ch]){s->volume[ch]+=s->volume_delta[ch];s->regs[8+ch]=s->volume[ch]>>4;}
+  if(s->noise_delta){s->noise+=s->noise_delta;s->regs[6]=s->noise>>3;s->regs[7]=s->mixer;}
  }
 }
 u8 sfx_start(u8 command){
  const SfxTrack *t;SfxSlot *s;
- if(command==0x1f){sfx_slots[0].active=sfx_slots[1].active=0;active();return 1;}
- if(command>=64)return 0;t=&sfx_tracks[command][sfx_phase];if(!t->data)return 0;
+ if(command==0x1f){sfx_slots[0]=(SfxSlot){0};sfx_slots[1]=(SfxSlot){0};active();return 1;}
+ if(command>=64)return 0;t=&sfx_tracks[command];if(!t->data)return 0;
  s=&sfx_slots[(t->flags>>6)&1];
  if(s->active && (s->track->flags&15)>(t->flags&15))return 0;
- *s=(SfxSlot){.track=t,.command=command,.active=1};apply(s);active();return 1;
+ *s=(SfxSlot){.track=t,.command=command,.active=1};reset_registers(s);active();return 1;
+}
+void sfx_timer_step(void){
+ u8 i;sfx_phase=(sfx_phase+1)&3;sfx_ticks++;
+ for(i=0;i<2;i++)if(sfx_slots[i].active)step(&sfx_slots[i]);
+ active();
 }
 void sfx_advance(u16 frames,u8 pal){
  u32 denominator=pal?61461:1791;
  while(frames--){
   fraction+=pal?308939:7467;
-  while(fraction>=denominator){
-   u8 i;fraction-=denominator;sfx_phase=(sfx_phase+1)&3;sfx_ticks++;
-   for(i=0;i<2;i++){SfxSlot *s=&sfx_slots[i];if(!s->active)continue;s->tick++;apply(s);if(s->tick>=s->track->end)s->active=0;}
-  }
+  while(fraction>=denominator){fraction-=denominator;sfx_timer_step();}
  }
- active();
 }
 void sfx_render(u8 pal){
  u16 tones[3]={1,1,1},noise_period=1;u8 volumes[4]={15,15,15,15};
