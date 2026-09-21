@@ -2,7 +2,7 @@ JAVA ?= $(or $(wildcard /opt/homebrew/opt/openjdk/bin/java),java)
 GDK ?= $(HOME)/mars/m68k-elf
 .DEFAULT_GOAL := all
 .PHONY: all assets test clean
-all: src/backdrop_data.inc src/arena_parallax_data.inc src/shop_visual_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
+all: res/generated/object_patterns_packed.bin src/backdrop_data.inc src/arena_parallax_data.inc src/shop_visual_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
 	$(MAKE) -f $(GDK)/makefile.gen JAVA=$(JAVA) LIBGCC="$(shell $(GDK)/bin/m68k-elf-gcc -m68000 -print-libgcc-file-name)"
 	python3 tools/finalize_rom.py out/release/rom.bin
 .venv/bin/python: requirements.txt
@@ -41,6 +41,7 @@ test: all
 	.venv/bin/python tests/test_music_runtime.py
 	.venv/bin/python tests/test_frame_scheduler.py
 	.venv/bin/python tools/profile_runtime.py
+	.venv/bin/python tools/profile_all_levels.py
 	.venv/bin/python tests/test_armor_break.py
 	.venv/bin/python tests/test_armor_break_runtime.py
 	.venv/bin/python tests/test_game_over.py
@@ -58,6 +59,7 @@ test: all
 	.venv/bin/python tests/test_assets.py
 	.venv/bin/python tests/test_runtime.py
 	.venv/bin/python tools/check_sprite_render.py
+	.venv/bin/python tests/test_large_sprite_render_runtime.py
 	.venv/bin/python tests/test_animation.py
 	.venv/bin/python tests/test_actor_contract.py
 	.venv/bin/python tests/test_contact.py
@@ -172,3 +174,6 @@ src/arena_parallax_data.inc: tools/build_arena_parallax.py res/generated/object_
 
 src/backdrop_data.inc: tools/build_backdrops.py res/generated/object_patterns.bin
 	.venv/bin/python tools/build_backdrops.py
+
+res/generated/object_patterns_packed.bin: tools/pack_sprite_atlas.py res/generated/object_patterns.bin
+	.venv/bin/python tools/pack_sprite_atlas.py

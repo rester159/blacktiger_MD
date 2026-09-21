@@ -190,7 +190,7 @@ static void scene(u8 full) {
     if (!full && x == old_x && y == old_y)
         return;
     if (full || x - old_x > 1 || old_x - x > 1 || y - old_y > 1 || old_y - y > 1) {
-        for (i = 0; i < 1700; i++)
+        for (i = 0; i < 1800; i++)
             visible[i] = 0;
         for (yy = y; yy < y + 29; yy++)
             for (xx = x; xx < x + 33; xx++)
@@ -219,15 +219,40 @@ static void scene(u8 full) {
     old_x = x;
     old_y = y;
 }
+/* Paired source rows are stored in hardware 32x32 column order. A small
+   sprite reads two column spans; aligned bodies need only one DMA request. */
+static const u32 *sprite_source(u16 key){
+ return object_patterns+((u32)(key&0xfff0)<<5)+((key&7)<<6)+((key&8)<<1);
+}
+/* Counts are 16-pixel units in [0,16]. OR-ing biased counts tests all
+   covered bands at once; no per-band branch in the common sprite path. */
+static inline u8 sprite_lines_fit(u16 start,u16 end,u8 units){
+ const u8 *p=line_count+start;u16 full=0;u8 bias=units-1;
+ switch(end-start){
+ case 5:full|=p[4]+bias;
+ case 4:full|=p[3]+bias;
+ case 3:full|=p[2]+bias;
+ case 2:full|=p[1]+bias;
+ case 1:full|=p[0]+bias;
+ }
+ return !(full&16);
+}
+static inline void sprite_lines_add(u16 start,u16 end,u8 units){
+ u8 *p=line_count+start;
+ switch(end-start){
+ case 5:p[4]+=units;
+ case 4:p[3]+=units;
+ case 3:p[2]+=units;
+ case 2:p[1]+=units;
+ case 1:p[0]+=units;
+ }
+}
 static void piece(u16 code, u8 palette, s16 x, s16 y, u8 flip) {
-    u16 key, slot, i;
+    u16 key, slot, i,start,end;
     if (code >= 2048 || sprite_count >= 63 || x <= -16 || x >= 256 || y <= -16 || y >= 224)
         return;
-    for (i = (y < 0 ? 0 : y >> 3); i < 28 && i < ((y + 23) >> 3); i++)
-        if (line_count[i] >= 16) {
-            video_dropped_sprites++;
-            return;
-        }
+    start=y<0?0:y>>3;end=(y+23)>>3;if(end>28)end=28;
+    if(!sprite_lines_fit(start,end,1)){video_dropped_sprites++;return;}
     key = code + palette * 2048;
     slot = sprite_slot_for_key[key];
     if (slot == 255) {
@@ -251,13 +276,14 @@ static void piece(u16 code, u8 palette, s16 x, s16 y, u8 flip) {
             sprite_slot_for_key[sprite_keys[slot]] = 255;
         sprite_keys[slot] = key;
         sprite_slot_for_key[key] = slot;
-        VDP_loadTileData(object_patterns + (u32)key * 32, SPR_BASE + slot * 4, 4, DMA_QUEUE);
+        {const u32 *source=sprite_source(key);
+        VDP_loadTileData(source,SPR_BASE+slot*4,2,DMA_QUEUE);
+        VDP_loadTileData(source+32,SPR_BASE+slot*4+2,2,DMA_QUEUE);}
         sprite_uploads++;
         video_dma_bytes += 128;
     }
     sprite_stamp[slot] = epoch;
-    for (i = (y < 0 ? 0 : y >> 3); i < 28 && i < ((y + 23) >> 3); i++)
-        line_count[i]++;
+    sprite_lines_add(start,end,1);
     VDP_setSpriteFull(sprite_count, x, y, SPRITE_SIZE(2, 2),
                       TILE_ATTR_FULL(palette ? PAL3 : PAL2, TRUE, FALSE, flip, SPR_BASE + slot * 4),
                       sprite_count + 1);
@@ -276,11 +302,9 @@ static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
     start = y < 0 ? 0 : y >> 3;
     end = (y + 39) >> 3;
     if (end > 28) end = 28;
-    for (i = start; i < end; i++)
-        if (line_count[i] > 14) {
-            body_pieces(code, pal, x, y, flip);
-            return;
-        }
+    if(!sprite_lines_fit(start,end,2)){
+        body_pieces(code,pal,x,y,flip);return;
+    }
     /* A small hint table avoids rescanning twenty cached bodies per actor.
        Validate the key on every hit; piece uploads can invalidate any body. */
     block=body_lookup[(key^(key>>8))&63];
@@ -310,19 +334,21 @@ static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
             sprite_keys[slot] = 65535;
         }
         body_keys[block] = key;
-        /* Hardware sprite tiles run down each column. Interleave top/bottom piece columns. */
-        for (j = 0; j < 4; j++) {
-            const u32 *source = object_patterns + (u32)(key + (j >> 1)) * 32 + (j & 1) * 16;
-            u16 tile = SPR_BASE + block * 16 + j * 4;
-            VDP_loadTileData(source, tile, 2, DMA_QUEUE);
-            VDP_loadTileData(source + 8 * 32, tile + 2, 2, DMA_QUEUE);
+        if(!(key&8) && (key&7)!=7){
+            VDP_loadTileData(sprite_source(key),SPR_BASE+block*16,16,DMA_QUEUE);
+        }else for(j=0;j<4;j++){
+            const u32 *source=sprite_source(key+(j>>1))+(j&1)*32;
+            const u32 *bottom=sprite_source(key+8+(j>>1))+(j&1)*32;
+            u16 tile=SPR_BASE+block*16+j*4;
+            VDP_loadTileData(source,tile,2,DMA_QUEUE);
+            VDP_loadTileData(bottom,tile+2,2,DMA_QUEUE);
         }
         sprite_uploads += 4;
         video_dma_bytes += 512;
     }
     body_lookup[(key^(key>>8))&63]=block;
     body_stamp[block] = epoch;
-    for (i = start; i < end; i++) line_count[i] += 2;
+    sprite_lines_add(start,end,2);
     VDP_setSpriteFull(sprite_count, x, y, SPRITE_SIZE(4, 4),
                       TILE_ATTR_FULL(pal ? PAL3 : PAL2, TRUE, FALSE, flip, SPR_BASE + block * 16),
                       sprite_count + 1);
@@ -403,8 +429,10 @@ static void sprites(void) {
                     else if(visual->layout==DRAW_BODY)body(f->code,f->palette,x,y,f->flip);
                     else{
                         u16 col,row,columns=visual->layout==DRAW_DRAGON?8:4;
-                        for(row=0;row<4;row++)for(col=0;col<columns;col++)
-                            piece(f->code+row*8+(f->flip?columns-1-col:col),f->palette,x+col*16,y+row*16,f->flip);
+                        /* One 32x32 SAT entry replaces four 16x16 entries, using
+                           the same source cells and whole-body flip order. */
+                        for(row=0;row<4;row+=2)for(col=0;col<columns;col+=2)
+                            body(f->code+row*8+(f->flip?columns-2-col:col),f->palette,x+col*16,y+row*16,f->flip);
                     }
                 }
                 continue;

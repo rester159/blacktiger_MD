@@ -29,9 +29,13 @@ for x in (720,1008,1280,1520,1744):
    for left,right in zip(at[:-1],at[1:]):
     if right-left<=4:cut[left:right+1]=True
    mask[144+y,x:x+96]=cut
-# Complete the sky behind the curved arch, using its existing blue pen.
-land=canvas[144:256,752:816].copy();land[~mask[144:256,752:816]]=int(canvas[160,768])
-land=np.concatenate((land,land[:,::-1]),axis=1)
+# Separate the exposed blue sky/landscape as well as the palace windows.
+# Gold architecture and collision data stay in the world layer.
+colors=rgb[canvas]
+exterior=np.indices(canvas.shape)[0]>=640
+exterior |= np.indices(canvas.shape)[1]<552
+exterior |= np.indices(canvas.shape)[1]>=1920
+mask |= exterior & (colors[:,:,2]>colors[:,:,0]) & (colors[:,:,2]>=colors[:,:,1])
 patterns=[bytes(raw[i:i+32]) for i in range(0,len(raw),32)]
 unique={b:i for i,b in enumerate(patterns)}
 def tile(indexed,opaque=False):
@@ -65,15 +69,17 @@ for y in range(128):
   a=wall_canvas[y*8:y*8+8,x*8:x*8+8].copy();a[cut]=255
   fg.append(tile(a,True))
 far=[]
-# Screen rows 5..24. Only the original window openings expose this plane.
-for row in range(5,25):
- sy=row*8+64-144
+# One resident landscape for both windows and open exterior: no streaming or
+# extra per-frame sprites. Mirror tile attributes instead of duplicate pixels.
+land=canvas[768:880,784:848].copy()
+values=np.array([16+int(np.argmin(((rgb[16:]-rgb[int(v)])**2).sum(1))) for v in range(32)],np.uint8)
+sky=int(values[int(canvas[700,400])])
+for row in range(20):
+ sy=row*8-24
  for col in range(16):
-  a=land[max(0,min(104,sy)):max(0,min(104,sy))+8,col*8:col*8+8]
-  # Every tile must use a single original palette. Nearest RGB333 maps the few
-  # mixed palette tiles into the existing scenery bank without changing CRAM.
-  values=np.array([16+int(np.argmin(((rgb[16:]-rgb[int(v)])**2).sum(1))) for v in range(32)],np.uint8)
-  far.append(tile(values[a]))
+  tx=col if col<8 else 15-col
+  a=land[sy:sy+8,tx*8:tx*8+8] if 0<=sy<112 else np.full((8,8),sky,np.uint8)
+  far.append(tile(values[a])^(0x800 if col>=8 else 0))
 assert len(patterns)<=1700
 arr=lambda name,typ,v:'static const '+typ+' '+name+'[]={'+','.join(map(str,v))+'};\n'
 out='/* Original palace art: two background planes plus foreground column sprites. */\n'

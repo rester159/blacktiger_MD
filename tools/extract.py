@@ -106,7 +106,7 @@ def main():
     sprites=decode(b''.join(files[r['path']] for r in board['regions']['sprites']['files']),board['layouts']['sprites'])
     resources=[];decl=[];body=[];report={'source':lock,'rounds':[],'unresolved_spawn_rows':[],'adaptations':['Two 15-color background palettes; original 15-color hero palette and 15-color enemy quantization. HUD colors adapt to the actor palettes.','Background priority groups are flattened.','Actor behavior families are native approximations pending arcade comparison.']}
     def emit(name,b,typ='u16'):
-        (OUT/(name+'.bin')).write_bytes(b);resources.append(f'BIN {name} "generated/{name}.bin" 4');decl.append(f'extern const {typ} {name}[];')
+        (OUT/(name+'.bin')).write_bytes(b);resources.append(f'BIN {name} "generated/{name + "_packed" if name == "object_patterns" else name}.bin" 4');decl.append(f'extern const {typ} {name}[];')
     p0=pal(0);scols=np.array([rgb(w) for w in p0[512:640]])
     hist=np.zeros(512,dtype=np.int64)
     for p in range(1,8):

@@ -1,10 +1,10 @@
-"""Read real VDP scroll/pixels for cave, sky and stained-glass parallax."""
+"""Read real VDP scroll/pixels for cave, sky, stained-glass and palace exterior parallax."""
 import ctypes as C,hashlib,json
 import numpy as np
 from PIL import Image
 from test_runtime import ROOT,Runner,state,put,check_video_cache
 checks=[]
-for level,cx,cy in [(3,48,784),(5,976,656),(6,784,304)]:
+for level,cx,cy in [(3,48,784),(5,976,656),(6,784,304),(7,896,736)]:
  r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game()
  s=state(r);s.round=level;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(80)
  s=state(r);s.mode=2;s.cam_x=cx;s.cam_y=cy;s.p.x=s.p.y=-1024*256

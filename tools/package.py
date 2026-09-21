@@ -8,6 +8,9 @@ rom=ROOT/'out/release/rom.bin';raw=rom.read_bytes();assert raw[0x100:0x104]==b'S
 checksum=sum(int.from_bytes(raw[i:i+2],'big') for i in range(0x200,len(raw),2))&65535
 assert int.from_bytes(raw[0x18e:0x190],'big')==checksum
 assert int.from_bytes(raw[0x1a4:0x1a8],'big')==len(raw)-1
+for report_name,hash_key in [('large-sprite-render-runtime-tests.json','rom_sha256'),('all-level-performance.json','sha256')]:
+ result=json.loads((ROOT/'reports'/report_name).read_text())
+ assert result['passed'] and result[hash_key]==sha(rom),report_name
 source=ROOT/'assets/source/arcade/payload'
 checked=0
 if source.exists():

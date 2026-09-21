@@ -44,13 +44,12 @@ int main(bool hardReset) {
         t0 = getSubTick();
         audio_tick();
         frame_cost[2] = getSubTick() - t0;
-        /* A small queue finishing just after VBlank starts can still be
-           presented this frame. Counter <=230 leaves at least 26 NTSC lines
-           (including its counter discontinuity) for a <=1.5 KiB queue and SGDK
-           housekeeping. Never process twice in the same VBlank. */
+        /* A bounded late submission may still finish in this VBlank.
+           The repeated NTSC V-counter range leaves at least 26 lines here.
+           Cap queued transfers at 2 KiB and never present twice in a blank. */
         if(!SYS_isPAL() && vtimer!=last_presented &&
            GET_VDP_STATUS(VDP_VBLANK_FLAG) && GET_VCOUNTER<=230 &&
-           GET_VCOUNTER>=224 && DMA_getQueueTransferSize()<=1536) {
+           GET_VCOUNTER>=224 && DMA_getQueueTransferSize()<=2048) {
             SYS_doVBlankProcessEx(ON_VBLANK);
             early_vblank_flushes++;
             if(!GET_VDP_STATUS(VDP_VBLANK_FLAG))vblank_flush_overruns++;
