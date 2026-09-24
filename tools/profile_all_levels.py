@@ -27,13 +27,16 @@ for level,cx,cy,name in [(i,None,None,f'level{i+1}_entry') for i in range(8)]+[(
   r.start_game();s=state(r);s.round=level;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(40)
   if cx is not None:
    s=state(r);s.p.x=(cx+112)*256;s.p.y=(cy+144)*256;s.cam_x=cx;s.cam_y=cy;s.p.vx=s.p.vy=0;put(r,s);r.run(30)
- s=state(r);s.p.invincible=30000;s.p.hp=4;put(r,s);start=s.frame;prev=start;cost=[];vcost=[];dma=[];gaps=[];gap=0
+ s=state(r);s.p.invincible=30000;s.p.hp=4;put(r,s);start=s.frame;prev=start;cost=[];vcost=[];dma=[];gaps=[];gap=0;sample=-1
  for frame in range(600):
   direction=128 if frame%400<200 else 64
   r.run(1,direction|2);s=state(r);gap+=1
   if s.frame!=prev:
-   cost.append(struct.unpack('>3H',r.read('frame_cost',6)));vcost.append(struct.unpack('>3H',r.read('video_cost',6)));dma.append(int.from_bytes(r.read('video_dma_bytes'),'big'));gaps.append(gap);gap=0;prev=s.frame
+   dma.append(int.from_bytes(r.read('video_dma_bytes'),'big'));gaps.append(gap);gap=0;prev=s.frame
+  current=int.from_bytes(r.read('profile_samples'),'big')
+  if current!=sample:
+   cost.append(struct.unpack('>3H',r.read('frame_cost',6)));vcost.append(struct.unpack('>3H',r.read('video_cost',6)));sample=current
  entry=dict(scene=name,updates=(s.frame-start)&65535,frames=600,worst_gap=max(gaps),cost=[int(statistics.median(c[i] for c in cost)) for i in range(3)],video_cost=[int(statistics.median(c[i] for c in vcost)) for i in range(3)],dma_max=max(dma),cache_faults=int.from_bytes(r.read('video_cache_faults'),'big'),vblank_overruns=int.from_bytes(r.read('vblank_flush_overruns'),'big'))
  cases.append(entry);r.close();print(entry,flush=True)
 assert all(c['cache_faults']==0 and c['vblank_overruns']==0 for c in cases)
-args.output.write_text(json.dumps(dict(passed=True,sha256=hashlib.sha256(rom.read_bytes()).hexdigest(),cases=cases,scope='Deterministic 600-video-frame NTSC samples with repeated movement/attack and invulnerability. Update counts include any intervening game modes; this is not a natural full playthrough or a hardware benchmark.'),indent=2)+'\n')
+args.output.write_text(json.dumps(dict(passed=True,sha256=hashlib.sha256(rom.read_bytes()).hexdigest(),cases=cases,scope='Deterministic 600-video-frame NTSC samples with repeated movement/attack and invulnerability. Costs are sampled once per sixteen presentations. Update counts include any intervening game modes; this is not a natural full playthrough or a hardware benchmark.'),indent=2)+'\n')

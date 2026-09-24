@@ -24,7 +24,7 @@ void shop_video_init(void){
   VDP_setTileMapDataRect(BG_A,words,columns[i%5],18+(i/5)*3,2,2,2,CPU);
  }
  VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);VDP_updateSprites(1,DMA);
- ui_hud_invalidate();ui_hud();DMA_flushQueue();
+ ui_shop_cursor_init();ui_hud_invalidate();ui_hud();DMA_flushQueue();
  shop_result=0;selection=result=255;coins=65535;
  VDP_setEnable(TRUE);SYS_enableInts();
 }
@@ -39,8 +39,9 @@ void shop_video_frame(void){
   u8 good=shop_grid[i],col=i%6,row=i/6;
   if(!good)continue;
   if(good!=11)price(columns[col],20+row*3,shop_price(good,shop_difficulty));
-  label(columns[col]-1,18+row*3,selection==i?">":" ");
+  label(columns[col]-1,18+row*3," ");
  }
+ ui_shop_cursor(columns[selection%6],18+(selection/6)*3);
  label(2,15,"                            ");label(2,16,"                            ");
  label(3,15,names[item]);
  label(3,16,result==1?"THANK YOU!":result==2?"NOT ENOUGH ZENNY":result==3?"ALREADY EQUIPPED":result==4?"CANNOT CARRY MORE":"A BUY   B / START EXIT");

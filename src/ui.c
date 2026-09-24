@@ -9,16 +9,26 @@ static u8 title_ready,title_page=255,title_revision=255,title_message=255;
 static u32 high_score=20000;
 static u16 hud_previous[256];
 static u8 hud_invalid=1;
+extern volatile u32 pacing_presentations;
+u16 debug_fps;
+static u32 fps_refresh, fps_presentations;
+static u8 hud_fps_visible;
+static u16 hud_fps;
 static u32 hud_score;
 static u16 hud_coins,hud_time;
 static u8 hud_hp,hud_weapon,hud_armor,hud_keys,hud_antidotes;
 #include "hud_data.inc"
 static void draw(const char *s,u16 x,u16 y){VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),x,y,DMA_QUEUE);}
+#define HOME_CURSOR_TILE (18+TITLE_TILE_COUNT+HOME_MD_TILE_COUNT)
+static void cursor(u8 selected,u16 x,u16 y){
+ if(selected)VDP_setSpriteFull(0,x*8-2,y*8-4,SPRITE_SIZE(2,2),TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,HOME_CURSOR_TILE),0);
+}
 static void number(u16 x,u16 y,u32 value,u8 count){char b[9];u8 n=count;b[count]=0;while(n){b[--n]='0'+value%10;value/=10;}draw(b,x,y);}
 static void center(u16 y,const char *text){draw(text,(32-strlen(text))/2,y);}
 void ui_hud_invalidate(void){hud_invalid=1;}
 void ui_game_init(void){
  u16 i;title_ready=0;hud_invalid=1;
+ fps_refresh=vtimer;fps_presentations=pacing_presentations;debug_fps=0;
  VDP_loadTileData(hud_font,TILE_FONT_INDEX,96,DMA);
  for(i=0;i<ARCADE_HUD_TILES;i++)VDP_loadTileData(arcade_hud_patterns+i*8,arcade_hud_slots[i],1,DMA);
  VDP_setWindowVPos(FALSE,0);
@@ -30,9 +40,20 @@ static void hud_number(u16 *p,u32 value,u8 count,u8 blue,u8 spaces){
 static void hud_icon(u16 *p,const u16 *icon){p[0]=icon[0];p[1]=icon[1];p[32]=icon[2];p[33]=icon[3];}
 void ui_hud(void){
  u16 map[256],i,row;u8 hp=game.p.hp>5?5:game.p.hp;
- if(!hud_invalid && hud_score==game.score && hud_coins==game.coins && hud_time==game.time &&
+ u8 fps_visible=frontend.debug_active && frontend.debug_framerate;
+ if(fps_visible){
+  u32 now=vtimer,elapsed=now-fps_refresh;u16 hz=SYS_isPAL()?50:60;
+  if(elapsed>=hz){
+   u32 frames=pacing_presentations;
+   debug_fps=((frames-fps_presentations)*hz+elapsed/2)/elapsed;
+   if(debug_fps>hz)debug_fps=hz;
+   fps_refresh=now;fps_presentations=frames;
+  }
+ }
+ if(!hud_invalid && hud_fps_visible==fps_visible && (!fps_visible || hud_fps==debug_fps) && hud_score==game.score && hud_coins==game.coins && hud_time==game.time &&
     hud_hp==hp && hud_weapon==game.p.weapon && hud_armor==game.p.armor &&
     hud_keys==container_keys && hud_antidotes==shop_antidotes)return;
+ hud_fps_visible=fps_visible;hud_fps=debug_fps;
  hud_score=game.score;hud_coins=game.coins;hud_time=game.time;hud_hp=hp;
  hud_weapon=game.p.weapon;hud_armor=game.p.armor;hud_keys=container_keys;hud_antidotes=shop_antidotes;
  if(game.score>high_score)high_score=game.score;
@@ -45,10 +66,16 @@ void ui_hud(void){
  hud_icon(map+160+11,arcade_hud_weapons+(game.p.weapon?game.p.weapon-1:0)*4);
  hud_icon(map+160+15,arcade_hud_armors+(game.p.armor>8?8:game.p.armor)*4);
  hud_number(map+224+7,container_keys,2,0,0);hud_number(map+224+19,shop_antidotes,2,0,0);
+ if(fps_visible){
+  const char *label="FPS:";
+  for(i=0;i<4;i++)map[25+i]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,TILE_FONT_INDEX+label[i]-32);
+  map[29]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,TILE_FONT_INDEX+'0'-32+debug_fps/10);
+  map[30]=TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,TILE_FONT_INDEX+'0'-32+debug_fps%10);
+ }
  if(game.round==3)for(row=0;row<8;row++)map[row*32+31]=748+row;
  for(row=0;row<8;row++)if(hud_invalid || memcmp(map+row*32,hud_previous+row*32,64)){
-  VDP_setTileMapDataRow(BG_A,map+row*32,row<5?row:row+20,0,32,DMA_QUEUE_COPY);
   memcpy(hud_previous+row*32,map+row*32,64);
+  VDP_setTileMapDataRow(BG_A,map+row*32,row<5?row:row+20,0,32,DMA_QUEUE_COPY);
  }
  hud_invalid=0;
 }
@@ -62,60 +89,76 @@ static void title_load(void){
  VDP_loadTileData(title_tiles,16,TITLE_TILE_COUNT,DMA);
  VDP_loadTileData(home_md_tiles,16+TITLE_TILE_COUNT,HOME_MD_TILE_COUNT,DMA);
  VDP_loadTileData(title_version_tiles,16+TITLE_TILE_COUNT+HOME_MD_TILE_COUNT,2,DMA);
+ VDP_loadTileData(home_cursor_tiles,HOME_CURSOR_TILE,4,DMA);
  VDP_loadTileData(title_font,TILE_FONT_INDEX,96,DMA);
  VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);VDP_updateSprites(1,DMA);
  VDP_setEnable(TRUE);SYS_enableInts();title_ready=1;title_page=255;
 }
 void ui_title(void){
- static const char *const coinage[]={"4 COINS 1 CREDIT","3 COINS 1 CREDIT","2 COINS 1 CREDIT","1 COIN  1 CREDIT","1 COIN  2 CREDITS","1 COIN  3 CREDITS","1 COIN  4 CREDITS","1 COIN  5 CREDITS"};
+ static const char *const coinage[]={"4 COINS:1 CR","3 COINS:1 CR","2 COINS:1 CR","1 COIN:1 CR","1 COIN:2 CR","1 COIN:3 CR","1 COIN:4 CR","1 COIN:5 CR"};
  u8 page=frontend.page,home=frontend.mode,message=frontend.message!=0;
  GameSettings *s=&settings[home];
  if(!title_ready)title_load();
  if(title_page==page && title_revision==frontend.revision && title_message==message)return;
  if(title_page!=page){
   VDP_clearPlane(BG_A,TRUE);VDP_clearPlane(BG_B,TRUE);
-  if(page!=2)VDP_setTileMapDataRectEx(BG_B,title_map,0,0,0,32,28,32,CPU);
-  if((page==1 || page==3) && home)VDP_setTileMapDataRectEx(BG_B,home_md_map,0,12,13,8,4,8,CPU);
+  if(page!=2 && page!=4)VDP_setTileMapDataRectEx(BG_B,title_map,0,0,0,32,28,32,CPU);
+  if(page==1 && home)VDP_setTileMapDataRectEx(BG_B,home_md_map,0,12,13,8,4,8,CPU);
  }
+ VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);
  title_page=page;title_revision=frontend.revision;title_message=message;
  VDP_setTextPlane(BG_A);VDP_setTextPalette(PAL3);VDP_setTextPriority(TRUE);
  if(page==2){
-  u8 i,last=home?7:6;static const char *const labels[]={"LIVES","DIFFICULTY","COINAGE","CONTINUE","MUSIC","SOUND FX","CREDITS"};
+  u8 i,last=home?8:6;static const char *const labels[]={"LIVES","DIFFICULTY","COINAGE","CONTINUE","MUSIC","SOUND FX","CREDITS","LV7 JUMP"};
   center(3,home?"HOME OPTIONS":"DIP SWITCHES");
   for(i=0;i<=last;i++){
-   u8 y=6+i*2;draw(i==frontend.option?">":" ",1,y);
-   if(i==last){draw("BACK",3,y);continue;}
-   draw(labels[i],3,y);
+   u8 x=i==8?2:i<4?2:18,y=i==8?21:6+(i&3)*4;
+   cursor(i==frontend.option,x-2,y);draw(i==last?"BACK":labels[i],x,y);
+   VDP_clearTextArea(x,y+1,14,1);
+   if(i==last)continue;
    switch(i){
-    case 0:number(25,y,frontend_lives(),1);break;
-    case 1:number(25,y,s->difficulty+1,1);break;
-    case 2:draw(coinage[s->coinage],14,y);break;
-    case 3:draw(s->continues?"YES":"NO ",23,y);break;
-    case 4:draw(s->music?"ON ":"OFF",23,y);break;
-    case 5:draw(s->sfx?"ON ":"OFF",23,y);break;
-    case 6:number(24,y,s->credits,2);break;
+    case 0:number(x,y+1,frontend_lives(),1);break;
+    case 1:number(x,y+1,s->difficulty+1,1);break;
+    case 2:draw(coinage[s->coinage],x,y+1);break;
+    case 3:draw(s->continues?"YES":"NO",x,y+1);break;
+    case 4:draw(s->music?"ON":"OFF",x,y+1);break;
+    case 5:draw(s->sfx?"ON":"OFF",x,y+1);break;
+    case 6:number(x,y+1,s->credits,2);break;
+    case 7:draw(frontend.level7_jump_assist?"ASSIST":"ORIGINAL",x,y+1);break;
    }
   }
-  center(24,"LEFT / RIGHT TO CHANGE");center(26,"B BACK");
- }else if(page==3){
-  u8 i;center(17,"SELECT LEVEL");
-  for(i=0;i<8;i++){
-   u8 x=i<4?4:18,y=19+(i&3);
-   draw(i==frontend.level?">":" ",x-2,y);draw("LEVEL",x,y);number(x+6,y,i+1,1);
+  center(23,"UP / DOWN SELECT");center(24,"LEFT / RIGHT CHANGE");center(26,"B BACK");
+ }else if(page==4){
+  u8 i;static const char *const labels[]={"INVINCIBILITY","INFINITE LIVES","INFINITE TIME","FRAMERATE"};
+  center(2,"DEBUG");
+  for(i=0;i<4;i++){
+   u8 x=i<2?2:18,y=5+(i&1)*4;
+   u8 value=i==0?frontend.debug_invincible:i==1?frontend.debug_lives:i==2?frontend.debug_time:frontend.debug_framerate;
+   cursor(i==frontend.debug_option,x-2,y);draw(labels[i],x,y);
+   draw(value?"ON ":"OFF",x,y+1);
   }
-  center(24,"START PLAY   B BACK");center(27,"RESTER159 2026");
-  VDP_setTileMapDataRectEx(BG_A,title_version_map,0,29,27,2,1,2,CPU);
+  center(12,"START LEVEL");
+  for(i=0;i<8;i++){
+   u8 x=i<4?2:18,y=14+(i&3)*2;
+   cursor(i+4==frontend.debug_option,x-2,y);draw("LEVEL",x,y);number(x+6,y,i+1,1);
+  }
+  cursor(frontend.debug_option==12,1,23);draw("INFINITE ZENNY",3,23);draw(frontend.debug_zenny?"YES":"NO ",18,23);
+  center(25,"A / START SELECT");center(27,"B BACK");
  }else{
-  u8 i,count=page==0?2:home?3:2;
-  VDP_clearTextArea(0,16,32,10);
-  if(page==1)center(home?17:16,home?"HOME":"ARCADE");
+  u8 i,count=page==0?2:home?(frontend.debug_unlocked?4:3):2;
+  VDP_clearTextArea(0,16,32,9);
   for(i=0;i<count;i++){
-   const char *label=page==0?(i?"HOME":"ARCADE"):i==0?"PLAY":home?(i==1?"BOSS RUSH":"OPTIONS"):"DIP SWITCHES";
-   u8 y=(page==1 && home?19:18)+i*2;
-   center(y,label);draw(i==frontend.selected?">":" ",7,y);
+   const char *label=page==0?(i?"HOME":"ARCADE"):i==0?"PLAY":home?(i==1?"BOSS RUSH":i==2?"OPTIONS":"DEBUG"):"DIP SWITCHES";
+   if(page==1 && home){u8 x=i<2?4:18,y=19+(i&1)*2;cursor(i==frontend.selected,x-2,y);draw(label,x,y);}
+   else {u8 y=18+i*2;center(y,label);cursor(i==frontend.selected,(32-strlen(label))/2-3,y);}
   }
   if(page==0)center(23,"START TO SELECT");
   else if(!home)center(23,message?"INSERT COIN":"SELECT COIN  START PLAY");
-  center(27,"RESTER159 2026");VDP_setTileMapDataRectEx(BG_A,title_version_map,0,29,27,2,1,2,CPU);draw("CREDIT",22,2);number(29,2,home && page==1?s->credits:frontend.credits,2);
+  center(27,"RESTER159 2026");VDP_setTileMapDataRectEx(BG_A,title_version_map,0,29,27,2,1,2,CPU);
+  draw("CREDIT",22,2);number(29,2,home && page==1?s->credits:frontend.credits,2);
  }
+ VDP_updateSprites(1,DMA_QUEUE);
 }
+
+void ui_shop_cursor_init(void){VDP_loadTileData(shop_cursor_tiles,1488,4,DMA);}
+void ui_shop_cursor(u16 x,u16 y){VDP_setSpriteFull(0,x*8-16,y*8,SPRITE_SIZE(2,2),TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,1488),0);VDP_updateSprites(1,DMA_QUEUE);}

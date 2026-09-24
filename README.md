@@ -10,11 +10,33 @@ background maps are converted, but having their data does not establish a comple
 
 Open `dist/blacktiger_MD_v1.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
 
-- Boot: black-background animated SEGA logo, Capcom fade/glint with its FM jingle, then the title menu. Start skips the boot sequence. Arcade Play shows the original Black Tiger intro; Home Play goes through level selection.
+Home Play now shows the same original introduction as Arcade Play. Start skips it after the initial half-second guard. Boss Rush and Debug level selection still start directly. See [validation](reports/home-intro-validation.json).
+
+v36 hides Debug until you press **Up, Up, Down, Down, Left, Right, Left, Right** on the Home menu. A ping confirms the unlock (when Sound FX is enabled), and Debug appears selected. It remains available until reset. See [validation](reports/v36-validation.json).
+
+v35 restricts **Home → Options → LV7 JUMP → ASSIST** to rightward takeoffs at the pictured early Level 7 ledge. Jumps elsewhere retain original movement. Original remains the default. See [validation](reports/v35-validation.json).
+
+v34 adds **Home → Options → LV7 JUMP → ASSIST**. Original is the default. In v34, Assist gave jumps extra lift throughout Level 7 (superseded by the localized v35 behavior) so the early 64-pixel step-up can be cleared with a normal directional jump. Arcade, other levels, and Boss Rush retain their original movement. The preference lasts until reset, like the other menu settings. See [validation](reports/v34-validation.json).
+
+v33 fixes clipped Level 7 parallax windows, preserves readable blue Level 6 arrows, excludes the off-map enemy appearing in the wall, and applies the requested stone colors to spiked platforms. See [validation](reports/v33-validation.json).
+
+v32 keeps Level 5 parallax and removes the full source mountain tile set from the foreground, including the missed base strips in alternate colors. Eleven raised column caps now have solid collision shared by the player and enemies. See [validation](reports/v32-validation.json).
+
+v31 restores Level 5’s complete original mountain background and disables its parallax layer, removing the detached mountain strips. See [validation](reports/v31-validation.json).
+
+v30 restores Level 4’s original cave background and disables its repeated parallax layer. The reported upper room and four other views are checked against the original scenery. See [validation](reports/v30-validation.json).
+
+v29 restores the full original Level 8 scenery, including sky and windows, with parallax disabled. Boss Rush retains its separate arena presentation. See [validation](reports/v29-validation.json).
+
+v28 restores Level 3’s vertical map connection: the gold corridor now leads upward into the next section, with continuous camera scrolling, collision and actor spawning. The screenshot route is tested through two platforms above the former ceiling; this is not a full-level playthrough. See [validation](reports/v28-validation.json).
+
+v27 improves the worst sampled rolling second across a 229-case all-level survey from 12 to 15 FPS; the requested 40-FPS floor is not reached. See the [second-by-second report](reports/performance-profile-v23.md) for all levels, sustained encounters and regressions. Level 6 retains its restored original scenery with parallax disabled.
+
+- Boot: black-background animated SEGA logo, Capcom fade/glint with its FM jingle, then the title menu. Start skips the boot sequence. Arcade Play and Home Play both show the original Black Tiger intro before level one; Home Debug provides level selection.
 - D-pad: move; Down: crouch; Up/Down on ladders: climb.
 - A: chain attack and dagger volley (release to attack again); B: jump.
 - Select (Genesis six-button Mode): insert an Arcade coin. Start: play, pause/resume, accept a paid continue, or skip the intro after its first half-second. C does not insert coins.
-- Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/Options. Home Play opens Levels 1–8: Up/Down selects a level, Left/Right switches columns, Start/A begins, B returns. Home level selection skips the intro; Arcade retains it.
+- Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/Options/Debug. Debug lists Levels 1–8 directly: Up/Down selects a level, Left/Right switches columns, Start/A begins, B returns. Debug level selection skips the intro and defaults invincibility, infinite lives, infinite time and FPS display to ON, plus Infinite Zenny to YES; both normal Play modes retain their intro.
 - Home defaults to three total credits: the initial game and two continues. Options sets 1–99 credits for a new run; Select cannot refill them.
 - Both settings menus provide lives, difficulty, coinage, continues, music and sound effects. Difficulty currently changes original weapon-damage tables and shop prices; full arcade difficulty behavior is not yet certified.
 - Home Boss Rush uses a three-screen-wide, horizontally scrolling palace hall for eight bosses, awards 1,000–4,500 Zenny, and opens a shop after every victory, including the last. Equipment, keys and remaining currency carry over. Each fight starts in the center with scrolling available left and right. Scenery through the palace windows scrolls at half speed for depth.
@@ -95,8 +117,21 @@ Files:
   round-clear and ending presentation and natural progression still need validation.
 - Background priority groups, palette changes during play, arcade title presentation, original
   remaining music event priorities and original sound effects are incomplete. The native YM2612 player supports 25 FM tracks, with round, boss, shop, clear, ending and game-over routing; PSG effects are still placeholders.
-- NTSC performance is not consistently 60 Hz. See per-round cadence in `reports/runtime-tests.json`.
-  PAL has a 60-tick accumulator but has not been verified in the emulator.
+- v19 restores horizontal map wraparound: movement, camera, terrain, and nearby
+  actor spawns continue across either edge. The reported level 2, 3 and 4 joins
+  are covered by runtime checks. The Yashichi cursor now uses stronger reds.
+- v18 adds the supplied Yashichi selection marker throughout Home menus. Debug
+  lists all eight levels directly below its four switches; A or Start launches
+  the selected level immediately. All four switches still default ON. The level-2
+  shopkeeper now stands above the ice platform and can be rescued normally.
+- v17 retains v16's graphics scheduling improvements and full scenery. Home uses
+  two columns: Play / Boss Rush on the left, Options / Debug on the right. All menu
+  and footer fonts are restored to their original size. Home Play starts normally
+  from level one; levels are listed directly in Debug alongside independent
+  invincibility, infinite-lives, infinite-time and live framerate switches (all default ON).
+  Normal Play and Boss Rush never inherit Debug effects. The launcher opens a
+  960×720 window without automatically loading saved states. The SEGA chant remains.
+  Rendering is still not uniformly 60 Hz; see `docs/performance.md`. PAL is unverified.
 - No complete natural playthrough or real-console test has passed. Tests that inject state explicitly
   prove only the subsystem or round-entry path under test.
 

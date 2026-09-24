@@ -7,10 +7,15 @@ roster=[(4,0x9eb1),(4,0x9f16),(3,0x8000),(1,0x9fc4),(1,0x98a3),(3,0x991d),(1,0x9
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);cases=[]
 def tap(mask):r.run(12,mask);r.run(12)
 def walk(mask,travel=512):
- previous=state(r).cam_x;scrolled=0
+ previous=state(r).cam_x;previous_tick=state(r).frame;scrolled=0
  for _ in range(640):
   r.run(1,mask);s=state(r);delta=abs(s.cam_x-previous)
-  assert delta<=2,('camera jump',previous,s.cam_x)
+  ticks=(s.frame-previous_tick)&65535
+  # Catch-up retains the original two pixels per simulation tick. Sampling
+  # RAM can straddle an in-flight tick: game.frame changes at entry,
+  # while cam_x changes at exit. Allow that one additional completed step.
+  assert ticks<=3 and delta<=2*(ticks+1),('camera jump',previous,s.cam_x,ticks)
+  previous_tick=s.frame
   scrolled+=delta;previous=s.cam_x
   if (mask==128 and s.p.x//256>=1312) or (mask==64 and s.p.x//256<=576):break
   for a in s.actors:

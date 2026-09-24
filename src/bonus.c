@@ -31,7 +31,7 @@ void bonus_destination(u8 round,u8 entered,u16 *x,u16 *y,u16 *sx,u16 *sy) {
 u8 bonus_contact(void) {
  const BonusRound *r=&bonus_rounds[game.round];u8 i;
  if(!bonus_gate(player_motion.jumping,player_motion.falling,player_motion.camera_return))return 0;
- for(i=0;i<r->trigger_count;i++)if(!(bonus_consumed&(1<<i)) && player_contact(r->triggers[i].x,r->triggers[i].y,6,6)){
+ for(i=0;i<r->trigger_count;i++)if(!(bonus_consumed&(1<<i)) && player_contact(world_near_x(r->triggers[i].x),world_near_y(r->triggers[i].y),6,6)){
   bonus_consumed|=1<<i;return 1;
  }
  return 0;

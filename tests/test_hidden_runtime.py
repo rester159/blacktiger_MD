@@ -9,6 +9,7 @@ rom=(ROOT/'out/release/rom.bin').read_bytes()
 def enter(r,level):
  s=state(r);s.round=level;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(60)
 def place(r,level,row,x,y):
+ s=state(r);s.mode=2;put(r,s);r.run(20)
  s=state(r);s.mode=1;s.p.x=max(0,x-64)*256;s.p.y=(y-8)*256;s.p.vx=s.p.vy=0;s.p.hp=1;s.p.armor=2;s.p.lives=3;s.p.invincible=10000;s.coins=123;s.score=0;s.time=120;s.clock=0
  # At the left edge, stand on the right side to avoid collecting the reward.
  if x<64:s.p.x=(x+64)*256
@@ -29,16 +30,18 @@ def place(r,level,row,x,y):
    s.mode=1;put(r,s);return slot
  raise AssertionError(('wall did not spawn',level,row))
 def vram_patch(r,level,patch):
- s=state(r);v=(C.c_uint8*65536).in_dll(r.lib,'vram');patterns=(ROOT/(f'res/generated/backdrop_bg{level}.bin' if level in (3,5,6) else f'res/generated/bg{level}.bin')).read_bytes()
+ s=state(r);v=(C.c_uint8*65536).in_dll(r.lib,'vram');patterns=(ROOT/(f'res/generated/backdrop_bg{level}.bin' if level in (3,4,6) else f'res/generated/bg{level}.bin')).read_bytes()
  remap=None
- if level in (3,5,6):
+ if level in (3,4,6):
   data=(ROOT/f'res/generated/backdrop_remap{level}.bin').read_bytes();n=len(data)//4;remap=struct.unpack('>'+str(n*2)+'H',data)
  start=r.symbols[f'open_tile{level}'];words=struct.unpack_from('>4H',rom,start)
  checked=0
  for dy in range(4):
   for dx in range(2):
    x=patch['x']//8+dx;y=patch['y']//8+dy
-   if not(s.cam_x//8<=x<s.cam_x//8+33 and s.cam_y//8<=y<s.cam_y//8+29):continue
+   camera_x=((s.cam_x+32768)%65536-32768)//8
+   view_x=camera_x+(x-camera_x)%(metadata['rounds'][level]['width']//8)
+   if not(camera_x<=view_x<camera_x+33 and s.cam_y//8<=y<s.cam_y//8+29):continue
    at=0xe000+((y&31)*64+(x&63))*2;actual=(v[at^1]<<8)|v[(at+1)^1];expected=words[(dy%2)*2+dx]
    if remap is not None:expected=(expected&0xf800)|0x8000|remap[((expected>>13)&1)*n+(expected&2047)]
    assert actual&0xf800==expected&0xf800,('patch attributes',level,patch,x,y)
@@ -47,7 +50,10 @@ def vram_patch(r,level,patch):
    checked+=1
  assert checked==8,('patch outside verification view',checked)
 def fire(r,slot):
- s=state(r);initial_frame=s.frame;a=s.actors[slot];a.hit=0
+ # A refresh can stop midway through actor_step. Finish that tick while paused
+ # before clearing its hit cooldown and injecting the next independent shot.
+ s=state(r);s.mode=2;put(r,s);r.run(20)
+ s=state(r);s.mode=1;initial_frame=s.frame;a=s.actors[slot];a.hit=0
  q=s.shots[0];q.active=1;q.enemy=0;q.life=40;q.damage=1;q.kind=0;q.vx=q.vy=0;q.x=a.x+8*256;q.y=a.y+8*256
  put(r,s)
  for _ in range(12):
@@ -66,22 +72,26 @@ def run():
    before=(state(r).actors[slot].x,state(r).actors[slot].y)
    for damage in range(1,6):
     s=fire(r,slot)
-    assert (s.actors[slot].x,s.actors[slot].y)==before,('closed wall moved',level,row)
+    # The fifth hit reveals a moving reward; a catch-up tick may already
+    # advance that animation before the next video-frame observation.
+    if damage<5:assert (s.actors[slot].x,s.actors[slot].y)==before,('closed wall moved',level,row)
     assert bool(r.read('world_opened',1)[0]&(1<<patch_index))==(damage==5)
     if damage<5:assert s.actors[slot].hp==5-damage
    r.run(5);vram_patch(r,level,patch)
    if len(results)==0:r.capture('hidden-open.png')
    kind=(metadata['actor_definitions'][d]['address']-0xb7da)//23
    # Move away and back while preserving the open terrain and uncollected item.
-   s=state(r);s.actors[slot].active=0;s.spawned[row]=0;put(r,s)
+   s=state(r);s.mode=2;put(r,s);r.run(20)
+   s=state(r);s.mode=1;s.actors[slot].active=0;s.spawned[row]=0;put(r,s)
    for _ in range(12):
     r.run(1);s=state(r)
     found=[i for i,a in enumerate(s.actors) if a.active and a.source==row]
     if found:slot=found[0];break
    assert s.actors[slot].state==1,('closed wall respawned',level,row)
-   r.run(5);s=state(r);a=s.actors[slot];s.p.x=a.x;s.p.y=a.y;s.p.vx=s.p.vy=0;s.p.invincible=10000;s.clock=0
+   s=state(r);s.mode=2;put(r,s);r.run(20)
+   s=state(r);s.mode=1;a=s.actors[slot];s.p.x=a.x;s.p.y=a.y;s.p.vx=s.p.vy=0;s.p.invincible=10000;s.clock=0
    baseline=(s.p.lives,s.p.armor,s.p.hp,s.time,s.coins,s.score);put(r,s)
-   for _ in range(12):
+   for _ in range(120):
     r.run(1);s=state(r)
     if s.spawned[row]==2:break
    assert s.spawned[row]==2,('reward not collected',level,row,kind)

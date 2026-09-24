@@ -17,7 +17,7 @@ u8 eruption_contact(u16 slot){return eruptions[slot].contact;}
 void eruption_step(u16 slot){
  EruptionState *s=&eruptions[slot];Actor *a=&game.actors[slot];
  for(;;){
-  if(animation_tick(&s->animation,clip(slot)))return;
+  if(animation_step(&s->animation,clip(slot)))return;
   if(s->segment==2){a->active=0;game.spawned[a->source]^=1;return;}
   s->contact=s->segment==0;if(s->contact)game.sound=SND_ATTACK;
   s->segment++;animation_reset(&s->animation);

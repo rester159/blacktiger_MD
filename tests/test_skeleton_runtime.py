@@ -33,9 +33,11 @@ def fixture(r,variant,bank=0,constructor=None,approach=96,wait_frames=100,vertic
    else:raise AssertionError('camera load stuck')
    return slot,row,level
  raise AssertionError(('source skeleton did not spawn',variant))
-def fire(r,slot,damage,face):
+def fire(r,slot,damage,face,kind=0):
+ # Quiesce any in-flight gameplay tick before installing a collision fixture.
+ s=state(r);s.mode=2;put(r,s);r.run(20)
  s=state(r);a=s.actors[slot];s.mode=1;s.p.face=face;s.p.invincible=10000;s.clock=0
- q=s.shots[0];q.active=1;q.enemy=0;q.life=30;q.damage=damage;q.kind=0;q.vx=q.vy=0;q.x=a.x+16*256;q.y=a.y+16*256
+ q=s.shots[0];q.active=1;q.enemy=0;q.life=30;q.damage=damage;q.kind=kind;q.vx=q.vy=0;q.x=a.x+16*256;q.y=a.y+16*256
  start=s.frame;put(r,s)
  # Facing now belongs to the shared native input/controller state.
  r.write("player_motion",25,bytes((face*4,face*4)))

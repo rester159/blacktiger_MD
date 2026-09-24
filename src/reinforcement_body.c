@@ -48,7 +48,7 @@ static u8 launch(Actor *a,ReinforcementState *s,u8 left){
  for(j=0;j<6;j++){ReinforcementShot *p=&reinforcement_shots[i+j];animation_reset(&p->animation);p->active=1;reinforcement_shots_occupied=1;p->part=j+(left?0:6);p->x=PX(a->x)+(left?-13:29);p->y=PX(a->y)+(s->low?8:0);}
  game.sound=SND_ATTACK;return 1;
 }
-void reinforcement_body_step(u16 slot){
+__attribute__((noinline)) static void reinforcement_body_transition(u16 slot){
  Actor *a=&game.actors[slot];ReinforcementState *s=&fighters[slot];u16 tries;
  if(s->pending){u8 damage=s->pending;s->pending=0;game.sound=SND_HIT;
   if(a->hp>damage){a->hp-=damage;a->state=0;s->mode=8;select_segment(s,choose(a,s));}
@@ -57,7 +57,7 @@ void reinforcement_body_step(u16 slot){
  }
  for(tries=0;tries<8;tries++){
   const AnimSegment *seg=&reinforcement_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;}
+  if(animation_step(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;}
   switch(seg->event){
   case 0:s->mode=8;
   case 1:target=choose(a,s);break;
@@ -79,7 +79,16 @@ void reinforcement_body_step(u16 slot){
  }
 }
 const AnimFrame *reinforcement_body_frame(u16 slot){ReinforcementState *s=&fighters[slot];return s->animation.remaining?animation_current(&s->animation,reinforcement_segments[s->segment].clip):0;}
-u8 reinforcement_shots_step(void){u8 occupied=0;u16 i;for(i=0;i<24;i++){ReinforcementShot *p=&reinforcement_shots[i];if(!p->active)continue;occupied=1;if(!animation_tick(&p->animation,reinforcement_clips[p->part])){p->active=0;continue;}p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;continue;}p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;}reinforcement_shots_occupied=occupied;return occupied;
+u8 reinforcement_shots_step(void){u8 occupied=0;u16 i;for(i=0;i<24;i++){ReinforcementShot *p=&reinforcement_shots[i];if(!p->active)continue;occupied=1;if(!animation_step(&p->animation,reinforcement_clips[p->part])){p->active=0;continue;}p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;continue;}p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;}reinforcement_shots_occupied=occupied;return occupied;
 }
 u8 reinforcement_shot_contact(u16 slot){ReinforcementShot *p=&reinforcement_shots[slot];return p->active && p->part%6==2 && !(game.frame&1) && player_contact(p->x,p->y,40,4);}
 const AnimFrame *reinforcement_shot_frame(u16 slot){ReinforcementShot *p=&reinforcement_shots[slot];return p->active && p->animation.remaining?animation_current(&p->animation,reinforcement_clips[p->part]):0;}
+
+/* Keep ordinary held-frame motion outside the transition interpreter. */
+void reinforcement_body_step(u16 slot) {
+ ReinforcementState *s=&fighters[slot];
+ if(!s->pending && animation_hold_step(&s->animation,reinforcement_segments[s->segment].clip)){
+  Actor *a=&game.actors[slot];a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;
+ }
+ reinforcement_body_transition(slot);
+}

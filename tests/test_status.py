@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];ref=json.loads((ROOT/'reference/status_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/status_oracle_events.txt'),('lua_sha256','tools/status_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
 with tempfile.TemporaryDirectory() as folder:
- tmp=Path(folder);(tmp/'genesis.h').write_text('');(tmp/'stub.c').write_text('#include "status.h"\nu8 shop_antidotes,shop_poison;\nvoid setup(int gate,int reverse,int antidotes,int poison){status_gate=gate;status_reverse=reverse;shop_antidotes=antidotes;shop_poison=poison;}')
+ tmp=Path(folder);(tmp/'genesis.h').write_text('');(tmp/'stub.c').write_text('#include "status.h"\nu8 shop_antidotes,shop_poison; Game game;\nvoid exploration(int enabled){game.p.exploration=enabled;}\nvoid setup(int gate,int reverse,int antidotes,int poison){status_gate=gate;status_reverse=reverse;shop_antidotes=antidotes;shop_poison=poison;}')
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/status.c'),str(tmp/'stub.c'),'-o',str(tmp/'s.dylib')],check=True)
  lib=C.CDLL(str(tmp/'s.dylib'));count=0
  for line in (ROOT/'reference/status_oracle_events.txt').read_text().splitlines():
@@ -31,5 +31,17 @@ with tempfile.TemporaryDirectory() as folder:
   # does not yet port those action-table states. Keep that gap explicit.
   if at!=5:assert reverse[at*2+1]==normal[swapped*2+1]
   else:assert reverse[11]==4 and normal[13]==3
- report={'passed':True,'source_contact_and_timer_cases':count,'control_masks':128,'scope':'Poison-contact application and reverse-control toggle, shared gate, automatic antidote consumption, status-effect phase before ordinary poison-contact damage and source horizontal movement-table equivalence. The source diagonal posture dispatch at input 5, full poison lifecycle and palette-task presentation remain unported.'}
+ # Exploration must block both status dispatches before consuming antidotes.
+ lib.exploration(1)
+ for antidotes in (0,1):
+  lib.setup(0,0,antidotes,0)
+  lib.status_poison_contact()
+  assert C.c_uint8.in_dll(lib,'shop_poison').value==0,'exploration poison immunity'
+  assert lib.status_poison_cloud_contact()==0
+  lib.status_reverse_contact()
+  assert C.c_uint8.in_dll(lib,'status_reverse').value==0,'exploration reversal immunity'
+  assert C.c_uint8.in_dll(lib,'shop_antidotes').value==antidotes
+  assert C.c_uint8.in_dll(lib,'status_gate').value==0
+ lib.exploration(0)
+ report={'passed':True,'source_contact_and_timer_cases':count,'control_masks':128,'exploration_status_immunity':True,'scope':'Poison-contact application and reverse-control toggle, shared gate, automatic antidote consumption, status-effect phase before ordinary poison-contact damage and source horizontal movement-table equivalence. The source diagonal posture dispatch at input 5, full poison lifecycle and palette-task presentation remain unported.'}
  (ROOT/'reports/status-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

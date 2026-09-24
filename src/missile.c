@@ -6,15 +6,15 @@ void missile_reset(void) {missiles_occupied=0;u16 i;for(i=0;i<MAX_MISSILES;i++)m
 u8 missile_spawn(s16 x,s16 y,const AnimClip *flight,const AnimClip *death,u8 damage,u8 width,u8 height,u8 health) {
  u16 i;for(i=0;i<MAX_MISSILES;i++)if(!missiles[i].active) {
   Missile *m=&missiles[i];animation_reset(&m->animation);m->clip=flight;m->death=death;
-  m->x=x;m->y=y;m->active=1;missiles_occupied=1;m->dying=0;m->damage=damage;m->width=width;m->height=height;m->health=health;return 1;
+  m->x=x;m->y=y;m->active=1;if(missiles_occupied<i+1)missiles_occupied=i+1;m->dying=0;m->damage=damage;m->width=width;m->height=height;m->health=health;return 1;
  }
  return 0;
 }
 u8 missile_tick(void) {
  u8 occupied=0;
- u16 i;for(i=0;i<MAX_MISSILES;i++) {
-  Missile *m=&missiles[i];if(!m->active)continue;occupied=1;
-  if(animation_tick(&m->animation,m->clip)) {
+ u16 i,end=missiles_occupied?missiles_occupied:MAX_MISSILES;for(i=0;i<end;i++) {
+  Missile *m=&missiles[i];if(!m->active)continue;occupied=i+1;
+  if(animation_step(&m->animation,m->clip)) {
    m->x+=m->animation.vx;
    if(!small_actor_axis_active(m->x-game.cam_x,0)){m->active=0;continue;}
    m->y+=m->animation.vy;
@@ -31,7 +31,7 @@ u8 missile_hit(u16 slot,u8 damage) {
 }
 u8 missile_hit_at(s16 x,s16 y,u8 damage,u8 kind) {
  u16 i;u8 width=kind?dagger_width:8,height=kind?dagger_height:4;
- if(kind && (game.frame&1))return 0;for(i=0;i<MAX_MISSILES;i++) {
+ if(kind && (game.frame&1))return 0;for(i=0;i<(missiles_occupied?missiles_occupied:MAX_MISSILES);i++) {
   Missile *m=&missiles[i];s16 dx=x-m->x,dy=y-m->y;
   /* Chain links use half-width 8; daggers use the source 4/2 box. */
   if(m->active && !m->dying && dx>=-(m->width+width) && dx<=m->width+width && dy>=-(m->height+height) && dy<=m->height+height)

@@ -59,7 +59,7 @@ u8 world_collision(u16 cell, u8 original) {
 void world_tick(void) {
     u8 i;
     for (i = 0; i < 6; i++)
-        if (effect_active[i] && !animation_tick(&effects[i], &hidden_explosion))
+        if (effect_active[i] && !animation_step(&effects[i], &hidden_explosion))
             effect_active[i] = 0;
 }
 const AnimFrame *world_effect(u16 patch) {
@@ -98,10 +98,11 @@ const AnimFrame *hidden_frame(u16 slot) {
 u8 hidden_step(u16 slot, u8 contact) {
     Actor *a = &game.actors[slot];
     AnimState *anim = &animations[slot];
-    u8 kind = hidden_kinds[a->def], p = patch_for(a->source);
+    u8 kind, p;
     if (!a->state)
         return 0;
-    if (!animation_tick(anim, a->state == 2 ? &hidden_life_collected : hidden_clips[kind])) {
+    kind=hidden_kinds[a->def];
+    if (!animation_step(anim, a->state == 2 ? &hidden_life_collected : hidden_clips[kind])) {
         a->active = 0;
         return 0;
     }
@@ -109,6 +110,7 @@ u8 hidden_step(u16 slot, u8 contact) {
     a->y += (s16)anim->vy * FX;
     if (a->state != 1 || !contact)
         return 0;
+    p=patch_for(a->source);
     if (p != 255)
         taken |= 1 << p;
     game.spawned[a->source] = 2;

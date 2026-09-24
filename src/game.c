@@ -56,8 +56,9 @@ static void zero(void *p, u16 n) {
 u8 terrain(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
     if(boss_rush.active)return x<RUSH_X || x>=RUSH_X+RUSH_WIDTH || y<0 || y>=RUSH_FLOOR?3:0;
-    if (x < 0 || x >= r->width || y < 0)
-        return 3;
+    if (WORLD_WRAP_Y)y=(u16)y&(r->height-1);
+    else if (y < 0)return 3;
+    x=(u16)x&(r->width-1);
     if (y >= r->height)
         return 0;
     {
@@ -65,6 +66,21 @@ u8 terrain(s16 x, s16 y) {
         u8 value=bonus_collision(cell,r->collision[cell]);
         return world_opened ? world_collision(cell,value) : value;
     }
+}
+/* Keep nearby objects in the same continuous lap as the camera. Terrain
+   addresses wrap; actors and player motion need no teleport or state reset. */
+s16 world_near_x(s16 x) {
+    s16 center=(s16)(game.cam_x+128);u16 width=rounds[game.round].width;
+    if(boss_rush.active)return x;
+    return center+(s16)(((u16)(x-center)+width/2)&(width-1))-width/2;
+}
+s16 world_near_y(s16 y) {
+    s16 center=(s16)(game.cam_y+112);u16 height=rounds[game.round].height;
+    if(!WORLD_WRAP_Y)return y;
+    return center+(s16)(((u16)(y-center)+height/2)&(height-1))-height/2;
+}
+static s16 camera_y(s16 y) {
+    return WORLD_WRAP_Y?y:bound_axis(y,0,rounds[game.round].height-224);
 }
 static u8 support(s16 x, s16 y) {
     return terrain(x, y) >= 2;
@@ -125,11 +141,12 @@ void game_bonus_transition(void) {
  shop_poison=0;game.p.attack=0;
  player_motion.scroll_x=x;player_motion.scroll_y=y;
  game.p.x=(s32)(u16)(x+player_motion.screen_x)*FX;
- game.p.y=(s32)(u16)(y+player_motion.screen_y)*FX;
- game.cam_x=bound_axis(PX(game.p.x)-112,0,rounds[game.round].width-256);
- game.cam_y=bound_axis(PX(game.p.y)-144,0,rounds[game.round].height-224);
+ game.p.y=(s32)(s16)(y+player_motion.screen_y)*FX;
+ game.cam_x=(u16)(PX(game.p.x)-112);
+ game.cam_y=camera_y(PX(game.p.y)-144);
 }
 void game_new(void) {
+    frontend.debug_active=0;
     ending_reset();boss_rush=(BossRush){0};
     restart_pending=0;loaded_round=255;
     zero(&game, sizeof game);
@@ -174,28 +191,11 @@ static void actor_hit(Actor *a, u8 damage) {
     const ActorDef *d = &actor_defs[a->def];
     if (a->hit || !a->active || d->kind == CHEST || d->kind == CAPTIVE || d->kind == PICKUP || d->kind == HAZARD)
         return;
-    if (edge_spawn_kinds[a->def]){edge_actor_hit(a-game.actors,damage);return;}
-    if (reinforcement_kinds[a->def]){reinforcement_body_hit(a-game.actors,damage);return;}
-    if (flailer_kinds[a->def]){flailer_hit(a-game.actors,damage);return;}
-    if (dragon_kinds[a->def]){dragon_hit(a-game.actors,damage);return;}
-    if (waveboss_kinds[a->def]){waveboss_hit(a-game.actors,damage);return;}
-    if (eruption_kinds[a->def])return;
-    if (teleporter_kinds[a->def]){teleporter_hit(a-game.actors,damage);return;}
-    if (hunter_kinds[a->def]){hunter_hit(a-game.actors,damage);return;}
-    if (crawler_kinds[a->def]){crawler_hit(a-game.actors,damage);return;}
-    if (statue_kinds[a->def]){statue_hit(a-game.actors,damage);return;}
-    if (pair_hit(a-game.actors,damage)) return;
-    if (boulder_hit(a-game.actors,damage)) return;
-    if (boss_hit(a-game.actors,damage)) return;
-    if (zombie_hit(a-game.actors,damage)) return;
-    if (wisp_hit(a - game.actors))
-        return;
-    if (emerge_hit(a - game.actors, damage))
-        return;
-    if (sentry_hit(a - game.actors, damage))
-        return;
-    if (skeleton_hit(a - game.actors, damage))
-        return;
+    /* Constructor families are disjoint. Matching native damage handlers
+       consume the hit; no other family's handler needs to be probed. */
+    if(actor_damage_routes[a->def]){
+        actor_damage_routes[a->def](a-game.actors,damage);return;
+    }
     if (d->kind == HIDDEN_WALL && a->state)
         return;
     a->hit = 10;
@@ -219,37 +219,58 @@ static void actor_hit(Actor *a, u8 damage) {
         game_boss_clear();
     }
 }
-/* Ordinary scenes need one actor scan, not one full scan per boss family. */
-static u8 any_boss(u8 locked) {
-    u16 i;
-    for(i=0;i<MAX_ACTORS;i++) {
-        const Actor *a=&game.actors[i];
-        if(!a->active)continue;
-        if(layered_boss_kinds[a->def]) {
-            if(locked?boss_locked():boss_present())return 1;
-        } else if(hunter_kinds[a->def]==2 || waveboss_kinds[a->def] || dragon_kinds[a->def]) {
-            if(!locked || a->state==2)return 1;
-        }
+/* Boss state is stable from the input lock through the spawn phase: actor
+   updates and weapon hits run afterwards. Share one scan for both decisions. */
+static u8 boss_flags(void) {
+    const Actor *a=game.actors,*end=game.actors+MAX_ACTORS;
+    u8 flags=0,layered=0;
+    for(;a!=end;a++) {
+        u8 kind;
+        if(!a->active || !(kind=actor_boss_class[a->def]))continue;
+        if(kind==2)layered=1;
+        else {flags|=1;if(a->state==2)flags|=2;}
     }
-    return 0;
+    if(layered){if(boss_present())flags|=1;if(boss_locked())flags|=2;}
+    return flags;
 }
-static void spawn_actors(void) {
+static u16 spawn_lower_bound(const Round *r,u16 x) {
+    u16 lo=0,hi=r->spawn_count;
+    while(lo<hi){u16 mid=(lo+hi)>>1;if(r->spawns[mid].x<x)lo=mid+1;else hi=mid;}
+    return lo;
+}
+static void spawn_actors(u8 bosses) {
     const Round *r = &rounds[game.round];
-    u16 i, j, lo=0, hi=r->spawn_count;
-    s16 left=(s16)game.cam_x-48,right=(s16)game.cam_x+304;
-    if(boss_rush.active || any_boss(0))return;
+    u16 i,j,lo=0,gap=0,resume=0;
+    u16 camera=game.cam_x&(r->width-1);
+    s16 left=(s16)camera-48,right=(s16)camera+304;
+    u8 seam=left<0 || right>=r->width;
+    s16 lap=(s16)game.cam_x-(s16)camera;
+    if(boss_rush.active || (bosses&1))return;
     /* Source rows are sorted by X. Keep the original four-frame phase and
        source order, but skip rows outside the activation strip altogether. */
-    while(lo<hi){u16 mid=(lo+hi)>>1;if((s16)r->spawns[mid].x<left)lo=mid+1;else hi=mid;}
+    if(!seam)lo=spawn_lower_bound(r,left);
+    else {
+        /* A wrapped activation strip is two sorted ranges, not the full map.
+           Keep original source-row order and the four-tick spawn phase. */
+        gap=left<0?right+1:right-r->width+1;
+        resume=spawn_lower_bound(r,left<0?r->width+left:left);
+        resume+=((game.frame&3)-(resume&3))&3;
+    }
     i=lo+(((game.frame&3)-(lo&3))&3);
     for (; i < r->spawn_count; i += 4) {
         const Spawn *s = &r->spawns[i];
         s16 sx=s->x,sy=s->y;
-        if(sx>right)break;
+        if(seam && sx>=gap && i<resume){i=resume;if(i>=r->spawn_count)break;s=&r->spawns[i];sx=s->x;sy=s->y;}
+        /* Source lists include an out-of-map dormant row. Only valid map
+           placements may be projected into the camera's wrapped lap. */
+        if(s->x>=r->width || s->y>=r->height)continue;
+        if(!seam && (s16)s->x>right)break;
         if (game.spawned[i] && !eruption_kinds[s->def] && !(game.spawned[i]==1 && zombie_kinds[s->def]))
             continue;
-        if (absolute((s16)s->x - (s16)game.cam_x - 128) > 176 ||
-            absolute((s16)s->y - (s16)game.cam_y - 112) > 152)
+        sx=seam?world_near_x(sx):sx+lap;
+        sy=world_near_y(sy);
+        if (absolute(sx - (s16)game.cam_x - 128) > 176 ||
+            absolute(sy - (s16)game.cam_y - 112) > 152)
             continue;
         if (zombie_kinds[s->def] && !zombie_prepare_variant(i,zombie_kinds[s->def]-1,&sx,&sy)) continue;
         if (!emerge_spawn_ready(i))
@@ -276,7 +297,7 @@ static void spawn_actors(void) {
                 a->hp = actor_defs[s->def].hp;
                 a->x = sx * FX;
                 a->y = sy * FX;
-                a->face = PX(game.p.x) < (edge_spawn_kinds[s->def]?sx:s->x) ? -1 : 1;
+                a->face = PX(game.p.x) < sx ? -1 : 1;
                 a->timer = i * 7;
                 if(actor_defs[a->def].kind==CHEST)container_spawn(j);
                 boss_spawn(j);
@@ -322,6 +343,15 @@ static void player_step(u16 in, u16 pressed) {
     if(in&IN_JUMP)raw|=32;
     if(in&IN_ATTACK)raw|=16;
     player_motion_frame=game.frame;
+    /* Only the rightward takeoff from the first Level 7 step-up ledge.
+     * Normalize X so the same physical ledge works across horizontal laps. */
+    {
+        u16 ledge_x=(u16)PX(p->x)&2047;
+        player_motion_jump_assist=frontend.mode && frontend.level7_jump_assist &&
+            game.round==6 && !boss_rush.active && ledge_x>=232 && ledge_x<=272 &&
+            PX(p->y)==288 && !player_motion.jumping && !player_motion.falling &&
+            !player_motion.ladder && (raw&32) && (raw&3)==(status_reverse?2:1);
+    }
     player_control_step(&player_motion,&player_attack,raw,status_reverse,p->weapon-1);
     if(player_attack.active)player_attack.damage=player_attack_damage(p->weapon);
     {u8 i;for(i=0;i<player_motion_sound_count;++i)game_sound(player_motion_sounds[i]);}
@@ -336,13 +366,17 @@ static void player_step(u16 in, u16 pressed) {
     game.player_low=player_motion.low && !player_motion.jumping;
     if(p->invincible)--p->invincible;
     p->attack=player_attack.active;
-    p->x=bound_axis(PX(p->x),boss_rush.active?RUSH_X:0,boss_rush.active?RUSH_X+RUSH_WIDTH-32:rounds[game.round].width-32)*FX;
+    if(boss_rush.active)p->x=bound_axis(PX(p->x),RUSH_X,RUSH_X+RUSH_WIDTH-32)*FX;
     if(player_attack.launch && !shop_poison) {
         player_daggers_launch(PX(p->x),PX(p->y),(player_attack.selector+1)&4,player_motion.low);
         player_attack.launch=0;
     }
     player_daggers_step();
-    if (PX(p->y) > rounds[game.round].height + 32) {
+    if (!WORLD_WRAP_Y && PX(p->y) > rounds[game.round].height + 32) {
+        if(p->exploration){
+            /* Recover from a bottomless fall without consuming a life. */
+            restart_pending=1;game_round(game.round);restart_pending=0;return;
+        }
         p->invincible = 0;
         p->hp = 1;
         p->armor = 0;
@@ -373,11 +407,11 @@ static void screen_attack(void) {
         else actor_hit(a, 200);
     }
 }
-static void actor_step(u16 i, u16 pressed) {
+__attribute__((noinline)) static void actor_step_fallback(u16 i) {
     Actor *a = &game.actors[i];
     const ActorDef *d = &actor_defs[a->def];
     Player *p = &game.p;
-    s16 x = PX(a->x), y = PX(a->y), dx, dy;
+    s16 x, y, dx, dy;
     u8 close;
     if (a->hit)
         --a->hit;
@@ -392,7 +426,11 @@ static void actor_step(u16 i, u16 pressed) {
         if(a->active && pair_vulnerable(i) && !(game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    if(dragon_kinds[a->def]){dragon_step(i,dragon_projectile_spawn);if(a->active && dragon_player_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));return;}
+    if(dragon_kinds[a->def]){dragon_step(i,dragon_projectile_spawn);
+        /* The final dragon's 64-pixel body must stay above the palace floor.
+           Its source steering uses viewport Y, which follows the player here. */
+        if(game.round==7 && !boss_rush.active && a->active && a->state!=2 && a->y>192*FX && terrain(PX(a->x)+64,256)>=2){a->y=192*FX;a->vy=0;}
+        if(a->active && dragon_player_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));return;}
     /* These families integrate source edge checks themselves, including the
        dynamic suppression flag. Do not preempt them with the broad fallback. */
     switch(actor_dispatch[a->def].behavior) {
@@ -400,6 +438,7 @@ static void actor_step(u16 i, u16 pressed) {
     case BEHAVIOR_TELEPORTER:case BEHAVIOR_HUNTER:case BEHAVIOR_CRAWLER:
     case BEHAVIOR_WISP:break;
     default:
+        x=PX(a->x);y=PX(a->y);
         if(!boss_rush.active && skeleton_kinds[a->def]==255 &&
            (absolute(x-(s16)game.cam_x-128)>352 || absolute(y-(s16)game.cam_y-112)>300)) {
             game.spawned[a->source]&=254;a->active=0;return;
@@ -444,13 +483,6 @@ static void actor_step(u16 i, u16 pressed) {
         if(a->active && hunter_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
-    case BEHAVIOR_CRAWLER: {
-        crawler_step(i);
-        if(a->active && crawler_contact(i) && !(game.frame&1) && actor_contact(i)) {
-            if(crawler_kinds[a->def]!=3 || status_poison_cloud_contact())player_hurt_from(actor_damage[a->def],PX(a->x));
-        }
-        return;
-    }
     case BEHAVIOR_STATUE: {
         statue_step(i);
         if(a->active && statue_contact(i) && (game.frame&1) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
@@ -466,16 +498,6 @@ static void actor_step(u16 i, u16 pressed) {
         if (!a->state && (!boss_vulnerable(i) || (game.frame&1)) && actor_contact(i)) player_hurt_from(boss_contact_damage(i),PX(a->x));
         return;
     }
-    case BEHAVIOR_ZOMBIE: {
-        zombie_step(i);
-        if ((game.frame&1) && zombie_vulnerable(i) && actor_contact(i)) player_hurt_from(actor_damage[a->def],PX(a->x));
-        return;
-    }
-    case BEHAVIOR_WISP: {
-        wisp_step(i);
-        if (a->active && (game.frame & 1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12)) player_hurt_from(actor_damage[a->def],PX(a->x));
-        return;
-    }
     case BEHAVIOR_EMERGE: {
         if (emerge_step(i)) player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
@@ -486,9 +508,22 @@ static void actor_step(u16 i, u16 pressed) {
     }
     default:break;
     }
+    x=PX(a->x);y=PX(a->y);
+    if (d->kind == HIDDEN_WALL) {
+        if(!a->state)return;
+        dx=PX(p->x)-x;dy=PX(p->y)-y;
+        if (hidden_step(i, absolute(dx) < 24 && absolute(dy) < 30))
+            screen_attack();
+        return;
+    }
+    if (pickup_kinds[a->def]) {
+        if (pickup_step(i)) screen_attack();
+        return;
+    }
     /* These families use pre-movement contact. Earlier native families perform
        their own contact checks after movement and need no duplicate query. */
-    close=actor_contact(i);dx=PX(p->x)-x;dy=PX(p->y)-y;
+    x=PX(a->x);y=PX(a->y);
+    close=actor_contact(i);
     if (sentry_kinds[a->def]) {
         sentry_step(i);
         if (a->active && !a->state && close) player_hurt_from(actor_damage[a->def],PX(a->x));
@@ -498,15 +533,6 @@ static void actor_step(u16 i, u16 pressed) {
         skeleton_step(i);
         if (a->active && !a->state && close)
             player_hurt_from(actor_damage[a->def],PX(a->x));
-        return;
-    }
-    if (d->kind == HIDDEN_WALL) {
-        if (hidden_step(i, absolute(dx) < 24 && absolute(dy) < 30))
-            screen_attack();
-        return;
-    }
-    if (pickup_kinds[a->def]) {
-        if (pickup_step(i)) screen_attack();
         return;
     }
     if (d->kind == CAPTIVE) {
@@ -521,6 +547,7 @@ static void actor_step(u16 i, u16 pressed) {
             player_hurt_from(actor_damage[a->def],PX(a->x));
         return;
     }
+    dx=PX(p->x)-x;dy=PX(p->y)-y;
     if (d->kind == FLYER) {
         a->vx = dx < 0 ? -256 : 256;
         a->vy = dy < 0 ? -128 : 128;
@@ -577,6 +604,62 @@ static void actor_step(u16 i, u16 pressed) {
     if (close)
         player_hurt_from(actor_damage[a->def],PX(a->x));
 }
+/* Common crowded-scene families avoid the large fallback dispatch prologue.
+   Their native motion, contact order, and retirement rules are unchanged. */
+__attribute__((noinline)) static void actor_common_step(u16 i) {
+    Actor *a=&game.actors[i];
+    u16 behavior=actor_dispatch[a->def].behavior;
+    if(a->hit)--a->hit;
+    a->timer++;
+    if(behavior==BEHAVIOR_WISP) {
+        wisp_step(i);
+        if(a->active && (game.frame&1) && player_contact(PX(a->x)+8,PX(a->y)+8,12,12))player_hurt_from(actor_damage[a->def],PX(a->x));
+    } else if(behavior==BEHAVIOR_CRAWLER) {
+        crawler_step(i);
+        if(a->active && crawler_contact(i) && !(game.frame&1) && actor_contact(i)) {
+            if(crawler_kinds[a->def]!=3 || status_poison_cloud_contact())player_hurt_from(actor_damage[a->def],PX(a->x));
+        }
+    } else {
+        if(!boss_rush.active && skeleton_kinds[a->def]==255 &&
+           (absolute(PX(a->x)-(s16)game.cam_x-128)>352 || absolute(PX(a->y)-(s16)game.cam_y-112)>300)) {
+            game.spawned[a->source]&=254;a->active=0;return;
+        }
+        zombie_step(i);
+        if((game.frame&1) && zombie_vulnerable(i) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
+    }
+}
+/* Dispatch before entering the register-heavy native family routines. In
+   particular, skeletons must not traverse the generic family's full prologue. */
+__attribute__((noinline)) static void actor_skeleton_step(u16 i) {
+    Actor *a=&game.actors[i];u8 close;
+    if(a->hit)--a->hit;
+    a->timer++;
+    close=actor_contact(i);
+    skeleton_step(i);
+    if(a->active && !a->state && close)player_hurt_from(actor_damage[a->def],PX(a->x));
+}
+/* Static world objects dominate crowded maps. Keep their small dispatch out
+   of the native-enemy fallback, while retaining retirement and contact order. */
+__attribute__((noinline)) static void actor_world_step(u16 i) {
+    Actor *a=&game.actors[i];
+    u8 kind=actor_defs[a->def].kind;
+    s16 x=PX(a->x),y=PX(a->y);
+    if(a->hit)--a->hit;
+    a->timer++;
+    if(!boss_rush.active &&
+       (absolute(x-(s16)game.cam_x-128)>352 || absolute(y-(s16)game.cam_y-112)>300)) {
+        game.spawned[a->source]&=254;a->active=0;return;
+    }
+    if(kind==HIDDEN_WALL) {
+        if(a->state && hidden_step(i,absolute(PX(game.p.x)-x)<24 && absolute(PX(game.p.y)-y)<30))screen_attack();
+    } else if(kind==CAPTIVE)npc_step(i,actor_contact(i));
+    else container_step(i,actor_contact(i));
+}
+static void actor_step(u16 i,u16 pressed) {
+    static void (*const updates[])(u16)={actor_step_fallback,actor_skeleton_step,actor_common_step,actor_world_step};
+    (void)pressed;
+    updates[actor_update_class[game.actors[i].def]](i);
+}
 static u8 weapon_target(u16 j) {
     ActorVulnerable check;
     if(!game.actors[j].active)return 0;
@@ -606,29 +689,54 @@ static u8 weapon_projectile(s16 x,s16 y,u8 damage,u8 dagger,u8 pools) {
         ((pools&16) && statue_shell_hit_at(x,y,dagger)) || ((pools&32) && missile_hit_at(x,y,damage,dagger));
 }
 static void player_weapons_contact(void) {
-    u16 i,j;u8 damage=player_attack.damage,pools;
+    u16 i,j,k,dagger_count=0;u8 dagger_slots[PLAYER_DAGGERS];
+    u8 damage=player_attack.damage,pools;
     s16 y=PX(game.p.y)+(player_motion.jumping || player_motion.ladder || !(player_motion.selector&3)?6:14);
     if(player_attack.hit)return;
-    if(!player_attack.count) {
-        for(i=0;i<PLAYER_DAGGERS && player_daggers[i].active!=1;i++);
-        if(i==PLAYER_DAGGERS)return;
-    }
+    for(i=0;i<PLAYER_DAGGERS;i++)if(player_daggers[i].active==1)dagger_slots[dagger_count++]=i;
+    if(!player_attack.count && !dagger_count)return;
     /* Each source actor checks every extended link, then the nine daggers. */
     for(j=0;j<MAX_ACTORS;j++) {
-        u8 chain_hit=0;
+        Actor *a=&game.actors[j];
+        u8 chain_hit=0,pool,fast,offset=0;
+        s16 ax=0,ay=0;u16 width=0,height=0;
+        if(!a->active || !actor_weapon_enabled[a->def])continue;
+        pool=actor_contact_pool[a->def];
+        fast=(pool==32 || pool==48) && !dragon_kinds[a->def] && !waveboss_kinds[a->def];
+        /* The native small/medium loaders share one actor rectangle. Decode it
+           once for all links/daggers, retaining source byte-coordinate wrapping
+           and alternating dagger parity. Boss-specific weak points stay native. */
+        if(fast) {
+            /* Without extended links, the other dagger parity cannot hit this
+               family. Skip its geometry and vulnerability dispatch entirely. */
+            if(!player_attack.count && (game.frame&1)!=(pool==48))continue;
+            ax=PX(a->x)-game.cam_x;ay=PX(a->y)-game.cam_y;
+            if((u16)ax>=256 || (pool==48 && (u16)ay>=256))continue;
+            offset=pool==48?8:0;ax=(u8)ax;ay=(u8)ay;
+            width=actor_contact_half_width[a->def];height=actor_contact_half_height[a->def];
+        }
         if(!weapon_target(j))continue;
         for(i=0;i<player_attack.count;i++) {
             s16 x=PX(game.p.x)+(((player_attack.selector+1)&4)?-16-16*i:32+16*i);
-            u8 contact=weapon_contact(j,x,y,0);
+            u8 contact;
+            if(fast) {
+                s16 dx=(u8)(x-game.cam_x-offset)-ax,dy=(u8)(y-game.cam_y-offset)-ay;
+                contact=((u16)(dx+width+8)<=2*(width+8) && (u16)(dy+height+4)<=2*(height+4))?2:0;
+            } else contact=weapon_contact(j,x,y,0);
             if(contact) {
                 if(contact==2)actor_hit(&game.actors[j],damage);
                 player_attack_hit(&player_attack);chain_hit=1;break;
             }
         }
-        for(i=0;i<PLAYER_DAGGERS;i++) {
-            PlayerDagger *p=&player_daggers[i];u8 contact;
+        if(!fast || (game.frame&1)==(pool==48))for(k=0;k<dagger_count;k++) {
+            PlayerDagger *p=&player_daggers[i=dagger_slots[k]];u8 contact;
             if(p->active!=1)continue;
-            contact=weapon_contact(j,p->x,p->y,1);
+            if(fast) {
+                s16 sx=p->x-game.cam_x,dx,dy;
+                if((u16)sx>=256)continue;
+                dx=(u8)(sx-offset)-ax;dy=(u8)(p->y-game.cam_y-offset)-ay;
+                contact=((u16)(dx+width+dagger_width)<=2*(width+dagger_width) && (u16)(dy+height+dagger_height)<=2*(height+dagger_height))?2:0;
+            } else contact=weapon_contact(j,p->x,p->y,1);
             if(contact) {
                 if(contact==2)actor_hit(&game.actors[j],damage>1?damage>>1:1);
                 player_dagger_hit(i,contact==1 || actor_dagger_effect[game.actors[j].def]);
@@ -731,7 +839,10 @@ static void shots_step(void) {
             }
     }
 }
-void game_tick(u16 input) {
+static void game_tick_step(u16 input) {
+    /* Debug protection follows the session, independently of mutable player
+       state. Ordinary Play and Boss Rush clear the debug session at startup. */
+    if(frontend.debug_active){game.p.exploration=frontend.debug_invincible;if(frontend.debug_zenny)game.coins=65535;}
     u16 pressed = input & ~game.previous_input;
     Player *p = &game.p;
     game.previous_input = input;
@@ -743,7 +854,7 @@ void game_tick(u16 input) {
         u8 start=frontend_step(pressed);
         if(start){
             game_new();game.previous_input=input;
-            if(start==2){boss_rush.active=1;progress_max_hp=4;game_round(7);game.previous_input=input;}else if(start==3){game_round(frontend.level);game.previous_input=input;}else intro_start();
+            if(start==2){boss_rush.active=1;progress_max_hp=4;game_round(7);game.previous_input=input;}else if(start==3){frontend.debug_active=1;game.p.exploration=frontend.debug_invincible;game_round(frontend.level);game.previous_input=input;}else intro_start();
         }
         return;
     }
@@ -782,7 +893,7 @@ void game_tick(u16 input) {
             --game.mode_timer;
         else {
             p->armor=progress_initial_armor;shop_poison=0;status_reverse=0;
-            if(p->lives)p->lives--;
+            if(p->lives && !(frontend.debug_active && frontend.debug_lives))p->lives--;
             if(p->lives) {restart_pending=1;game_round(game.round);restart_pending=0;}
             else {game.mode=GAMEOVER;game_over_start();}
         }
@@ -793,7 +904,7 @@ void game_tick(u16 input) {
             if(player_motion.jumping || player_motion.falling || player_motion.ladder) {
                 player_step(player_motion.ladder?IN_DOWN:0,0);
                 game.cam_x=bound_axis(PX(p->x)-112,0,rounds[game.round].width-256);
-                game.cam_y=bound_axis(PX(p->y)-144,0,rounds[game.round].height-224);
+                game.cam_y=camera_y(PX(p->y)-144);
                 return;
             }
             round_clear_start();
@@ -831,11 +942,12 @@ void game_tick(u16 input) {
         return;
     }
     world_tick();
-    if (any_boss(1)) input=pressed=0;
+    u8 bosses=boss_flags();
+    if (bosses&2) input=pressed=0;
     player_step(input, pressed);
     if (game.mode != PLAY)
         return;
-    loot_tick();
+    if(loot_active_end)loot_tick();
     {
     u8 moving_missiles=(missiles_occupied?missile_tick():0);
     u8 shells=(shell_pools_occupied[0]?statue_shell_tick():0);shells|=(shell_pools_occupied[1]?hunter_shell_tick():0);
@@ -855,11 +967,11 @@ void game_tick(u16 input) {
     if(dragons){u16 i;for(i=0;i<24;i++)if(dragon_shots[i].active && dragon_shot_contact(i))player_hurt_from(1,dragon_shots[i].x);}
     if(edges){u16 i;for(i=0;i<24;i++){u8 damage;if(!edge_shots[i].active)continue;damage=edge_shot_contact(i);if(damage)player_hurt_from(damage,edge_shots[i].x);}}
     if(reinforcements){u16 i;for(i=0;i<24;i++)if(reinforcement_shots[i].active && reinforcement_shot_contact(i))player_hurt_from(1,reinforcement_shots[i].x);}
-    if(flailers){u16 i;for(i=0;i<MAX_ACTORS;i++){u8 contact;if(!flailer_weapons[i].active)continue;contact=flailer_weapon_contact(i);if(contact==1)player_hurt_from(1,flailer_weapons[i].x);else if(contact==2 && status_poison_cloud_contact())player_hurt_from(2,flailer_weapons[i].x);}}
+    if(flailers){u16 i;for(i=0;i<flailers;i++){u8 contact;if(!flailer_weapons[i].active)continue;contact=flailer_weapon_contact(i);if(contact==1)player_hurt_from(1,flailer_weapons[i].x);else if(contact==2 && status_poison_cloud_contact())player_hurt_from(2,flailer_weapons[i].x);}}
     if(traps){u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact;if(!container_traps[i].active)continue;contact=container_trap_contact(i);if(contact==1)player_hurt_from(1,container_traps[i].x);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
     }
     if(moving_missiles){
-        u16 i;for(i=0;i<MAX_MISSILES;i++) {
+        u16 i;for(i=0;i<moving_missiles;i++) {
             Missile *m=&missiles[i];
             if(m->active && missile_player_contact(i))player_hurt_from(m->damage,m->x);
         }
@@ -875,7 +987,7 @@ void game_tick(u16 input) {
     if (game.mode != PLAY)
         return;
     if(!boss_rush.active && bonus_contact()){game_bonus_transition();return;}
-    spawn_actors();
+    spawn_actors(bosses);
     {
         u16 i;
         for (i = 0; i < MAX_ACTORS; i++) {
@@ -884,23 +996,29 @@ void game_tick(u16 input) {
                     s32 previous_x=game.actors[i].x;
                     actor_step(i,pressed);boss_rush_actor_bounds(&game.actors[i],previous_x);
                 }else actor_step(i,pressed);
+                if (game.mode != PLAY)
+                    return;
             }
-            if (game.mode != PLAY)
-                return;
         }
     }
     player_weapons_contact();
     shots_step();
-    if (++game.clock == 60) {
+    if (!(frontend.debug_active && frontend.debug_time) && ++game.clock == 60) {
         game.clock = 0;
         if (game.time)
             game.time--;
-        else {
+        else if(!p->exploration) {
             p->hp = 1;
             armor_break_start();p->invincible = 0;
             player_hurt(1);
         }
     }
-    game.cam_x = boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):bound_axis(PX(p->x) - 112, 0, rounds[game.round].width - 256);
-    game.cam_y = boss_rush.active?RUSH_Y:bound_axis(PX(p->y) - 144, 0, rounds[game.round].height - 224);
+    game.cam_x = boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):(u16)(PX(p->x)-112);
+    game.cam_y = boss_rush.active?RUSH_Y:camera_y(PX(p->y)-144);
+}
+
+void game_tick(u16 input){
+ game_tick_step(input);
+ /* Rewards and purchases cannot wrap or deplete the Debug balance. */
+ if(frontend.debug_active && frontend.debug_zenny)game.coins=65535;
 }

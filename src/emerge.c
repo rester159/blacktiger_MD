@@ -47,7 +47,7 @@ u8 emerge_step(u16 slot) {
         game.spawned[a->source]=2;game.kills++;game.sound=SND_KILL;
         loot_spawn(drop_categories[a->def],loot_random>>8,PX(a->x),PX(a->y));
     }
-    if (!animation_tick(&s->animation,p->clips[s->phase])) {
+    if (!animation_step(&s->animation,p->clips[s->phase])) {
         switch(s->phase) {
         case 0:s->vulnerable=1;s->phase=1;break;
         case 1:s->phase=emerge_contact?4:2;break;
@@ -57,7 +57,7 @@ u8 emerge_step(u16 slot) {
             if (!a->state) game.spawned[a->source]=0;
             return 0;
         }
-        animation_reset(&s->animation);animation_tick(&s->animation,p->clips[s->phase]);
+        animation_reset(&s->animation);animation_step(&s->animation,p->clips[s->phase]);
     }
     if (s->vulnerable && (game.frame & 1) &&
         player_contact(PX(a->x)+8,PX(a->y)+8,p->width,p->height)) {

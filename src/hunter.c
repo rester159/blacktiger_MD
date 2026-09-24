@@ -44,12 +44,12 @@ void hunter_screen_attack(u16 slot) {
  Actor *a=&game.actors[slot];HunterState *s=&hunters[slot];
  if(!a->state){a->life=1;s->pending=1;s->mode|=3;a->state=1;}
 }
-void hunter_step(u16 slot) {
+__attribute__((noinline)) static void hunter_transition(u16 slot) {
  Actor *a=&game.actors[slot];HunterState *s=&hunters[slot];u16 tries;
  if(s->pending){s->pending=0;select_segment(s,hunter_roots[2+s->boss]);}
  for(tries=0;tries<8;tries++) {
   const HunterSegment *seg=&hunter_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip)) {
+  if(animation_step(&s->animation,seg->clip)) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;
   }
   switch(seg->event) {
@@ -75,4 +75,13 @@ void hunter_step(u16 slot) {
 }
 const AnimFrame *hunter_frame(u16 slot) {
  HunterState *s=&hunters[slot];return s->animation.remaining?animation_current(&s->animation,hunter_segments[s->segment].clip):0;
+}
+
+/* Keep ordinary held-frame motion outside the transition interpreter. */
+void hunter_step(u16 slot) {
+ HunterState *s=&hunters[slot];
+ if(!s->pending && animation_hold_step(&s->animation,hunter_segments[s->segment].clip)){
+  Actor *a=&game.actors[slot];a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;
+ }
+ hunter_transition(slot);
 }

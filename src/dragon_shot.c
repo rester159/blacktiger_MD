@@ -19,7 +19,7 @@ u8 dragon_shots_step(void){u8 occupied=0;
   if(p->pending){p->pending=0;select_segment(p,dragon_shot_roots[18]);}
   for(tries=0;tries<6;tries++){
    const DragonSegment *seg=&dragon_shot_segments[p->segment];u16 target=seg->next[0];
-   if(animation_tick(&p->animation,seg->clip)){
+   if(animation_step(&p->animation,seg->clip)){
     p->x+=p->animation.vx;if(!(p->mode&16) && !small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;break;}
     p->y+=p->animation.vy;if(!(p->mode&16) && !small_actor_axis_active(p->y-game.cam_y,1))p->active=0;break;
    }

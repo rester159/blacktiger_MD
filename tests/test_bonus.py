@@ -11,7 +11,7 @@ for key,path in [('trace_sha256','reference/bonus_oracle_events.txt'),('lua_sha2
 with tempfile.TemporaryDirectory() as d:
  p=Path(d);(p/'genesis.h').write_text('')
  rows=['{0,0,'+','.join(map(str,[*r['camera'],r['return_x_low_add'],0]))+',{{0,0},{0,0}}}' for r in data['rounds']]
- (p/'stub.c').write_text('#include "bonus.h"\n#include "player_motion.h"\nGame game;PlayerMotion player_motion;const Round rounds[8]={0};u8 player_contact(s16 x,s16 y,u8 w,u8 h){return 0;}\nconst BonusRound bonus_rounds[8]={'+','.join(rows)+'};\n')
+ (p/'stub.c').write_text('#include "bonus.h"\n#include "player_motion.h"\ns16 world_near_x(s16 x){return x;}s16 world_near_y(s16 y){return y;}Game game;PlayerMotion player_motion;const Round rounds[8]={0};u8 player_contact(s16 x,s16 y,u8 w,u8 h){return 0;}\nconst BonusRound bonus_rounds[8]={'+','.join(rows)+'};\n')
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(p),'-I'+str(ROOT/'inc'),str(ROOT/'src/bonus.c'),str(p/'stub.c'),'-o',str(p/'bonus.dylib')],check=True)
  lib=C.CDLL(str(p/'bonus.dylib'));u=C.c_uint16;ptr=C.POINTER(u)
  lib.bonus_destination.argtypes=[C.c_uint8,C.c_uint8,ptr,ptr,ptr,ptr];lib.bonus_gate.argtypes=[C.c_uint8]*3;lib.bonus_gate.restype=C.c_uint8

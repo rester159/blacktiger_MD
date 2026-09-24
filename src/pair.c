@@ -34,12 +34,12 @@ u8 pair_hit(u16 slot,u8 damage) {
  }
  return 1;
 }
-void pair_step(u16 slot) {
+__attribute__((noinline)) static void pair_transition(u16 slot) {
  Actor *a=&game.actors[slot];PairState *s=&pairs[slot];u16 tries;
  if(s->pending){s->pending=0;select_segment(s,pair_roots[2]);}
  for(tries=0;tries<8;tries++) {
   const PairSegment *seg=&pair_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip)) {
+  if(animation_step(&s->animation,seg->clip)) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;
    if(!small_actor_axis_active(PX(a->x)-game.cam_x,0)){a->active=0;return;}
    a->y+=a->vy;
@@ -69,4 +69,13 @@ void pair_step(u16 slot) {
 }
 const AnimFrame *pair_frame(u16 slot) {
  PairState *s=&pairs[slot];return s->animation.remaining?animation_current(&s->animation,pair_segments[s->segment].clip):0;
+}
+
+/* Keep ordinary held-frame motion outside the transition interpreter. */
+void pair_step(u16 slot) {
+ PairState *s=&pairs[slot];
+ if(!s->pending && animation_hold_step(&s->animation,pair_segments[s->segment].clip)){
+  Actor *a=&game.actors[slot];a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;if(!small_actor_axis_active(PX(a->x)-game.cam_x,0)){a->active=0;return;}a->y+=a->vy;if(!small_actor_axis_active(PX(a->y)-game.cam_y,1))a->active=0;return;
+ }
+ pair_transition(slot);
 }

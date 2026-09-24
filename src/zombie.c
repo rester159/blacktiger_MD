@@ -74,12 +74,12 @@ static u16 fall(u16 slot) {
  if (ground(slot,16,32)) return face(slot,1);
  gravity(s);return root(slot,s->left?6:5);
 }
-void zombie_step(u16 slot) {
+__attribute__((noinline)) static void zombie_transition(u16 slot) {
  Actor *a=&game.actors[slot];ZombieState *s=&zombies[slot];u16 tries;
  if (s->pending) {s->pending=0;select_segment(s,root(slot,8));game.kills++;}
  for (tries=0;tries<12;tries++) {
   const SkeletonSegment *seg=segment(slot);u16 target=seg->next;
-  if (animation_tick(&s->animation,seg->clip)) {
+  if (animation_step(&s->animation,seg->clip)) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;
   }
   switch(seg->event) {
@@ -111,4 +111,14 @@ void zombie_step(u16 slot) {
 }
 const AnimFrame *zombie_frame(u16 slot) {
  ZombieState *s=&zombies[slot];return s->animation.remaining?animation_current(&s->animation,segment(slot)->clip):0;
+}
+
+/* Held frames avoid the transition interpreter's large register frame. */
+void zombie_step(u16 slot) {
+ ZombieState *s=&zombies[slot];
+ if(!s->pending && animation_hold_step(&s->animation,segment(slot)->clip)) {
+  Actor *a=&game.actors[slot];a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;
+  a->x+=a->vx;a->y+=a->vy;return;
+ }
+ zombie_transition(slot);
 }

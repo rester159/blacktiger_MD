@@ -18,15 +18,16 @@ for tier in range(5):
  for q in s.shots:q.active=0
  for i in range(160):s.spawned[i]=2
  r.write('player_attack',0,bytes(12));r.write('player_daggers',0,bytes(18*9));r.write('player_motion',0,struct.pack('>5H20B',65520,752,128,144,0,*([0]*20)));put(r,s)
- previous=s.frame;tick=0
+ previous=s.frame;tick=0;captured=False
  for _ in range(240):
   r.run(1,2);s=state(r)
   if s.frame==previous:continue
-  previous=s.frame;tick+=1;a=r.read('player_attack',12)
+  tick+=(s.frame-previous)&65535;previous=s.frame;a=r.read('player_attack',12)
   actual=[a[0],a[1],a[4],a[5],a[7],a[8],a[10],a[11]]
   assert actual==source[tier,tick],(tier,tick,actual,source[tier,tick])
   checks+=1
-  if tick==10:
+  if tick>=10 and not captured:
+   captured=True
    s.mode=2;s.p.invincible=0;put(r,s);r.run(12)
    r.capture('player-chain-tier-%d.png'%(tier+1))
    sat=r.read('vdpSpriteCache',64*8);pieces=[];keys=struct.unpack('>80H',r.read('sprite_keys',160))
@@ -38,7 +39,7 @@ for tier in range(5):
    expected=(0x6f+tier,112+32+16*(a[11]-1),902)
    assert expected in pieces,(tier,expected,pieces)
    s=state(r);s.mode=1;s.p.invincible=10000;put(r,s);previous=s.frame
-  if tick==60:break
+  if tick>=60:break
  else:raise AssertionError(('Controller stopped',tier,tick))
 # Ground crawlers sit below the standing chain; a crouched chain hits them.
 s=state(r);s.mode=2;put(r,s);r.run(20)

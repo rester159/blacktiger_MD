@@ -187,13 +187,13 @@ u8 skeleton_hit(u16 slot, u8 damage) {
     }
     return 1;
 }
-void skeleton_step(u16 slot) {
+__attribute__((noinline)) static void skeleton_transition(u16 slot) {
     SkeletonState *s = &skeletons[slot];
     Actor *a = &game.actors[slot];
     u16 i;
     for (i = 0; i < 8; i++) {
         const SkeletonSegment *seg = &skeleton_segments[s->segment];
-        if (animation_tick(&s->body, seg->clip)) {
+        if (animation_step(&s->body, seg->clip)) {
             a->vx = (s16)s->body.vx * FX;
             a->vy = (s16)s->body.vy * FX + s->fraction;
             actor_motion(a,a->vx,(s16)s->body.vy*FX,8);
@@ -214,7 +214,7 @@ u32 skeleton_weapons_tick(void) {
             continue;
         for (tries = 0; tries < 4; tries++) {
             const SkeletonSegment *seg = &skeleton_segments[s->weapon_segment];
-            if (animation_tick(&s->weapon, seg->clip)) {
+            if (animation_step(&s->weapon, seg->clip)) {
                 s->wx += s->weapon.vx;
                 s->wy += s->weapon.vy;
                 break;
@@ -254,4 +254,14 @@ u8 skeleton_weapon_contact(u16 slot) {
     width = (game.player_low?3:p->weapon_width) + contact_player_width;
     height = (game.player_low?3:p->weapon_height) + contact_player_height;
     return dx >= -width && dx <= width && dy >= -height && dy <= height ? p->weapon_damage : 0;
+}
+
+/* Held frames avoid the transition interpreter's large register frame. */
+void skeleton_step(u16 slot) {
+ SkeletonState *s=&skeletons[slot];
+ if(animation_hold_step(&s->body,skeleton_segments[s->segment].clip)) {
+  Actor *a=&game.actors[slot];a->vx=(s16)s->body.vx*FX;a->vy=(s16)s->body.vy*FX + s->fraction;
+  actor_motion(a,a->vx,(s16)s->body.vy*FX,8);return;
+ }
+ skeleton_transition(slot);
 }

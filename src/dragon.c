@@ -38,7 +38,7 @@ void dragon_step(u16 slot,DragonLaunch launch){
  if(s->pending){s->pending=0;select_segment(s,dragon_roots[s->engaged?10:1]);}
  for(tries=0;tries<16;tries++){
   const DragonSegment *seg=&dragon_segments[s->segment];u16 target=seg->next[0];u16 x=PX(a->x)-game.cam_x,y=PX(a->y)-game.cam_y;
-  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;}
+  if(animation_step(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;}
   switch(seg->event){
   case 0:if((u8)(PX(game.p.x)+48-PX(a->x))<96)target=dragon_roots[1];break;
   case 1:s->mode=24;s->engaged=1;if(s->profile==2)s->weak_x=-56;break;

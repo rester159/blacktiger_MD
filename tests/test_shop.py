@@ -8,7 +8,7 @@ class Inventory(C.Structure):
  _fields_=[('coins',C.c_uint16),('invincible',C.c_uint16)]+[(k,C.c_uint8) for k in ('weapon','armor','keys','antidotes','poison')]
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('')
- (tmp/'stub.c').write_text('#include "assets.h"\nGame game;u8 container_keys;\nconst u8 shop_default_difficulty=4;\nconst u16 shop_prices[2][8][4]='+str(data['prices']).replace('[','{').replace(']','}')+';\nconst u16 shop_key_price=30,shop_antidote_price=150;\n'+'''#include "shop.h"
+ (tmp/'stub.c').write_text('#include "assets.h"\n#include "frontend.h"\nFrontend frontend;Game game;u8 container_keys;\nconst u8 shop_default_difficulty=4;\nconst u16 shop_prices[2][8][4]='+str(data['prices']).replace('[','{').replace(']','}')+';\nconst u16 shop_key_price=30,shop_antidote_price=150;\n'+'''#include "shop.h"
 void buy(int item,int difficulty,int coins,int weapon,int armor,int keys,int antidotes,int poison) {
  game=(Game){0};game.coins=coins;game.p.weapon=weapon+1;game.p.armor=armor;game.p.invincible=1;
  container_keys=keys;shop_antidotes=antidotes;shop_poison=poison;shop_difficulty=difficulty;shop_buy(item);

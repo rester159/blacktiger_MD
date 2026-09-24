@@ -22,7 +22,9 @@ for variant,constructor in enumerate((0xab33,0xab4a,0xb1c1,0xb1d8)):
  r.write('flailer_weapons',weapon*18+10,struct.pack('>h',s.cam_x+240))
  s=fire(r,slot,1,0);assert s.actors[slot].life==life-1 and s.score==score
  assert not r.read('flailer_weapons',18*24)[weapon*18+14],'Parent recoil did not cancel linked weapon'
- s=fire(r,slot,200,0);reward=20 if variant<2 else 50
+ # A fresh flail can launch during recovery. The narrower dagger reaches
+ # the body without the chain overlapping that weapon; 100 damage is lethal.
+ s=fire(r,slot,200,0,kind=1);reward=20 if variant<2 else 50
  assert s.score==score+reward and s.actors[slot].state==2 and s.spawned[row]&2 and s.mode==1,(variant,s.score,s.actors[slot].state,s.mode)
  if variant==0:
   s.actors[slot].x=(s.cam_x+600)*256;put(r,s)

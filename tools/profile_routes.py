@@ -7,9 +7,12 @@ import test_runtime as t
 original=t.Runner.run;routes=[]
 def run(self,n,mask=0):
  if n!=180:return original(self,n,mask)
- samples=[]
+ samples=[];sample=-1
  for _ in range(n):
   original(self,1,mask);s=t.state(self)
+  current=int.from_bytes(self.read('profile_samples'),'big')
+  if current==sample:continue
+  sample=current
   samples.append([s.frame,*struct.unpack('>3H',self.read('frame_cost',6)),*struct.unpack('>3H',self.read('video_cost',6)),int.from_bytes(self.read('video_dma_bytes'),'big'),sum(a.active>0 for a in s.actors)])
  routes.append({'round':s.round+1,'samples':samples})
 t.Runner.run=run

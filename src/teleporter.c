@@ -33,7 +33,7 @@ u8 teleporter_hit(u16 slot,u8 damage) {
  s->pending=damage;s->mode|=3;a->state=1;return 1;
 }
 
-void teleporter_step(u16 slot) {
+__attribute__((noinline)) static void teleporter_transition(u16 slot) {
  Actor *a=&game.actors[slot];TeleporterState *s=&teleporters[slot];u16 tries;
  if(s->pending) {
   u8 damage=s->phase?s->pending>>1:s->pending;s->pending=0;
@@ -48,7 +48,7 @@ void teleporter_step(u16 slot) {
  }
  for(tries=0;tries<8;tries++) {
   const AnimSegment *seg=&teleporter_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip)) {
+  if(animation_step(&s->animation,seg->clip)) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;
   }
   switch(seg->event) {
@@ -58,7 +58,7 @@ void teleporter_step(u16 slot) {
   case 3:target=facing(a,s,3);break;
   case 4:if(teleporter_kinds[a->def]==1)container_wave_spawn(PX(a->x),s->left);else container_ground_spawn(PX(a->x),s->left);if(++s->cycles==5)target=roots(a)[9+s->left];break;
   case 5: {
-   u8 sample=(loot_random>>8)&7;a->x=(game.cam_x+teleporter_positions[sample][0])*FX;a->y=(game.cam_y+teleporter_positions[sample][1])*FX;
+   u8 sample=(loot_random>>8)&7;a->x=(s16)(game.cam_x+teleporter_positions[sample][0])*FX;a->y=(game.cam_y+teleporter_positions[sample][1])*FX;
    target=facing(a,s,5);break;
   }
   case 6:s->mode=11;break;
@@ -69,4 +69,13 @@ void teleporter_step(u16 slot) {
 }
 const AnimFrame *teleporter_frame(u16 slot) {
  TeleporterState *s=&teleporters[slot];return s->animation.remaining?animation_current(&s->animation,teleporter_segments[s->segment].clip):0;
+}
+
+/* Keep ordinary held-frame motion outside the transition interpreter. */
+void teleporter_step(u16 slot) {
+ TeleporterState *s=&teleporters[slot];
+ if(!s->pending && animation_hold_step(&s->animation,teleporter_segments[s->segment].clip)){
+  Actor *a=&game.actors[slot];a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,s->mode);return;
+ }
+ teleporter_transition(slot);
 }

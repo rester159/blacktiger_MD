@@ -8,6 +8,8 @@ typedef struct {
     u8 active, kind;
 } Loot;
 extern Loot loot[MAX_LOOT];
+/* One past the last occupied slot; allocation expands it, updates shrink it. */
+extern u8 loot_active_end;
 /* Force a word load: GCC 16/m68k can otherwise widen the high-byte mask to an odd longword access. */
 extern volatile u16 loot_random;
 void loot_new(void);

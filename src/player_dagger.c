@@ -33,7 +33,7 @@ void player_daggers_step(void) {
         if(p->pending){select_segment(p,dagger_roots[p->pending==2?7:6]);p->pending=0;}
         for(tries=0;tries<4;tries++) {
             const AnimSegment *s=&dagger_segments[p->segment];
-            if(animation_tick(&p->animation,s->clip))break;
+            if(animation_step(&p->animation,s->clip))break;
             if(!s->event){p->active=0;break;}
             if(terrain(p->x+8,p->y+8)>=2)select_segment(p,dagger_roots[7]);
             else select_segment(p,s->next);

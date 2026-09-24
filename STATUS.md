@@ -1,5 +1,23 @@
 # Status
 
+Tested cartridge: `dist/blacktiger_MD_v27.bin` (4 MiB).
+
+v27 completes another measured performance pass across all eight levels: 229 short encounter cases and 16 one-minute traces, with fixed and rolling one-second counts. The survey minimum improves 12 → 15 FPS; the 40-FPS target remains unmet. All 157 test commands and strict packaging pass. See [the report](reports/performance-profile-v23.md) and [validation](reports/v27-validation.json). Original level-6 scenery is preserved.
+
+v26 restores the original level 6 background map and disables its parallax. The temple, islands, clouds and mist use their source positions, with no repeating temple motif. The full map matches 2,097,152 source-converted pixels. See [the preview](reports/v26-level6-temple.png), [measured report](reports/performance-profile-v23.md), and `reports/v26-validation.json`. The level 6 encounter's worst rolling second is 20 FPS versus 25 in v25; the other seven selected scene minima are unchanged.
+
+v22 corrects the level-8 composition errors left by v21: palette pen 15 is restored as solid palace artwork, the exact navy sky becomes transparent throughout the map (including the open area between halls), and opaque HUD fill is removed. Broad exterior color masking and warm-pixel removal around windows are gone. Columns/platforms remain fixed to the foreground and distant scenery stays half-speed. A whole-map comparison preserves 1,413,707 architecture pixels; five viewport fixtures verify visible map pixels through the HUD and open-air parallax. See `reports/v22-validation.json`.
+
+v21 fixes the palace columns to the foreground plane, restoring original torches/wall details and removing decorative sprite overflow. Source landscape tiles are separated in full, including their warm-colored pixels, and source transparency removes stray foreground debris. Level 8 uses sky-filled opaque HUD bands. The final dragon’s full 64-pixel body is kept above the palace floor without changing its attack routines. Debug adds Infinite Zenny YES/NO (default YES), keeping 65,535 Zenny through purchases and rewards; ordinary Play keeps normal currency. See `reports/v21-validation.json`.
+
+v20 corrects source transparency in levels 5–7, removes scenery by original tile identity instead of compressed color guesses, restores level-7 platform edges, and gives level-5 mountains half-speed parallax. Level 6 retains the full floating citadel and distant islands on the far plane. Levels 5/6 have opaque, legible HUD bands, with sky behind level 6’s HUD. Original red spike platforms, purple platforms and level-7 orange terrain are retained as source artwork. The level-5 reported edge is crossed in the wrap regression. Yashichi is used in mode selection, both modes’ menus/settings, Debug and the shop, with spacing before text. See `reports/v20-validation.json`.
+
+v19 removes the artificial horizontal map walls and player/camera clamps. Terrain lookup and rendering wrap while player movement and nearby actors stay in a continuous coordinate space. The reported level 2, 3 and 4 joins are traversable; the earlier level-2 boundary interpretation was incorrect. The Home Yashichi marker is redder. See `reports/v19-validation.json`.
+
+v18 uses the supplied Yashichi icon for selection throughout Home menus. Debug lists levels 1–8 directly on the same page as its four switches; A or Start launches the selected level. The buried level-2 shopkeeper now stands on the platform with matching rescue contact. A controller route verifies that the right-hand ledge can be left by jumping left and climbing the poles. See `reports/v18-validation.json` for validation.
+
+v17 restores the original menu/footer font size and uses two Home columns: Play / Boss Rush on the left, Options / Debug on the right. Play is normal level-one gameplay. Debug owns level selection and independent invincibility, infinite-lives, infinite-time and live framerate switches, all default ON for exploration. Its protection is reapplied throughout the active Debug run, including poison/reversal immunity. Ordinary Play, Boss Rush and Arcade keep normal rules. The launcher opens a 960×720 window with automatic state loading disabled. v16 graphics scheduling, scenery and the SEGA chant are retained. See `docs/performance.md` for timing limits and `reports/v17-validation.json` for final validation.
+
 Deliverable: an SGDK development cartridge and a reproducible new repository.
 User's requested complete native Black Tiger port: **not achieved**.
 
@@ -11,9 +29,9 @@ cadence, presentation and audio. All eight maps use one renderer and game loop;
 normal locomotion and the known major enemy/boss families now have native routines.
 Injected actor/ending tests do not establish natural full-game completion.
 
-Boot presentation: user-supplied black-background Shinobi SEGA kit and SF2 Capcom animation/jingle now run before the title. Start skips either sequence with clean sound teardown. Copyright lines are separated by a blank row; the credit counter is above the logo.
+Boot presentation: user-supplied black-background Shinobi SEGA kit, now with the supplied Sonic 1 SEGA chant, and SF2 Capcom animation/jingle run before the title. Start skips either sequence with clean sound teardown. Copyright lines are separated by a blank row; the credit counter is above the logo.
 
-New presentation/modes: original arcade title artwork with Arcade/Home menus, native source-derived start intro in Arcade and a direct Levels 1–8 selector under Home Play, bounded credits, expanded HUD and eight-boss Home rush with a shop after each fight. Shared settings include source weapon damage and shop-price difficulty, lives, coinage, continue and audio toggles. The remaining original difficulty effects and physical arcade DIP functions are not yet fully reproduced.
+New presentation/modes: original arcade title artwork with Arcade/Home menus, native source-derived start intro in Arcade and a direct Levels 1–8 selector under Home Debug, bounded credits, expanded HUD and eight-boss Home rush with a shop after each fight. Shared settings include source weapon damage and shop-price difficulty, lives, coinage, continue and audio toggles. The remaining original difficulty effects and physical arcade DIP functions are not yet fully reproduced.
 
 Scroll registers and HUD changes now commit in VBlank. A linked-ROM pixel test covers 32 horizontal/vertical camera transitions with no split old/new image; host compositor and physical-display tearing are separate.
 
@@ -1134,3 +1152,218 @@ not a full-level performance guarantee.
 Parallax correction: Level 4 now repeats the cave texture behind both HUD bands. Resident low-priority scenery strips share the cave palette; a small plane strip fills the right edge within the H32 sprite budget. The cave base color also prevents black fallback on sprite overflow. Original palace shafts are removed from the masonry and all tall hall columns now use the faster foreground layer, spaced 80 pixels apart, in both regular Level 8 and Boss Rush. Terrain and collision remain unchanged. Decorative sprites remain lower in submission order than actors, and can lose detail to hardware sprite limits in busy frames.
 
 Home Play now opens a two-column Levels 1–8 selector. Confirmation starts a fresh run at the selected round, consumes one of the configured Home credits, and skips the intro. Cancel spends no credit. Arcade retains its original start intro.
+
+## Fixed gameplay clock under rendering load
+
+Reproduced v11's load-dependent slow motion with per-refresh patrol traces: the
+crowded cave advanced 332 ticks in 600 refreshes, upper palace 465. The main loop
+now catches up elapsed refreshes with full fixed simulation ticks, bounded to
+three refreshes per iteration. Mode/round changes and terrain reloads reset the
+anchor. Sound events and held-input press edges survive catch-up. Diagnostic
+counters separate extra simulation ticks, exceptional discarded debt, and actual
+presentations. The cave HUD edge is precomputed losslessly for all 256 offsets.
+
+Twelve uninterrupted 600-refresh PLAY samples now advance 600 simulation
+and game-timer ticks, with zero discarded ticks; worst rolling seconds contain
+at least 58 ticks. Crowded scenes still repeat rendered pictures and may present
+less often while catching up. This is a gameplay-speed correction, not a claim
+of locked 60-picture rendering. See docs/performance.md and the before/after
+frame-pacing reports for separate metrics and exact scope.
+
+Multi-tick camera scrolling now updates exposed strips (up to two rows/columns)
+without a full terrain reload. Eight-level VRAM regression covers 80 such scrolls.
+
+
+## v28 — Level 3 vertical connection (2026-09-23)
+
+The reported upper gold corridor exposed an unimplemented vertical map seam.
+The earlier local descent/pole tests did not establish onward progression.
+Level 3 now wraps terrain Y across its 2048-pixel map, follows the player with
+a continuous signed camera Y, and places native spawn rows and door contacts
+in the visible vertical lap. Tile streaming and dynamic terrain patches use
+wrapped source rows without reloading scenery at the join. Other rounds retain
+their existing vertical limits. Bonus returns preserve signed player Y.
+
+The extended corridor cartridge test starts at the supplied screenshot and uses
+normal controls thereafter: jump to the gold pole, jump left, then continue
+through the seam and the next pole to the platform at Y=-128 (map Y=1920).
+It checks active actors from the next section, exact resident VRAM tile data,
+zero cache faults and no scenery reload. A downward seam fixture also passes.
+Bonus tests cover entrance and return contacts in a negative vertical lap.
+See reports/v28-validation.json for the exact regression scope and ROM hash,
+and reports/level3-vertical-progress.gif for the demonstrated onward route.
+This is not a complete natural level playthrough or a new performance claim.
+
+
+## v29 — Original Level 8 scenery, no parallax (2026-09-23)
+
+Normal Level 8 now streams the original map and background patterns, rather
+than the palace window-mask map. The extractor retains original navy sky
+colors in map tiles, hidden-wall replacement tiles and animated terrain.
+The ordinary single-plane renderer follows the camera at full speed; the
+separate Boss Rush arena keeps its existing presentation. The restored bg7
+resource is linked into the ROM and the generator preserves that dependency.
+
+The palace composition regression now compares all 2,097,152 converted source
+pixels, verifies parallax is off in five native viewport fixtures, checks
+1:1 camera motion and live VRAM, and rejects cache faults or VBlank overruns.
+Other selected regressions, including Boss Rush and the v28 Level 3 fix,
+are recorded with the final ROM hash in reports/v29-validation.json.
+
+
+## v30 — Original Level 4 cave background (2026-09-23)
+
+Disabled the Level 4 parallax backdrop so its unmodified original map and
+patterns render through the ordinary terrain cache. This removes the oversized
+repeated cave motif visible in the supplied upper-room screenshot, restoring
+the original black chamber and smaller cave texture in its source locations.
+Collision and map layout are unchanged. Levels 5 and 7 retain their backdrop
+checks; Level 8 retains v29’s original scenery and Level 3 retains its seam fix.
+
+The new Level 4 regression compares all 2,097,152 converted source pixels,
+checks the reported room and four further viewpoints, verifies 1:1 scrolling
+and resident VRAM, and requires no parallax, cache faults or VBlank overruns.
+Selected cartridge regressions and the ROM hash are in reports/v30-validation.json.
+No complete playthrough or new performance claim is implied.
+
+
+## v31 — Remove floating Level 5 mountain fragments (2026-09-23)
+
+The Level 5 parallax conversion removed only part of the original mountain
+tiles, leaving foreground strips detached from the separate scrolling ridge.
+Restored the complete original map artwork, including source transparency
+colors, and disabled the Level 5 backdrop. Mountains now stay connected at
+their original positions and scroll with the architecture. Collision is unchanged.
+
+A full 2,097,152-pixel comparison checks the converted background against its
+original pre-mask scenery. Five native view fixtures cover the reported
+mountain, both other mountain areas and two halls, with 1:1 scrolling, live
+VRAM comparisons, no active parallax, and no cache/VBlank faults. Selected
+regressions and the ROM hash are recorded in reports/v31-validation.json.
+No full playthrough or new performance claim is implied.
+
+
+## v32 — Level 5 parallax retained; complete masking and solid column caps
+
+Restored Level 5’s half-speed mountain backdrop as requested. The former
+foreground mask covered source IDs 0x380–0x3D7 and missed the final eight
+mountain IDs 0x3D8–0x3DF. Those lower-edge tiles left disconnected strips,
+including alternate-palette red fragments. Conversion now removes the entire
+0x380–0x3DF family, irrespective of palette, from static and animated foreground
+tiles while retaining the separate ridge. The v31 no-parallax approach is superseded.
+
+Supported raised column caps (source IDs 0x30E/0x31C/0x31D) now inherit solid
+collision from the shafts beneath them. This is a deliberate native collision
+correction: 22 cells across 11 caps change from empty to solid; all other
+Level 5 collision cells retain their source values. The adjustment coordinates
+and original/replacement values are recorded in reports/assets.json.
+
+Tests cover every mountain cell, including all previously omitted IDs; four
+native viewpoints and independent half-speed pixel/VDP checks; player and
+skeleton falls onto all 11 caps; and player walks against a cap from both sides.
+Fixtures inject initial positions/states and then use normal native physics.
+Selected regressions and the ROM hash are in reports/v32-validation.json.
+No complete playthrough or new performance claim is implied.
+
+
+## v33 — Level 6 colors/spawn and Level 7 windows
+
+Level 7 empty tile 0x500 used opaque palette black and covered the moving
+windows. Mask it alongside the window family in static and alternate-area
+conversion. Half-speed parallax remains enabled. Native captures show complete
+windows; all 4,472 static window/empty cells are transparent. The alternate-area
+mask uses the same rule, though current alternate variants contain no such cells.
+
+Level 6 preserves the four arcade blue direction-sign shades and sky color
+during quantization, checked against all 14 blue sign cells. Spiked-island rock
+pens use the approved neighboring stone ramp; spikes retain their source colors.
+The arcade reference itself has red spiked islands, so the stone recolor is an
+approved customization: https://www.spriters-resource.com/arcade/blacktiger/asset/219966/
+
+Source spawn 114 has X=16352 outside the 2048-pixel map. Reject invalid source
+coordinates before horizontal projection; valid seam actors remain active.
+Two equivalent wall fixtures run normal spawning for 600 frames each.
+
+Fifteen selected checks pass; reports/v33-validation.json ties results to the
+cartridge hash. Native camera/player states are injected. No full playthrough
+or new performance measurements. Previous v32 and earlier fixes retained.
+
+
+## v34 — Optional Home Level 7 jump assist
+
+Added LV7 JUMP (ORIGINAL / ASSIST) to Home Options, default ORIGINAL.
+ASSIST adds 2 pixels/frame of upward takeoff velocity on Level 7; normal
+horizontal movement, gravity, terrain probes and landing rules remain in use.
+The preference applies throughout Level 7 in Home, including Home Debug,
+and is excluded from Arcade, other levels and Boss Rush. It persists across
+runs within the session; there is no new battery/save persistence.
+
+Native controller fixtures exercise the pictured early step-up from player
+X=242,250,258 at Y=288 onto the Y=256 platform. All three assisted jumps land;
+the same inputs with Original do not. Enemies are suppressed to isolate
+movement and initial positions are injected; this is not a full playthrough.
+Menu input tests toggle the option and return using the new Back row. Arcade
+and another level have identical traces with the preference on or off.
+Original locomotion still passes the arcade oracle comparison. Selected
+regressions and cartridge hash are recorded in reports/v34-validation.json.
+
+
+## v35 — Restrict jump assist to the requested ledge
+
+Home LV7 JUMP ASSIST now applies only to grounded rightward takeoff from
+world X=232..272, player Y=288, at the early Level 7 step-up. Horizontal laps
+normalize to the same physical ledge. Straight-up/leftward jumps, other heights,
+other locations, Arcade and Boss Rush retain original takeoff velocity. No
+midair correction is applied. The menu preference still defaults to Original.
+
+Native tests verify three local takeoffs plus both equivalent wrapped laps
+reach the upper platform. Seven outside-area/direction fixtures compare full
+trajectories with Assist on/off and match exactly. Menu, Arcade and other-level
+checks pass along with the original-motion oracle and selected regressions.
+Initial positions are injected and enemies suppressed for jump tests; no full
+playthrough is claimed. See reports/v35-validation.json for the cartridge hash.
+
+
+## v36 — Hidden Debug menu unlock
+
+Home initially displays Play, Boss Rush and Options. Debug is not drawn or
+reachable through ordinary navigation until Up Up Down Down Left Right Left
+Right is entered on Home. Distinct press edges are required; incorrect input
+restarts recognition, and leaving Home discards a partial sequence. Completing
+the sequence reveals/selects Debug and plays the legacy coin-style ping when
+Sound FX is enabled. The title audio path now allows that tone to decay across
+frames. Unlock persists for the session and resets on reboot.
+
+The headless runner now enters the sequence through controller input before
+Debug fixtures. Tests cover hidden navigation, held/wrong/cross-menu input,
+reveal, entry, session/reset behavior and actual PCM confirmation output;
+Debug controls, all eight level selections, frontend, localized jump assist
+and runtime checks are recorded in reports/v36-validation.json.
+
+
+## Startup Address Error — stale automatic state
+
+The current cartridge (SHA256 7beaac88eafb8162b72bacfd8aa507ea424d589a440adc690bb895ccea16db9e)
+was renamed to dist/blacktiger_MD_v1.bin. RetroArch had global automatic state
+loading enabled and a September 21 state under that filename. Loading it into
+the current ROM reproduces Address 0001AF / Offset 035448 exactly; cold boot
+on both the test core and installed core reaches the title normally.
+
+Preserved the stale state as .state.auto.incompatible-backup and added a
+game-specific RetroArch override disabling automatic state loading. Corrected
+tools/launch.sh to the existing v1 ROM path; no ROM changes were necessary.
+See reports/startup-address-error-fix.json.
+
+
+## Home Play introduction
+
+Home Play now enters the shared original Black Tiger introduction, just like
+Arcade Play, before beginning level one. Both use the same timed presentation,
+music and Start skip after the initial half-second guard. Boss Rush and Debug
+level selection keep their direct starts. Continues still resume gameplay.
+
+Controller tests cover complete unskipped intros in both modes and Home skip,
+credit handling, settings, Debug isolation, Boss Rush, localized jump assist,
+full boot and native runtime regressions. Gameplay test helpers now explicitly
+skip the story through controller input. Cartridge remains distributed under
+dist/blacktiger_MD_v1.bin; see reports/home-intro-validation.json.

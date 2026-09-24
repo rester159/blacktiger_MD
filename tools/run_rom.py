@@ -69,19 +69,26 @@ class Runner:
  def run(self,n,mask=0):
   self.mask=mask
   for _ in range(n):self.lib.retro_run();self.frames+=1
- def start_game(self,frames=3):
+ def start_game(self,frames=3,exploration=False):
   if "frontend" in self.symbols:
    self.run(3,32);self.run(2);self.run(3,8);self.run(2)
-  self.run(frames,8)
-  if "frontend" in self.symbols and self.read("frontend",2)[1]==3:
-   self.run(2);self.run(frames,8)
+   if exploration:
+    # Unlock Home Debug through controller input, then select its first level.
+    for mask in (16,16,32,32,64,128,64,128,8,32,32):self.run(3,mask);self.run(3)
+   self.run(frames,8)
+   if not exploration:self.skip_intro()
    return
+  self.run(frames,8)
   if "intro_tick" in self.symbols:
    for _ in range(1000):
     if int.from_bytes(self.read("intro_tick"),"big")>=842:break
     self.run(1)
    else:raise AssertionError("Intro did not finish")
    self.run(max(0,frames-1))
+ def skip_intro(self):
+  # The story belongs to both public Play modes; gameplay fixtures skip it
+  # with a fresh Start press after the original half-second input guard.
+  self.run(40);self.run(3,8);self.run(3)
  def read(self,name,n=2):
   a=self.symbols[name]&65535;return bytes(self.ram[(a+i)^1] for i in range(n))
  def write(self,name,offset,data):
@@ -96,7 +103,7 @@ class Runner:
    'edge_shots':('edge_shots_occupied',0),'dragon_shots':('dragon_shots_occupied',0)}
   if name in pool_flags:
    flag,index=pool_flags[name]
-   if flag in self.symbols:self.write(flag,index,b'\x01')
+   if flag in self.symbols:self.write(flag,index,bytes([12 if name in ('missiles','statue_shells','statue_blasts','hunter_shells','hunter_blasts') else 24 if name=='flailer_weapons' else 1]))
   a=(self.symbols[name]+offset)&65535
   for i,v in enumerate(data):self.ram[(a+i)^1]=v
  def capture(self,name):

@@ -55,7 +55,7 @@ void sentry_step(u16 slot) {
         s->clip = ((facing & 15) >= 8 ? 1 : (facing & 31) >= 16 ? 2 : 0) + (bright ? 3 : 0);
         animation_reset(&s->animation);
     }
-    if (!animation_tick(&s->animation, sentry_clips[s->clip])) a->active = 0;
+    if (!animation_step(&s->animation, sentry_clips[s->clip])) a->active = 0;
 }
 const AnimFrame *sentry_frame(u16 slot) {
     SentryState *s = &sentries[slot];

@@ -53,7 +53,9 @@ void audio_tick(void) {
         u8 i;for(i=0;i<game.sound_count;++i)sfx_start(game.sound_commands[i]);
         game.sound_count=0;age=0;
     }
-    if(game.mode==TITLE || !settings[frontend.mode].sfx){sfx_start(0x1f);age=0;}
+    if(game.mode==TITLE || !settings[frontend.mode].sfx)sfx_start(0x1f);
+    /* Let menu confirmation tones decay across title frames. */
+    if(!settings[frontend.mode].sfx)age=0;
     sfx_render(pal_audio);
     if(sfx_active){age=0;return;}
     if (settings[frontend.mode].sfx && game.sound && game.sound!=SND_PLAYER_ATTACK && game.sound!=SND_JUMP && game.sound!=SND_DIE && game.sound!=SND_CLEAR) {

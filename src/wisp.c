@@ -13,7 +13,7 @@ u8 wisp_hit(u16 slot) {
     wisps[slot].pending=1;a->state=1;
     return 1;
 }
-void wisp_step(u16 slot) {
+__attribute__((noinline)) static void wisp_transition(u16 slot) {
     Actor *a=&game.actors[slot];WispState *s=&wisps[slot];u16 tries;
     if (s->pending) {
         s->pending=0;s->segment=wisp_roots[0];animation_reset(&s->animation);
@@ -21,7 +21,7 @@ void wisp_step(u16 slot) {
     }
     for (tries=0;tries<8;tries++) {
         const WispSegment *seg=&wisp_segments[s->segment];u16 target;
-        if (animation_tick(&s->animation,seg->clip)) {
+        if (animation_step(&s->animation,seg->clip)) {
             a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;
             actor_motion(a,a->vx,a->vy,8);return;
         }
@@ -39,4 +39,14 @@ void wisp_step(u16 slot) {
 const AnimFrame *wisp_frame(u16 slot) {
     WispState *s=&wisps[slot];
     return s->animation.remaining?animation_current(&s->animation,wisp_segments[s->segment].clip):0;
+}
+
+/* Held frames avoid the transition interpreter's large register frame. */
+void wisp_step(u16 slot) {
+ WispState *s=&wisps[slot];
+ if(!s->pending && animation_hold_step(&s->animation,wisp_segments[s->segment].clip)) {
+  Actor *a=&game.actors[slot];a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;
+  actor_motion(a,a->vx,(s16)s->animation.vy*FX,8);return;
+ }
+ wisp_transition(slot);
 }

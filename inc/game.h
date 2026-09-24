@@ -81,7 +81,7 @@ typedef struct {
     s32 x, y;
     s16 vx, vy;
     u16 invincible, attack;
-    u8 grounded, climb, face, hp, armor, weapon, lives, reserved;
+    u8 grounded, climb, face, hp, armor, weapon, lives, exploration; /* Home Level Select: damage immunity and frozen timer. */
 } Player;
 typedef struct {
     Player p;
@@ -106,6 +106,10 @@ void game_new(void);
 void game_round(u8 round);
 void game_tick(u16 input);
 u8 terrain(s16 x, s16 y);
+s16 world_near_x(s16 x);
+s16 world_near_y(s16 y);
+/* Level 3 is the tall map: its climbing route crosses the vertical seam. */
+#define WORLD_WRAP_Y (game.round == 2)
 void video_init(void);
 void video_round(void);
 void video_frame(void);

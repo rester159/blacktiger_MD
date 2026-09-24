@@ -28,12 +28,12 @@ void statue_screen_attack(u16 slot) {
  Actor *a=&game.actors[slot];StatueState *s=&statues[slot];
  if(!a->state){a->life=1;s->pending=1;s->vulnerable=0;a->state=1;}
 }
-void statue_step(u16 slot) {
+__attribute__((noinline)) static void statue_transition(u16 slot) {
  Actor *a=&game.actors[slot];StatueState *s=&statues[slot];u16 tries;
  if(s->pending){s->pending=0;select_segment(s,statue_roots[9]);}
  for(tries=0;tries<8;tries++) {
   const StatueSegment *seg=&statue_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip))return;
+  if(animation_step(&s->animation,seg->clip))return;
   switch(seg->event) {
   case 0:
    s->left=(u16)PX(a->x)>=(u16)PX(game.p.x);
@@ -60,4 +60,13 @@ void statue_step(u16 slot) {
 }
 const AnimFrame *statue_frame(u16 slot) {
  StatueState *s=&statues[slot];return s->animation.remaining?animation_current(&s->animation,statue_segments[s->segment].clip):0;
+}
+
+/* Keep ordinary held-frame motion outside the transition interpreter. */
+void statue_step(u16 slot) {
+ StatueState *s=&statues[slot];
+ if(!s->pending && animation_hold_step(&s->animation,statue_segments[s->segment].clip)){
+  return;
+ }
+ statue_transition(slot);
 }

@@ -20,6 +20,14 @@ for profile,constructor in enumerate((0x8000,0x991d,0x9b24)):
   s=state(r);s.mode=2;put(r,s);r.run(20);s=state(r);a=s.actors[slot];a.hp=80;a.state=0;a.hit=0
   raw=bytearray(r.read('dragons',20*24));at=slot*20;struct.pack_into('>H',raw,at+2,1000);raw[at+4]=raw[at+5]=0;raw[at+10]=24;raw[at+11]=0;r.write('dragons',0,raw)
   r.write('dragon_shots',0,bytes(20*24));weakx=struct.unpack_from('b',raw,at+18)[0];weaky=-24 if profile==2 else 0
+  # The AI phase reached by the live attack sample varies with cadence.
+  # Put the controlled weak point in open terrain, so this checks boss damage
+  # rather than a projectile discarded against a solid background tile.
+  collision=(ROOT/f'res/generated/collision{level}.bin').read_bytes()
+  width=json.loads((ROOT/'reports/assets.json').read_text())['rounds'][level]['width']//16
+  while collision[((a.y//256+24+weaky)//16)*width+(a.x//256+56+weakx)//16]==3:
+   a.y+=16*256
+  s.p.y=a.y;s.cam_y=max(0,a.y//256-96)
   for q in s.shots:q.active=0
   q=s.shots[0];q.active=1;q.enemy=0;q.life=30;q.damage=8;q.kind=kind;q.vx=q.vy=0;q.x=a.x+(56+weakx)*256;q.y=a.y+(24+weaky)*256
   s.mode=1;s.p.invincible=10000;put(r,s)

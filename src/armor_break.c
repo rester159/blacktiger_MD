@@ -10,7 +10,7 @@ void armor_break_start(void){
 void armor_break_step(void){
     u16 i;for(i=0;i<4;i++){
         ArmorFragment *f=&armor_fragments[i];if(!f->active)continue;
-        animation_tick(&f->anim,&armor_clips[i]);
+        animation_step(&f->anim,&armor_clips[i]);
         f->x+=f->anim.vx;
         if(!small_actor_axis_active(f->x-game.cam_x,0)){f->active=0;continue;}
         f->y+=f->anim.vy;

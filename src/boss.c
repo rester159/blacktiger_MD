@@ -93,7 +93,7 @@ void boss_step(u16 slot) {
  } else if(s->dying==1) {s->dying=2;select_segment(s,roots(s)[13]);}
  for(tries=0;tries<8;tries++) {
   const BossSegment *seg=&segments(s)[s->segment];u16 target=seg->next[0];
-  if(animation_tick(&s->animation,seg->clip)) {
+  if(animation_step(&s->animation,seg->clip)) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;
   }
   switch(seg->event) {

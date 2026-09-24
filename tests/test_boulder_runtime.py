@@ -18,10 +18,12 @@ for _ in range(600):
   if raw[11] and not capture:
    assert raw[12]==2 and abs(s.actors[slot].vx)==256
    s.mode=2;put(r,s);r.run(20);r.capture('boulder-bounce.png');s=state(r);s.mode=1
-   s.p.x=s.actors[slot].x+8*256;s.p.y=s.actors[slot].y+8*256;s.p.vx=s.p.vy=0;s.p.armor=4;s.p.hp=4;s.p.invincible=0;put(r,s)
-   for contact_tick in range(12):
+   # Center the contact rather than placing it on a moving bounce edge.
+   s.p.x=s.actors[slot].x;s.p.y=s.actors[slot].y;s.p.vx=s.p.vy=0;s.p.armor=4;s.p.hp=4;s.p.invincible=0;put(r,s)
+   contact_start=s.frame
+   for contact_tick in range(120):
     r.run(1);s=state(r)
-    if s.p.armor!=4:break
+    if s.p.armor!=4 or ((s.frame-contact_start)&65535)>=12:break
    assert s.p.armor==2 and s.p.hp==4,'Bounce contact retained falling damage'
    s.p.invincible=10000;put(r,s);capture=True
  else:break

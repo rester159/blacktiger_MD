@@ -41,7 +41,7 @@ static u16 choose(Actor *a,CrawlerState *s) {
 static u16 face(Actor *a,CrawlerState *s) {
  s->left=(u16)PX(a->x)>=(u16)PX(game.p.x);return crawler_kinds[a->def]==4?choose(a,s):roots(a)[s->left?4:5];
 }
-void crawler_step(u16 slot) {
+__attribute__((noinline)) static void crawler_transition(u16 slot) {
  Actor *a=&game.actors[slot];CrawlerState *s=&crawlers[slot];u16 tries;
  if(s->pending) {
   u8 damage=s->pending;s->pending=0;
@@ -50,7 +50,7 @@ void crawler_step(u16 slot) {
  }
  for(tries=0;tries<8;tries++) {
   const CrawlerSegment *seg=&crawler_segments[s->segment];u16 target=seg->next;
-  if(animation_tick(&s->animation,seg->clip)) {
+  if(animation_step(&s->animation,seg->clip)) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;actor_motion(a,a->vx,a->vy,8);return;
   }
   switch(seg->event) {
@@ -80,4 +80,14 @@ void crawler_step(u16 slot) {
 }
 const AnimFrame *crawler_frame(u16 slot) {
  CrawlerState *s=&crawlers[slot];return s->animation.remaining?animation_current(&s->animation,crawler_segments[s->segment].clip):0;
+}
+
+/* Held frames avoid the transition interpreter's large register frame. */
+void crawler_step(u16 slot) {
+ CrawlerState *s=&crawlers[slot];
+ if(!s->pending && animation_hold_step(&s->animation,crawler_segments[s->segment].clip)) {
+  Actor *a=&game.actors[slot];a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;
+  actor_motion(a,a->vx,(s16)s->animation.vy*FX,8);return;
+ }
+ crawler_transition(slot);
 }

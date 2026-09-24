@@ -20,12 +20,12 @@ u8 boulder_hit(u16 slot,u8 damage) {
  }
  return 1;
 }
-void boulder_step(u16 slot) {
+__attribute__((noinline)) static void boulder_transition(u16 slot) {
  Actor *a=&game.actors[slot];BoulderState *s=&boulders[slot];u16 tries;
  if(s->pending){s->pending=0;select_segment(s,boulder_roots[4]);}
  for(tries=0;tries<8;tries++) {
   const BoulderSegment *seg=&boulder_segments[s->segment];u16 target=seg->next[0];
-  if(animation_tick(&s->animation,seg->clip)) {
+  if(animation_step(&s->animation,seg->clip)) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;
   }
   switch(seg->event) {
@@ -57,4 +57,13 @@ void boulder_step(u16 slot) {
 }
 const AnimFrame *boulder_frame(u16 slot) {
  BoulderState *s=&boulders[slot];return s->animation.remaining?animation_current(&s->animation,boulder_segments[s->segment].clip):0;
+}
+
+/* Keep ordinary held-frame motion outside the transition interpreter. */
+void boulder_step(u16 slot) {
+ BoulderState *s=&boulders[slot];
+ if(!s->pending && animation_hold_step(&s->animation,boulder_segments[s->segment].clip)){
+  Actor *a=&game.actors[slot];a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;
+ }
+ boulder_transition(slot);
 }

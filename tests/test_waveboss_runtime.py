@@ -42,6 +42,9 @@ for profile,constructor in enumerate((0x98a3,0x98e8)):
    put(r,s);r.run(1)
    if state(r).actors[slot].life<initial-layer:break
   else:raise AssertionError(('head hit did not break layer',profile,layer))
+ # A video refresh can return between the final life decrement and its
+ # reward write in the pipelined game tick. Let that in-flight tick finish.
+ r.run(2)
  s=state(r);assert s.score==score+(15000 if profile else 5000) and s.spawned[row]&2
  assert s.boss_dead and s.actors[slot].state==2
  for _ in range(800):

@@ -55,7 +55,7 @@ void container_step(u16 slot,u8 contact) {
  }
  for(tries=0;tries<4;tries++) {
   const ContainerSegment *seg=&container_segments[s->segment];
-  if(animation_tick(&s->animation,seg->clip))break;
+  if(animation_step(&s->animation,seg->clip))break;
   if(seg->event==0) {attack_spawn(PX(a->x)+8,s->left,container_trap_roots,0);s->phase=3;game.sound=SND_HIT;}
   else if(seg->event==1 || seg->event==2) {s->phase=2;game.sound=SND_COIN;}
   else return;
@@ -81,7 +81,7 @@ u8 container_traps_tick(void){u8 occupied=0;
   ContainerTrap *t=&container_traps[i];u16 tries;if(!t->active)continue;occupied=1;
   for(tries=0;tries<4;tries++) {
    const ContainerSegment *seg=&container_segments[t->segment];
-   if(animation_tick(&t->animation,seg->clip)) {
+   if(animation_step(&t->animation,seg->clip)) {
     t->x+=t->animation.vx;
     if(!small_actor_axis_active(t->x-game.cam_x,0)){t->active=0;break;}
     t->y+=t->animation.vy;

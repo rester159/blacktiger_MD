@@ -48,18 +48,21 @@ OUT=ROOT/'res/generated'
 def sha(b):return hashlib.sha256(b).hexdigest()
 def words(v):return struct.pack('>'+str(len(v))+'H',*map(int,v))
 def rgb(w):return ((w>>1)&7,(w>>5)&7,(w>>9)&7)
+
 COL=np.array([rgb((i&7)*2+((i>>3)&7)*32+(i>>6)*512) for i in range(512)],dtype=np.int32)
 def colid(w):return ((w>>1)&7)|(((w>>5)&7)<<3)|(((w>>9)&7)<<6)
-def quant(hist):
+def quant(hist, required=()):
     ids=np.flatnonzero(hist); x=COL[ids]; w=hist[ids]
     centers=[np.array([0,0,0]),np.array([7,7,7])]
-    for _ in range(13):
+    centers.extend(np.array(c) for c in required)
+    fixed=len(centers)
+    for _ in range(15-fixed):
         d=((x[:,None,:]-np.array(centers)[None,:,:])**2).sum(2).min(1)
         centers.append(x[np.argmax(d*np.sqrt(w))])
     c=np.array(centers)
     for _ in range(20):
         ix=((x[:,None,:]-c[None,:,:])**2).sum(2).argmin(1); n=c.copy()
-        for j in range(2,15):
+        for j in range(fixed,15):
             m=ix==j
             if m.any():n[j]=np.rint((x[m]*w[m,None]).sum(0)/w[m].sum()).astype(int)
         if np.array_equal(c,n):break
@@ -104,9 +107,11 @@ def main():
     OUT.mkdir(parents=True,exist_ok=True);(ROOT/'reports').mkdir(exist_ok=True)
     tiles=decode(b''.join(files[r['path']] for r in board['regions']['tiles']['files']),board['layouts']['tiles'])
     sprites=decode(b''.join(files[r['path']] for r in board['regions']['sprites']['files']),board['layouts']['sprites'])
-    resources=[];decl=[];body=[];report={'source':lock,'rounds':[],'unresolved_spawn_rows':[],'adaptations':['Two 15-color background palettes; original 15-color hero palette and 15-color enemy quantization. HUD colors adapt to the actor palettes.','Background priority groups are flattened.','Actor behavior families are native approximations pending arcade comparison.']}
+    resources=[];decl=[];body=[];emitted=set();report={'source':lock,'rounds':[],'unresolved_spawn_rows':[],'adaptations':['Two 15-color background palettes; original 15-color hero palette and 15-color enemy quantization. HUD colors adapt to the actor palettes.','Background priority groups are flattened.','Actor behavior families are native approximations pending arcade comparison.']}
     def emit(name,b,typ='u16'):
-        (OUT/(name+'.bin')).write_bytes(b);resources.append(f'BIN {name} "generated/{name + "_packed" if name == "object_patterns" else name}.bin" 4');decl.append(f'extern const {typ} {name}[];')
+        emitted.add(name+'.bin')
+        (OUT/(name+'.bin')).write_bytes(b)
+        resources.append(f'BIN {name} "generated/{name + "_packed" if name == "object_patterns" else name}.bin" 4');decl.append(f'extern const {typ} {name}[];')
     p0=pal(0);scols=np.array([rgb(w) for w in p0[512:640]])
     hist=np.zeros(512,dtype=np.int64)
     for p in range(1,8):
@@ -460,7 +465,16 @@ def main():
     collision=files['bdu-03a.8e'][0x363a:0x3e3a]
     for r in range(8):
         cfg=read(6,0xb19c+r*6,6);cx,cy,layout,_=struct.unpack('<HHBB',cfg);w,h=(128,64) if layout else (64,128)
-        raw=read(8+r,0x8000,16384);colors=pal(r);hist=np.zeros((16,512),dtype=np.int64)
+        raw=read(8+r,0x8000,16384);colors=pal(r)
+        if r==5:
+            # Approved visual customization: use the neighboring rock ramp for
+            # spiked-island stone, preserving the white/cyan spike pens 9..12.
+            for pen in (*range(1,9),13):
+                original=colors[9*16+pen];colors[9*16+pen]=colors[7*16+pen]
+                report.setdefault('palette_adjustments',[]).append(dict(
+                    round=6,palette=9,pen=pen,original=original,
+                    replacement=colors[9*16+pen],reason='Requested matching stone colors'))
+        hist=np.zeros((16,512),dtype=np.int64)
         for i in range(0,16384,2):
             a,b=raw[i:i+2];code=a+((b&7)<<8);p=(b>>3)&15
             freq=np.bincount(tiles[code].flatten(),minlength=16)
@@ -471,15 +485,44 @@ def main():
             cost=np.array([((COL[:,None,:]-c[None,:,:])**2).sum(2).min(1) for c in cp])
             groups=(hist@cost.T).argmin(1)
         cp=[quant(hist[groups==g].sum(0)) for g in range(2)]
+        if r==5:
+            # Preserve the four blue sign shades and sky instead of merging
+            # their low-frequency glyph details into the dominant rock ramp.
+            required=[rgb(colors[11*16+pen]) for pen in (0,2,3,4,5)]
+            cp[groups[11]]=quant(hist[groups==groups[11]].sum(0),required)
         palettes=[];pm=[]
         for c in cp:palettes += [0]+[int(v[0]*2+v[1]*32+v[2]*512) for v in c]
         for p in range(16):pm.append([int(((cp[groups[p]]-rgb(c))**2).sum(1).argmin())+1 for c in colors[p*16:p*16+16]])
-        pats=bytearray();unique={};world=[];coll=[];preview=Image.new('RGB',(w*16,h*16))
+        pats=bytearray();unique={};world=[];coll=[];scenery=np.zeros((h*16,w*16),np.uint8);preview=Image.new('RGB',(w*16,h*16))
         for y in range(h):
             for x in range(w):
                 idx=(x&15)|((y&15)<<4)|((x&(0x70 if layout else 0x30))<<4)|((y&(0x30 if layout else 0x70))<<(7 if layout else 6))
                 lo,attr=raw[idx*2:idx*2+2];code=lo+((attr&7)<<8);p=(attr>>3)&15;flip=bool(attr&128)
-                coll.append(collision[code]);pix=np.array(pm[p],dtype=np.uint8)[tiles[code]]
+                value=collision[code]
+                # Level 5's raised column caps are drawn above solid shafts but
+                # classified as empty. Give supported cap cells the same solid
+                # collision as their shafts for both player and actor probes.
+                if r==4 and code in (0x30e,0x31c,0x31d) and y+1<h:
+                    by=y+1
+                    below=(x&15)|((by&15)<<4)|((x&0x70)<<4)|((by&0x30)<<7)
+                    low,flags=raw[below*2:below*2+2]
+                    if collision[low+((flags&7)<<8)]>=2:
+                        value=2
+                        report.setdefault('collision_adjustments',[]).append(dict(
+                            round=5,x=x*16,y=y*16,source_tile=code,
+                            original=collision[code],replacement=value,
+                            reason='Solid raised column cap above solid shaft'))
+                coll.append(value);pix=np.array(pm[p],dtype=np.uint8)[tiles[code]]
+                # Preserve source transparency before palette quantization loses
+                # its identity. Decorative tiles are identified by ROM code,
+                # never by shared colors or by where a window happens to sit.
+                original=pix.copy()
+                if flip:original=original[:,::-1]
+                scenery[y*16:y*16+16,x*16:x*16+16]=original+int(groups[p])*16
+                if r in (4,6):
+                    pix[tiles[code]==15]=0
+                    if r==4 and 0x380<=code<=0x3df:pix[:]=0
+                    if r==6 and (0x580<=code<=0x59f or code==0x500):pix[:]=0
                 if flip:pix=pix[:,::-1]
                 pp=np.array([[0,0,0]]+list(cp[groups[p]]))*255//7
                 preview.paste(Image.fromarray(pp[pix].astype(np.uint8)),(x*16,y*16))
@@ -492,6 +535,7 @@ def main():
                 world.append(ws)
         # Hidden terrain uses the source's tile 0 / palette 6 replacement.
         opened=np.array(pm[6],dtype=np.uint8)[tiles[0]];open_words=[]
+        if r in (4,6):opened[tiles[0]==15]=0
         for oy,ox in ((0,0),(0,8),(8,0),(8,8)):
             cell=opened[oy:oy+8,ox:ox+8]
             b,flags=min((pack(cell),0),(pack(cell[:,::-1]),0x800),(pack(cell[::-1,:]),0x1000),(pack(cell[::-1,::-1]),0x1800))
@@ -520,6 +564,9 @@ def main():
                     tile=m.get(offset,int.from_bytes(raw[offset:offset+2],'little'))
                     code=(tile&255)|((tile>>8&7)<<8);p=tile>>11&15
                     pix=np.array(pm[p],dtype=np.uint8)[tiles[code]]
+                    if r in (4,6):pix[tiles[code]==15]=0
+                    if r==4 and 0x380<=code<=0x3df:pix[:]=0
+                    if r==6 and (0x580<=code<=0x59f or code==0x500):pix[:]=0
                     if tile&0x8000:pix=pix[:,::-1]
                     words_out=[]
                     for oy,ox in ((0,0),(0,8),(8,0),(8,8)):
@@ -538,12 +585,13 @@ def main():
         for y in range(h*2):
             for x in range(w*2):wm.append(world[(y//2)*w+x//2][(y&1)*2+(x&1)])
         assert len(unique)<1700,(r,len(unique))
+        np.save(OUT/f'scenery{r}.npy',scenery)
         emit(f'bg{r}',bytes(pats),'u32');emit(f'map{r}',words(wm));emit(f'pal{r}',words(palettes));emit(f'collision{r}',bytes(coll),'u8')
         spawn=spawns[r];body.append(f'const Spawn spawn{r}[]={{'+','.join('{'+','.join(map(str,s))+'}' for s in spawn)+'};')
         preview.resize((w*8,h*8)).save(ROOT/f'reports/round{r+1}.png')
         report['rounds'].append({'round':r+1,'width':w*16,'height':h*16,'camera':[cx,cy],'layout':layout,'patterns':len(unique),'spawns':len(spawn),'collision_codes':dict(Counter(coll))})
     body.append('const BonusRound bonus_rounds[8]={'+','.join(bonus_definitions)+'};')
-    body.append('const Round rounds[8]={'+',\n'.join('{bg%d,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d,patches%d,open_tile%d,%d,%d}'%(r,r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera'],r,r,len(hidden['rounds'][r]),collision[0]) for r,d in enumerate(report['rounds']))+'};')
+    body.append('const Round rounds[8]={'+',\n'.join('{%s,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d,patches%d,open_tile%d,%d,%d}'%(f'bg{r}',r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera'],r,r,len(hidden['rounds'][r]),collision[0]) for r,d in enumerate(report['rounds']))+'};')
     from extract_clear_screen import generate as generate_clear_screen
     report['clear_screens']=generate_clear_screen(Source(args.source),emit,decode,pack,words)
     from extract_sfx import generate as generate_sfx
@@ -555,7 +603,7 @@ def main():
     (ROOT/'res/assets.res').write_text('\n'.join(resources)+'\n')
     (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "animation.h"\n#include "boss.h"\n#include "boulder.h"\n#include "pair.h"\n#include "container.h"\nextern const ContainerSegment container_segments[];\nextern const u16 container_roots[],container_trap_roots[],container_wave_roots[];\n#include "flailer.h"\nextern const AnimSegment flailer_segments[];\nextern const u16 flailer_roots[2][21],flailer_scores[];\nextern const u8 flailer_kinds[],flailer_health[];\n#include "large_contact.h"\nextern const LargeContactShape waveboss_shapes[];\n#include "waveboss.h"\nextern const WaveBossSegment waveboss_segments[];\nextern const u16 waveboss_roots[],waveboss_scores[];\nextern const u8 waveboss_kinds[],waveboss_health[],waveboss_layers[],waveboss_choices[2][16];\n#include "eruption.h"\nextern const AnimClip *const eruption_clips[];\nextern const u8 eruption_kinds[];\n#include "teleporter.h"\nextern const AnimSegment teleporter_segments[];\nextern const u16 teleporter_roots[],teleporter_score;\nextern const u8 teleporter_kinds[],teleporter_health[],teleporter_positions[8][2];\n#include "hunter.h"\nextern const HunterSegment hunter_segments[];\nextern const u16 hunter_roots[],hunter_score;\nextern const u8 hunter_kinds[],hunter_choices[],hunter_health[],hunter_layers[],hunter_reset_health[];\n#include "edge_actor.h"\n#include "reinforcement_body.h"\n#include "dragon.h"\n#include "dragon_shot.h"\n#include "crawler.h"\nextern const CrawlerSegment crawler_segments[];\nextern const u16 crawler_roots[],crawler_scores[],crawler_jump_roots[];\nextern const u8 edge_spawn_kinds[],reinforcement_kinds[];\nextern const u8 crawler_kinds[],crawler_health[],crawler_choices[];\n#include "statue.h"\nextern const StatueSegment statue_segments[];\nextern const u16 statue_roots[],statue_score;\nextern const u8 statue_kinds[],statue_choices[],statue_health,statue_layers,statue_reset_health;\nextern const u16 checkpoint_grid[8][32][2],checkpoint_player_x,checkpoint_player_y;\nextern const u8 checkpoint_wide[8];\nextern const u32 progress_thresholds[4];\nextern const u16 progress_initial_coins;\nextern const u8 progress_initial_health,progress_initial_armor,progress_initial_lives;\nextern const u16 shop_prices[2][8][4],shop_key_price,shop_antidote_price;\nextern const u8 shop_grid[12],shop_default_difficulty;\nextern const u8 container_left[],container_initial[8][8];\nextern const u16 container_coin_values[4];\nextern const PairSegment pair_segments[];\nextern const u16 pair_roots[],pair_score;\nextern const u8 pair_kinds[],pair_choices[];\nextern const BoulderSegment boulder_segments[];\nextern const u16 boulder_roots[],boulder_weapon_score;\nextern const u8 boulder_kinds[],boulder_initial_damage,boulder_bounce_damage;\nextern const u8 boss_component_counts[],boss_upper_health[],boss_upper_layers,boss_upper_damage,boss_upper_reset_health,boss_upper_score;\nextern const BossSegment boss_segments[],boss_upper_segments[];\nextern const u16 boss_roots[],boss_upper_roots[];\nextern const u8 boss_choices[],boss_upper_choices[];\n#include "skeleton.h"\n#include "emerge.h"\n#include "wisp.h"\nextern const SkeletonSegment spitter_segments[];\nextern const u16 spitter_roots[],spitter_score;\nextern const u8 spitter_spawn_x[],spitter_health,spitter_lifetime,spitter_shot_damage,spitter_shot_width,spitter_shot_height,spitter_shot_health;\nextern const SkeletonSegment thrower_segments[];\nextern const u16 thrower_roots[],thrower_score;\nextern const u8 thrower_spawn_x[],thrower_health,thrower_lifetime,thrower_shot_damage,thrower_shot_width,thrower_shot_height,thrower_shot_health;\nextern const SkeletonSegment zombie_segments[];\nextern const u16 zombie_roots[],zombie_score;\nextern const u8 zombie_kinds[],zombie_lifetime,zombie_spawn_x[];\nextern const WispSegment wisp_segments[];\nextern const u16 wisp_roots[7];\nextern const u8 wisp_kinds[];\nextern const EmergeProfile emerge_profiles[2];\nextern const u8 emerge_kinds[];\nextern const AnimClip npc_idle, npc_released, npc_rescue;\nextern const AnimClip *const hidden_clips[12];\nextern const AnimClip hidden_life_collected, hidden_explosion;\nextern const u8 hidden_kinds[];\nextern const u8 skeleton_kinds[];\nextern const AnimClip *const sentry_clips[7];\nextern const u8 pickup_kinds[],screen_attack_targets[],pickup_width,pickup_height,pickup_seconds;\nextern const u8 stone_kinds[],layered_boss_kinds[],layered_boss_layers[],layered_boss_reset_health;\nextern const u16 layered_boss_score;\nextern const u8 actor_damage[],player_weapon_damage[5],dagger_width,dagger_height;\nextern const u8 actor_dagger_effect[];\nextern const u8 actor_contact_pool[],actor_contact_half_width[],actor_contact_half_height[];\nextern const u8 hazard_kinds[],hazard_width,hazard_height,contact_player_width,contact_player_height;\nextern const u8 sentry_kinds[], aim_table[64], sentry_health;\nextern const u16 sentry_score;\nextern const AnimClip *const loot_clips[7];\nextern const u16 loot_values[7];\nextern const u8 drop_table[28][32], drop_categories[];\nextern const SkeletonSegment skeleton_segments[];\nextern const SkeletonProfile skeleton_profiles[3];\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[2][10][48];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
     (ROOT/'src/data.c').write_text('/* Generated by tools/extract.py. */\n#include <genesis.h>\n#include "assets.h"\n#include "bonus.h"\n'+'\n'.join(body)+'\n')
-    report['outputs']={p.name:{'bytes':p.stat().st_size,'sha256':sha(p.read_bytes())} for p in OUT.glob('*.bin')}
+    report['outputs']={p.name:{'bytes':p.stat().st_size,'sha256':sha(p.read_bytes())} for p in OUT.glob('*.bin') if p.name in emitted}
     (ROOT/'reports/assets.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report['rounds'],indent=2));print('native asset bytes',sum(p.stat().st_size for p in OUT.glob('*.bin')))
 if __name__=='__main__':main()

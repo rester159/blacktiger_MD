@@ -2,7 +2,7 @@ JAVA ?= $(or $(wildcard /opt/homebrew/opt/openjdk/bin/java),java)
 GDK ?= $(HOME)/mars/m68k-elf
 .DEFAULT_GOAL := all
 .PHONY: all assets test clean
-all: res/generated/object_patterns_packed.bin src/backdrop_data.inc src/arena_parallax_data.inc src/shop_visual_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
+all: src/sprite_atlas_index.inc src/cave_sprite_geometry.inc res/generated/object_patterns_packed.bin src/backdrop_data.inc src/arena_parallax_data.inc src/shop_visual_data.inc src/hud_data.inc res/generated/object_patterns.bin src/ui_data.inc src/intro_data.inc
 	$(MAKE) -f $(GDK)/makefile.gen JAVA=$(JAVA) LIBGCC="$(shell $(GDK)/bin/m68k-elf-gcc -m68000 -print-libgcc-file-name)"
 	python3 tools/finalize_rom.py out/release/rom.bin
 .venv/bin/python: requirements.txt
@@ -12,10 +12,32 @@ res/generated/object_patterns.bin: tools/hud_assets.py reference/hud_oracle_even
 	.venv/bin/python tools/extract.py
 assets: .venv/bin/python
 	.venv/bin/python tools/extract.py
-src/ui_data.inc: tools/build_ui.py assets/ui/title_arcade.png art/black_tiger_md_logo_concept.png assets/board.json | .venv/bin/python
+src/ui_data.inc: tools/build_ui.py assets/ui/title_arcade.png art/black_tiger_md_logo_concept.png art/yashichi.png assets/board.json | .venv/bin/python
 	.venv/bin/python tools/build_ui.py
 test: all
+	.venv/bin/python tests/test_cadence_stats.py
+	.venv/bin/python tests/test_animation_step.py
+	.venv/bin/python tests/test_terrain_strips.py
+	.venv/bin/python tests/test_weapon_contact_batch.py
+	.venv/bin/python tests/test_encounter_pacing.py
 	.venv/bin/python tests/test_level_select_runtime.py
+	.venv/bin/python tests/test_debug_runtime.py
+	.venv/bin/python tests/test_debug_unlock_runtime.py
+	.venv/bin/python tests/test_level2_routes_runtime.py
+	.venv/bin/python tests/test_level3_corridor_runtime.py
+	.venv/bin/python tests/test_horizontal_wrap_runtime.py
+	.venv/bin/python tests/test_level4_original_runtime.py
+	.venv/bin/python tests/test_level5_parallax_runtime.py
+	.venv/bin/python tests/test_level5_columns_runtime.py
+	.venv/bin/python tests/test_level6_original_runtime.py
+	.venv/bin/python tests/test_level6_wall_runtime.py
+	.venv/bin/python tests/test_level6_sign_colors.py
+	.venv/bin/python tests/test_level7_windows_runtime.py
+	.venv/bin/python tests/test_level7_jump_assist_runtime.py
+	.venv/bin/python tests/test_background_art_runtime.py
+	.venv/bin/python tests/test_scenery_fixes_runtime.py
+	.venv/bin/python tests/test_palace_debug_runtime.py
+	.venv/bin/python tests/test_palace_composition_runtime.py
 	.venv/bin/python tests/test_backdrop_runtime.py
 	.venv/bin/python tests/test_home_logo_runtime.py
 	.venv/bin/python tests/test_arena_parallax_runtime.py
@@ -40,6 +62,8 @@ test: all
 	.venv/bin/python tests/test_music.py
 	.venv/bin/python tests/test_music_runtime.py
 	.venv/bin/python tests/test_frame_scheduler.py
+	.venv/bin/python tests/test_frame_pacing.py
+	.venv/bin/python tests/test_scroll_catchup_runtime.py
 	.venv/bin/python tools/profile_runtime.py
 	.venv/bin/python tools/profile_all_levels.py
 	.venv/bin/python tests/test_armor_break.py
@@ -177,3 +201,9 @@ src/backdrop_data.inc: tools/build_backdrops.py res/generated/object_patterns.bi
 
 res/generated/object_patterns_packed.bin: tools/pack_sprite_atlas.py res/generated/object_patterns.bin
 	.venv/bin/python tools/pack_sprite_atlas.py
+
+src/cave_sprite_geometry.inc: tools/build_cave_geometry.py
+	.venv/bin/python tools/build_cave_geometry.py
+
+src/sprite_atlas_index.inc: res/generated/object_patterns_packed.bin
+	@test -f $@ || .venv/bin/python tools/pack_sprite_atlas.py

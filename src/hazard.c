@@ -3,27 +3,36 @@
 #include "player_death.h"
 #include "assets.h"
 u8 player_contact(s16 x, s16 y, u8 half_width, u8 half_height) {
-    s16 dx = PX(game.p.x) + 8 - x, dy = PX(game.p.y) + (game.player_low?18:8) - y;
-    s16 width = (game.player_low?3:half_width) + contact_player_width;
-    s16 height = (game.player_low?3:half_height) + contact_player_height;
-    return dx >= -width && dx <= width && dy >= -height && dy <= height;
+    s16 dx=PX(game.p.x)+8-x;
+    u16 width=(game.player_low?3:half_width)+contact_player_width;
+    u16 height;
+    s16 dy;
+    if((u16)(dx+width)>width*2)return 0;
+    height=(game.player_low?3:half_height)+contact_player_height;
+    dy=PX(game.p.y)+(game.player_low?18:8)-y;
+    return (u16)(dy+height)<=height*2;
 }
 u8 actor_contact(u16 slot) {
-    const Actor *a = &game.actors[slot];
-    u8 pool = actor_contact_pool[a->def];
-    s16 x = PX(a->x), y = PX(a->y);
-    if (pool == 32 || pool == 48) {
-        /* Medium actor coordinates already share the player's origin. */
-        if (pool == 48) { x += 8; y += 8; }
-        return player_contact(x, y, actor_contact_half_width[a->def], actor_contact_half_height[a->def]);
+    const Actor *a=&game.actors[slot];
+    u16 def=a->def;
+    u8 pool=actor_contact_pool[def];
+    s16 dx=PX(game.p.x)-PX(a->x),dy;
+    if(pool==32 || pool==48) {
+        u16 width=(game.player_low?3:actor_contact_half_width[def])+contact_player_width;
+        u16 height;
+        if(pool==32)dx+=8;
+        if((u16)(dx+width)>width*2)return 0;
+        height=(game.player_low?3:actor_contact_half_height[def])+contact_player_height;
+        dy=PX(game.p.y)-PX(a->y)+(game.player_low?18:8)-(pool==48?8:0);
+        return (u16)(dy+height)<=height*2;
     }
-    /* Large and profile-dependent constructors still need their own contact port. */
-    x = PX(game.p.x) - x; y = PX(game.p.y) - y;
-    return x > -24 && x < 24 && y > -30 && y < 30;
+    if((u16)(dx+23)>46)return 0;
+    dy=PX(game.p.y)-PX(a->y);
+    return (u16)(dy+29)<=58;
 }
 void hazard_step(u16 slot) {
     Actor *a = &game.actors[slot];
-    if (game.mode == PLAY && !game.boss_dead && player_contact(PX(a->x), PX(a->y), hazard_width, hazard_height)) {
+    if (game.mode == PLAY && !game.p.exploration && !game.boss_dead && player_contact(PX(a->x), PX(a->y), hazard_width, hazard_height)) {
         /* Source contact 39 enters death directly, bypassing armor and hurt invulnerability. */
         armor_break_start();
         game.p.hp = 0;

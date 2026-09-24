@@ -43,6 +43,7 @@ for pc in (0xacbe,0xacd3):
   assert r.read('container_keys',1)==b'\x01' and s.score==987
   before=s.coins;s=hold_contact(slot,6);assert s.coins==before
   # Force camera retirement, then let the actual row reconstruct its empty phase.
+  s=state(r);s.mode=2;put(r,s);r.run(20);s=state(r)
   s.mode=1;s.p.x=max(0,s.actors[slot].x//256-700)*256;s.cam_x=max(0,s.p.x//256-112);put(r,s)
   # A direct offscreen actor displacement guarantees retirement even near map edges.
   s=state(r);original=(s.actors[slot].x,s.actors[slot].y);s.actors[slot].x=(s.cam_x+1000)*256;put(r,s);r.run(8)

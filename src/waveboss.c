@@ -43,7 +43,7 @@ void waveboss_step(u16 slot){
  if(s->pending){s->pending=0;select_segment(&s->animation,&s->segment,waveboss_roots[s->engaged?3:1]);}
  for(tries=0;tries<8;tries++){
   const WaveBossSegment *seg=&waveboss_segments[s->segment];u16 target=seg->next[0];
-  if(animation_tick(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;}
+  if(animation_step(&s->animation,seg->clip)){a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;}
   switch(seg->event){
   case 0:if((u8)(PX(game.p.x)+64-PX(a->x))<128)target=activate(a,s);break;
   case 1:s->mode=24;break;
@@ -67,7 +67,7 @@ u8 waveboss_seeds_tick(void){u8 occupied=0;
  u16 i,tries;for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){WaveBossSeed *p=&waveboss_seeds[i];if(!p->active)continue;occupied=1;
   for(tries=0;tries<8;tries++){
    const WaveBossSegment *seg=&waveboss_segments[p->segment];u16 target=seg->next[0];
-   if(animation_tick(&p->animation,seg->clip)){
+   if(animation_step(&p->animation,seg->clip)){
     p->x+=p->animation.vx;if(!small_actor_axis_active(p->x-game.cam_x,0)){p->active=0;break;}
     p->y+=p->animation.vy;if(!small_actor_axis_active(p->y-game.cam_y,1))p->active=0;break;
    }

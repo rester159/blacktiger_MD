@@ -17,6 +17,15 @@ void npc_reset(void) {
         respawn_delay[i] = 0;
 }
 void npc_spawn(u16 slot) {
+    Actor *a=&game.actors[slot];
+    if(actor_defs[a->def].kind==CAPTIVE) {
+        s16 x=PX(a->x)+16,y=PX(a->y);
+        /* One source placement (round 2's lower shopkeeper) puts the body
+           origin on the platform face. Place the full 32px body above that
+           floor, keeping both its rescue contact and artwork aligned. */
+        if(terrain(x,y)>=2 && terrain(x,y-16)<2 && terrain(x,y-32)<2)
+            a->y-=32*FX;
+    }
     animation_reset(&npc_animation[slot]);
 }
 u8 npc_spawn_ready(u16 source) {
@@ -49,7 +58,7 @@ void npc_step(u16 slot, u8 contact) {
         npc_sequence=(NpcSequence){0};sequence_step();
         return;
     }
-    if (!animation_tick(anim, clip_for(slot)) && a->state == 2) {
+    if (!animation_step(anim, clip_for(slot)) && a->state == 2) {
         a->active = 0;
         if (d->npc_kind == 8) {
             game.spawned[a->source] = 0;

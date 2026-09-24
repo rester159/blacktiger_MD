@@ -32,5 +32,17 @@ retire:
 }
 void animation_reset(AnimState *state);
 const AnimFrame *animation_tick(AnimState *state, const AnimClip *clip);
+/* Native actors only need a live/finished result. A held frame can advance
+ * locally without a call and frame-pointer calculation; transitions retain the
+ * complete interpreter, including zero-duration and malformed-state handling. */
+static inline u8 animation_hold_step(AnimState *s,const AnimClip *clip) {
+    if(s->remaining>1 && !s->finished && clip && s->frame<clip->count){
+        --s->remaining;return 1;
+    }
+    return 0;
+}
+static inline u8 animation_step(AnimState *s,const AnimClip *clip) {
+    return animation_hold_step(s,clip) || animation_tick(s,clip)!=0;
+}
 const AnimFrame *animation_current(const AnimState *state, const AnimClip *clip);
 #endif

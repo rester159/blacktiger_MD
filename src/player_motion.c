@@ -2,6 +2,7 @@
 /* Bank 7: 80C3 input, 8625 walk/climb, 8800 jump, 8F8D fall, 8126
  * integration. No source instructions or addresses are executed at runtime. */
 u8 player_motion_sounds[4],player_motion_sound_count,player_motion_frame;
+u8 player_motion_jump_assist;
 static void cue(u8 command) {
     if(player_motion_sound_count<4)player_motion_sounds[player_motion_sound_count++]=command;
 }
@@ -124,8 +125,11 @@ static u8 jump(PlayerMotion *p,u8 input,u8 reversed,u8 attacking) {
         p->pose=6;p->jump_origin=p->camera_return?144:p->screen_y;
         p->screen_motion=p->jumping=1;
         p->vx=horizontal[p->direction];
-        p->vy=(s8)((u16)vertical[p->direction]>>8);
-        p->fraction=(u8)vertical[p->direction];
+        /* Home accessibility option: extra lift at takeoff; ordinary collision,
+         * gravity and landing rules still govern the entire jump. */
+        s16 launch=vertical[p->direction]-(player_motion_jump_assist?512:0);
+        p->vy=(s8)((u16)launch>>8);
+        p->fraction=(u8)launch;
     }
     if (p->vy<0) {
         if (probe(p,12,8)>=2 || probe(p,22,8)>=2 || (!attacking && (u8)p->screen_y<16)) {

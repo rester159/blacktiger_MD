@@ -17,7 +17,7 @@ assert np.array_equal(original[24:104],home[24:104]),'Original wordmark changed'
 assert not np.array_equal(original[104:136,96:160],home[104:136,96:160]),'Missing MD'
 assert np.count_nonzero(home[104:136,96:160])>500,'MD is blank'
 # Logo tiles stay on BG_B while menu navigation updates only BG_A.
-tap(32);tap(32);tap(8);assert r.read('frontend',2)==bytes([1,2])
+tap(128);tap(8);assert r.read('frontend',2)==bytes([1,2])
 tap(1);assert r.read('frontend',2)==bytes([1,1])
 assert np.array_equal(home[24:136],r.frame[24:136]),'Home options return lost MD'
 tap(1);assert r.read('frontend',2)==bytes([1,0])

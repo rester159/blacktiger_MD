@@ -11,7 +11,8 @@ with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text();stubs=['#include "assets.h"','#include "npc.h"','Game game;u8 progress_max_hp=5;']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
- stubs.append('''void setup(int def){game=(Game){0};game.mode=PLAY;game.coins=123;game.time=80;game.p.hp=1;game.p.invincible=2;game.actors[0]=(Actor){.def=def,.active=1};npc_reset();npc_spawn(0);npc_step(0,1);}
+ stubs.append('''u8 terrain(s16 x,s16 y){return 0;}
+ void setup(int def){game=(Game){0};game.mode=PLAY;game.coins=123;game.time=80;game.p.hp=1;game.p.invincible=2;game.actors[0]=(Actor){.def=def,.active=1};npc_reset();npc_spawn(0);npc_step(0,1);}
  void step(void){game.sound_count=0;npc_rescue_tick();}
  void snapshot(int *out){int v[]={npc_sequence.code,game.coins,game.time,game.p.hp,game.p.invincible,game.mode,npc_sequence.complete,game.sound_count};for(int i=0;i<8;i++)out[i]=v[i];}
  int sound_at(int i){return game.sound_commands[i];}
