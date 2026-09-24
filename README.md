@@ -1,10 +1,9 @@
-# Black Tiger Astra — native SGDK development build
+# Black Tiger MD — native SGDK development build
 
-The native SGDK port lives in `/Users/rester159/My_apps/genesis ports/_capcom/black tiger`.
 
-**This is not a complete or arcade-faithful port.** It builds and runs native game logic on the
+This port builds and runs native game logic on the
 68000 using SGDK. It does not execute the arcade program or emulate its CPU. All eight original
-background maps are converted, but having their data does not establish a complete game.
+background maps are converted.
 
 ## Run
 
