@@ -46,6 +46,8 @@ def check_video_cache(r,s):
    if remap is not None:expected=(expected&0xf800)|0x8000|remap[((expected>>13)&1)*n+(expected&2047)]
    assert actual&0xf800==expected&0xf800,(level,x,y,'attribute')
    original=(expected&2047)-16;physical=actual&2047
+   if level==7 and not rush and r.read('bonus_phases',4)[original&3]:
+    original=struct.unpack_from('>H',rom,r.symbols['torch_alternate']+original*2)[0]
    assert bytes(v[(physical*32+k)^1] for k in range(32))==patterns[original*32:original*32+32],(level,x,y,'tile')
 
 def test():
@@ -82,7 +84,14 @@ def test():
   # Shop purchase uses the same public input path after state injection.
  s.mode=3;s.coins=300;s.shop_item=0;s.previous_input=0;s.p.weapon=1;put(r,s);r.run(2);r.run(3,1<<1);s=state(r);check('shop weapon purchase',s.coins==100 and s.p.weapon==2);r.run(2);r.run(3,1<<0);r.run(2);check('shop exits',state(r).mode==1)
  # Death must take a life and restore the round through the production entry path.
- s=state(r);s.mode=4;s.mode_timer=1;s.p.lives=3;put(r,s);r.run(5);s=state(r);check('death respawn',s.mode==1 and s.p.lives==2 and s.p.hp==r.read('progress_max_hp',1)[0])
+ # The shop now restores the complete terrain/palette scene on exit. Drain
+ # that presentation before replacing the running state with a death fixture.
+ s=state(r);s.mode=2;put(r,s);r.run(20)
+ s=state(r);s.mode=4;s.mode_timer=1;s.p.lives=3;put(r,s)
+ for _ in range(120):
+  r.run(1);s=state(r)
+  if s.mode==1 and s.p.lives==2 and s.p.hp==r.read('progress_max_hp',1)[0]:break
+ check('death respawn',s.mode==1 and s.p.lives==2 and s.p.hp==r.read('progress_max_hp',1)[0])
  # Every next-round edge uses production CLEAR -> game_round -> video_round.
  for level in range(8):
   if level:

@@ -4,7 +4,7 @@ from extract_bonus import extract as extract_bonus
 """Offline arcade-data to native Genesis conversion. No arcade code is shipped.
 Requires supplied ROM set; all input files are checked against its SHA256 lock.
 """
-import argparse, hashlib, json, struct, shutil
+import argparse, hashlib, json, struct, shutil, os
 from pathlib import Path
 from collections import Counter
 import numpy as np
@@ -84,10 +84,9 @@ def pack(a):
     return ((a[::2]<<4)|a[1::2]).tobytes()
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--source',type=Path,default=DEFAULT);args=ap.parse_args()
-    lock=json.loads((args.source/'source_lock.json').read_text());files={}
-    for r in lock['files']:
-        b=(args.source/'payload'/r['path']).read_bytes();assert len(b)==r['size'] and sha(b)==r['sha256'];files[r['path']]=b
+    ap=argparse.ArgumentParser();ap.add_argument('--source',type=Path,default=Path(os.environ.get('BLACKTIGER_SOURCE',DEFAULT)));args=ap.parse_args()
+    os.environ['BLACKTIGER_SOURCE']=str(args.source.resolve())
+    source=Source(args.source);lock=source.lock;files=source.files
     board=json.loads((ROOT/'assets/board.json').read_text())
     def read(bank,pc,n):
         if pc<0x8000:return files['bdu-01a.5e'][pc:pc+n]
@@ -117,15 +116,47 @@ def main():
     for p in range(1,8):
         for k in range(15):hist[colid(p0[512+p*16+k])]+=1
     enemy=quant(hist);enemy=enemy[[0,*range(2,15),1]]; hero=np.array([rgb(w) for w in p0[512:527]])
+    # Source hero pen 14 duplicates pen 0's opaque black. Reuse that
+    # physical entry for the missing gray 4; remap its art to black entry 1.
+    assert np.array_equal(hero[14],hero[0]) and not hero[0].any()
+    hero[14]=[4,4,4]
     cram=[0]+[int(c[0]*2+c[1]*32+c[2]*512) for c in hero]+[0]+[int(c[0]*2+c[1]*32+c[2]*512) for c in enemy]
     emit('object_palette',words(cram))
+    poison_raw=read(0,0x1b41,8)
+    emit('poison_skin_palette',words([((poison_raw[i]>>5)<<1)|(((poison_raw[i]&15)>>1)<<5)|(((poison_raw[i+4]&15)>>1)<<9) for i in range(4)]))
     smap=[]
     for p in range(8):
-        smap.append(list(range(1,16))+[0] if p==0 else [int(((enemy-c)**2).sum(1).argmin())+1 for c in scols[p*16:p*16+15]]+[0])
+        smap.append(list(range(1,15))+[1,0] if p==0 else [int(((enemy-c)**2).sum(1).argmin())+1 for c in scols[p*16:p*16+15]]+[0])
     # ROM sprite atlas, hardware column-major tile order. All eight palette variants.
     atlas=bytearray()
     for p in range(8):
         pp=np.array(smap[p],dtype=np.uint8)[sprites]
+        if p in (1,2,3,7):
+            colors=pal(7 if p==7 else (2,5,7)[p-1])[624:639]
+            mapping=[int(((enemy-rgb(c))**2).sum(1).argmin())+1 for c in colors]+[0]
+            pp[1536:2048]=np.array(mapping,dtype=np.uint8)[sprites[1536:2048]]
+            if p in (3,7):
+                # Choose one smooth palette for each 32x32 hardware sprite.
+                # The hero palette supplies gray 2/3/4; the enemy palette
+                # retains saturated red/gold where it represents a section better.
+                source_colors=np.array([rgb(c) for c in colors])
+                targets=(hero,enemy)
+                distances=[((source_colors[:,None,:]-target[None,:,:])**2).sum(2) for target in targets]
+                if p==7:distances[0][:,6:10]=10000 # Skin changes during poison; dragon colors must not.
+                mappings=[np.r_[d.argmin(1)+1,0].astype(np.uint8) for d in distances]
+                choices=np.zeros(512,dtype=np.uint8)
+                for base in range(1536,2048,16):
+                    for col in range(0,8,2):
+                        codes=np.array([base+col,base+col+1,base+col+8,base+col+9])
+                        counts=np.bincount(sprites[codes].reshape(-1),minlength=16)[:15]
+                        choice=int(np.argmin([np.dot(counts,d.min(1)) for d in distances]))
+                        pp[codes]=mappings[choice][sprites[codes]]
+                        choices[codes-1536]=choice+2
+                emit('poison_dragon_palettes' if p==7 else 'black_dragon_palettes',choices.tobytes(),'u8')
+        if p==7:
+            # Original poison changes only hero skin pens 6..9 (fixed 195C).
+            # Keep the original pixel indices; runtime swaps those four colors.
+            pp[:256]=np.array(smap[0],dtype=np.uint8)[sprites[:256]]
         for a in pp:
             for x,y in ((0,0),(0,8),(8,0),(8,8)):atlas.extend(pack(a[y:y+8,x:x+8]))
     emit('object_patterns',bytes(atlas),'u32')
@@ -493,7 +524,7 @@ def main():
         palettes=[];pm=[]
         for c in cp:palettes += [0]+[int(v[0]*2+v[1]*32+v[2]*512) for v in c]
         for p in range(16):pm.append([int(((cp[groups[p]]-rgb(c))**2).sum(1).argmin())+1 for c in colors[p*16:p*16+16]])
-        pats=bytearray();unique={};world=[];coll=[];scenery=np.zeros((h*16,w*16),np.uint8);preview=Image.new('RGB',(w*16,h*16))
+        pats=bytearray();unique={};torch_variants={};world=[];coll=[];scenery=np.zeros((h*16,w*16),np.uint8);preview=Image.new('RGB',(w*16,h*16))
         for y in range(h):
             for x in range(w):
                 idx=(x&15)|((y&15)<<4)|((x&(0x70 if layout else 0x30))<<4)|((y&(0x30 if layout else 0x70))<<(7 if layout else 6))
@@ -526,12 +557,27 @@ def main():
                 if flip:pix=pix[:,::-1]
                 pp=np.array([[0,0,0]]+list(cp[groups[p]]))*255//7
                 preview.paste(Image.fromarray(pp[pix].astype(np.uint8)),(x*16,y*16))
+                torch=r==7 and 0xe0<=code<=0xf7 and (code&7)<7
+                if torch:
+                    # The palace flames cycle locally; reserve their textures
+                    # so shared brass/stone pixels never inherit the flicker.
+                    flame=np.arange(16,dtype=np.uint8);flame[[0,1,2,3,8]]=[3,8,0,2,1]
+                    alternate=np.array(pm[p],dtype=np.uint8)[flame[tiles[code]]]
+                    if flip:alternate=alternate[:,::-1]
                 ws=[]
                 for oy,ox in ((0,0),(0,8),(8,0),(8,8)):
                     cell=pix[oy:oy+8,ox:ox+8]
                     b,flags=min((pack(cell),0),(pack(cell[:,::-1]),0x800),(pack(cell[::-1,:]),0x1000),(pack(cell[::-1,::-1]),0x1800))
-                    if b not in unique:unique[b]=len(unique);pats.extend(b)
-                    ws.append((unique[b]+16)|(int(groups[p])<<13)|flags)
+                    key=b
+                    if torch:
+                        alt=alternate[oy:oy+8,ox:ox+8]
+                        if flags&0x800:alt=alt[:,::-1]
+                        if flags&0x1000:alt=alt[::-1,:]
+                        alt=pack(alt)
+                        if alt!=b:key=(b,alt)
+                    if key not in unique:unique[key]=len(unique);pats.extend(b)
+                    if torch and key!=b:torch_variants[unique[key]]=alt
+                    ws.append((unique[key]+16)|(int(groups[p])<<13)|flags)
                 world.append(ws)
         # Hidden terrain uses the source's tile 0 / palette 6 replacement.
         opened=np.array(pm[6],dtype=np.uint8)[tiles[0]];open_words=[]
@@ -580,6 +626,14 @@ def main():
         br=bonus['rounds'][r];triggers=br['triggers']
         bonus_definitions.append('{bonus_patches'+str(r)+','+','.join(map(str,[len(patches),*br['camera'],br['return_x_low_add'],len(triggers)]))+',{'+','.join('{'+str(t['x'])+','+str(t['y'])+'}' for t in triggers or [dict(x=0,y=0)])+'}}')
         assert len(unique)<1700,(r,len(unique),'alternate-area patterns')
+        if r==7:
+            alternate=list(range(len(unique)))
+            for logical,raw_alt in sorted(torch_variants.items()):
+                if raw_alt not in unique:unique[raw_alt]=len(unique);pats.extend(raw_alt)
+                alternate[logical]=unique[raw_alt]
+            alternate.extend(range(len(alternate),len(unique)))
+            emit('torch_alternate',words(alternate))
+            emit('torch_tiles',words([len(torch_variants),*sorted(torch_variants)]))
         # Row-major 8x8 map enables contiguous strip uploads; only the entering edges stream.
         wm=[]
         for y in range(h*2):

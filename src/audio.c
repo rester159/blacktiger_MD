@@ -6,6 +6,7 @@
 /* Native FM stream player plus provisional PSG effects. */
 static u8 audio_ready,pal_audio,high_frequency[2],last_audio_mode=255;
 static u32 audio_video_frame;
+static u8 coin_resume;
 void music_write(u8 part,u8 reg,u8 value) {
     if(pal_audio && reg>=0xa4 && reg<=0xa6){high_frequency[part]=value;return;}
     if(pal_audio && reg>=0xa0 && reg<=0xa2){
@@ -21,7 +22,20 @@ static void music_update(void) {
     audio_video_frame=now;
     bus=Z80_getAndRequestBus(TRUE);
     if(!audio_ready){YM2612_reset();audio_ready=1;pal_audio=SYS_isPAL();elapsed=0;}
-    if(mode==TITLE || !settings[frontend.mode].music) {
+    if(music_request==0x20 && settings[frontend.mode].sfx){
+        if(music_command!=0x20)coin_resume=music_active?music_command:0x21+game.round;
+        music_request=0;music_start_command(0x20);
+    } else if(music_active && music_command==0x20){
+        if(music_request){coin_resume=music_request;music_request=0;}
+        if(mode!=last_audio_mode){
+            if(mode==SHOP)coin_resume=0x2c;
+            else if(mode==GAMEOVER)coin_resume=0x31;
+            else if(mode==INTRO)coin_resume=0x30;
+            else if(mode==CLEAR || mode==ENDING)coin_resume=game.round==7?0x33:0x32;
+        }
+        music_advance(elapsed,pal_audio);
+        if(!music_active && mode!=TITLE && settings[frontend.mode].music)music_start_command(coin_resume);
+    } else if(mode==TITLE || !settings[frontend.mode].music) {
         music_request=0;if(music_active)music_stop();
     } else {
         u8 request=music_request;music_request=0;

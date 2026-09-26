@@ -23,7 +23,9 @@ Image.fromarray(a).save(ROOT/'reports/parallax-a.png');Image.fromarray(b).save(R
 assert np.array_equal(a[110:140,192:208],b[110:140,184:200]),'scenery is not half-speed'
 r.capture('arena-parallax.png')
 s=state(r);s.mode=3;put(r,s);r.run(12)
-for row in range(14,28):assert word(0xf000+row*32)==0,'shop moved'
+registers=(C.c_uint8*32).in_dll(r.lib,'reg')
+assert registers[11]&3==0 and word(0xf000)==word(0xf002)==0,'shop planes moved'
+assert r.read('arena_video_active',1)==b'\0'
 s=state(r);s.mode=2;put(r,s);r.run(12)
 assert word(0xf000+20*32)==(-832//2)&65535
 s=state(r);s.mode=0;put(r,s);r.run(15);assert r.read('arena_video_active',1)==b'\0'

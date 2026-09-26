@@ -103,7 +103,7 @@ class Runner:
    'edge_shots':('edge_shots_occupied',0),'dragon_shots':('dragon_shots_occupied',0)}
   if name in pool_flags:
    flag,index=pool_flags[name]
-   if flag in self.symbols:self.write(flag,index,bytes([12 if name in ('missiles','statue_shells','statue_blasts','hunter_shells','hunter_blasts') else 24 if name=='flailer_weapons' else 1]))
+   if flag in self.symbols:self.write(flag,index,bytes([12 if name in ('missiles','statue_shells','statue_blasts','hunter_shells','hunter_blasts') else 24 if name in ('flailer_weapons','container_traps') else 1]))
   a=(self.symbols[name]+offset)&65535
   for i,v in enumerate(data):self.ram[(a+i)^1]=v
  def capture(self,name):

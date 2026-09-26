@@ -39,6 +39,7 @@ for stage in range(8):
  active=[a for a in s.actors if a.active];d=meta['actor_definitions'][active[0].definition]
  assert (d['bank'],d['address'])==roster[stage]
  assert all(a.definition==active[0].definition for a in active)
+ assert r.read('hud_boss_present',1)==b'\1' and r.read('hud_boss_fill',1)[0]>0,('missing boss health bar',stage)
  # Traverse all three screens in both directions with the real controller.
  coins=s.coins;s.p.invincible=10000;put(r,s);before=bytes(s.actors)
  if stage&1:walk(64,256)
@@ -75,7 +76,7 @@ for stage in range(8):
  assert r.read('container_keys',1)[0]==oldkeys+1,(stage,'key purchase',state(r).shop_item)
  purchased=state(r).coins;tap(8);s=state(r)
  assert s.coins==purchased and r.read('container_keys',1)[0]==oldkeys+1
- cases.append(dict(boss=stage+1,reward=reward,shop=True,inventory_carried=True,death_updates=frame))
+ cases.append(dict(boss=stage+1,reward=reward,shop=True,health_bar=True,inventory_carried=True,death_updates=frame))
 assert state(r).mode==6 and r.read('boss_rush',4)==bytes([0,8,1,1])
 r.close();report=dict(passed=True,cases=cases,arena={'x':576,'width':768,'camera_y':64,'floor_y':256,'scroll_range':[576,1088],'start_x':944,'start_camera_x':832,'walking_boss_floor_checked':True},rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='All eight native AI routines, three-screen horizontal traversal in both directions, persistent bosses, fixed round, original pickup-triggered fatal combat and delayed death callbacks, reward once, shop purchase after every boss including final, carried inventory and ending. POW fixtures do not prove weapon-only balance or natural completion.')
 (ROOT/'reports/boss-rush-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

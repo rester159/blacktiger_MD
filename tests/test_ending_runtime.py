@@ -59,7 +59,7 @@ for frame in range(500):
  assert r.read('game_over',4)[2]!=2,'Completed game offered a continue'
  if s.mode==0:break
 else:raise AssertionError('Completed game did not return to title')
-r.run(80,0);r.run(3,8);r.run(3);r.run(3,8);r.run(30);s=state(r);assert s.mode==1 and s.round==0 and r.read('ending',8)[7]==0
+r.run(80,0);r.run(3,8);r.run(3);r.run(3,8);r.skip_intro();r.run(30);s=state(r);assert s.mode==1 and s.round==0 and r.read('ending',8)[7]==0
 s.mode=2;put(r,s);r.run(60);check_video_cache(r,state(r));assert int.from_bytes(r.read('video_cache_faults'),'big')==0
 r.close();report=dict(passed=True,rom_sha256=hashlib.sha256(rom.read_bytes()).hexdigest(),cases=cases,captures=captures,final_clear_entry=True,original_music_continuity=True,start_does_not_skip=True,no_post_completion_continue=True,new_game_resets=True,scope='Injected final victory leading through all native ending pages, source-matched text/actual VRAM, adapted palette stages, credits map/patterns, final game-over without continue, and new-game terrain restoration. Not a natural eight-round playthrough or board sprite-retention proof.')
 (ROOT/'reports/ending-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:report[k] for k in ('passed','rom_sha256','no_post_completion_continue','new_game_resets')}))

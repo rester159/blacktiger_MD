@@ -3,19 +3,22 @@
 import os,subprocess,json,hashlib
 from pathlib import Path
 from arcade_source import Source,ROOT
-s=Source();out=ROOT/'reports/constructor-oracle';out.mkdir(exist_ok=True)
+from oracle_runner import mame_binary
+from spawn_catalog import constructors
+s=Source();out=ROOT/'reports/constructor-oracle';out.mkdir(parents=True,exist_ok=True)
 romdir=out/'roms/blktiger';romdir.mkdir(parents=True,exist_ok=True)
 for name in s.files:
  p=romdir/name
+ if p.is_symlink():p.unlink()
  if not p.exists():p.symlink_to((s.root/'payload'/name).resolve())
 for name in ('cfg','nvram','sta','snap','diff','home'):(out/name).mkdir(exist_ok=True)
-defs=json.loads((ROOT/'reports/assets.json').read_text())['actor_definitions'];cases=[]
+defs=constructors(s);cases=[]
 for d in defs:
  bank=d['bank'];blob=s.read(bank,0,0x8000)+s.read(bank,0x8000,0x4000)
  pcs=[i for i in range(len(blob)-1) if blob[i:i+2]==bytes.fromhex('edb0')]
  cases.append('{id=%d,bank=%d,pc=%d,copies={%s}}'%(d['id'],bank,d['address'],','.join(map(str,pcs))))
 (out/'cases.lua').write_text('return {'+','.join(cases)+'}\n')
-command=['/opt/homebrew/bin/mame','blktiger','-rompath',str(romdir.parent),'-debug','-debugger','none','-autoboot_delay','0','-autoboot_script',str(ROOT/'tools/constructor_oracle.lua'),'-video','none','-sound','none','-nothrottle','-skip_gameinfo','-noconfirm_quit','-noplugins','-nohttp','-nowriteconfig','-cfg_directory','cfg','-nvram_directory','nvram','-state_directory','sta','-snapshot_directory','snap','-diff_directory','diff','-homepath','home','-inipath','home']
+command=[mame_binary(),'blktiger','-rompath',str(romdir.parent),'-debug','-debugger','none','-autoboot_delay','0','-autoboot_script',str(ROOT/'tools/constructor_oracle.lua'),'-video','none','-sound','none','-nothrottle','-skip_gameinfo','-noconfirm_quit','-noplugins','-nohttp','-nowriteconfig','-cfg_directory','cfg','-nvram_directory','nvram','-state_directory','sta','-snapshot_directory','snap','-diff_directory','diff','-homepath','home','-inipath','home']
 run=subprocess.run(command,cwd=out,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),capture_output=True,timeout=60)
 (out/'stdout.txt').write_bytes(run.stdout);(out/'stderr.txt').write_bytes(run.stderr)
 assert run.returncode==0,run.stderr.decode(errors='replace')

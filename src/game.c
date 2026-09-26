@@ -94,7 +94,7 @@ void game_round(u8 round) {
     u8 preserve=restart_pending && loaded_round==round;
     u16 restart_x=r->start_x,restart_y=r->start_y;
     if(preserve)checkpoint_lookup(round,game.cam_x,game.cam_y,&restart_x,&restart_y);
-    status_reverse=shop_poison=0;loaded_round=round;game.round = round;
+    status_new();shop_poison=0;loaded_round=round;game.round = round;
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
     if(preserve){u16 i;for(i=0;i<160;i++)game.spawned[i]&=254;world_restart();}
@@ -108,7 +108,6 @@ void game_round(u8 round) {
     loot_reset();
     container_round(round);
     if(preserve)container_actor_restart();else container_actor_reset();
-    game.mode = PLAY;
     game.mode_timer = 0;
     game.boss_dead = 0;
     game.rescued = 0;
@@ -117,7 +116,11 @@ void game_round(u8 round) {
     game.cam_x = restart_x;
     game.cam_y = restart_y;
     p->x = (restart_x + checkpoint_player_x) * FX;
-    p->y = (restart_y + checkpoint_player_y) * FX;
+    /* Arcade checkpoint coordinates wrap through the background address space.
+       In Level 2 the boss checkpoint is Y=1008: +144 wraps to 128. */
+    p->y = ((restart_y + checkpoint_player_y) & (r->height-1)) * FX;
+    if(restart_y + checkpoint_player_y >= r->height)
+        game.cam_y = camera_y(PX(p->y)-checkpoint_player_y);
     p->vx = p->vy = 0;
     p->climb = p->grounded = p->attack = 0;
     p->invincible = 120;
@@ -126,6 +129,7 @@ void game_round(u8 round) {
     motion_reset();game.player_low=0;player_death_reset();armor_break_reset();
     player_attack=(PlayerAttack){0};player_daggers_reset();
     if(boss_rush.active){boss_rush_prepare();motion_reset();}
+    game.mode = PLAY;
 }
 void game_bonus_transition(void) {
  u16 i,x=player_motion.scroll_x,y=player_motion.scroll_y;
@@ -499,7 +503,10 @@ __attribute__((noinline)) static void actor_step_fallback(u16 i) {
         return;
     }
     case BEHAVIOR_EMERGE: {
-        if (emerge_step(i)) player_hurt_from(actor_damage[a->def],PX(a->x));
+        if (emerge_step(i)) {
+            status_poison_contact();
+            player_hurt_from(actor_damage[a->def],PX(a->x));
+        }
         return;
     }
     case BEHAVIOR_HAZARD: {
@@ -858,6 +865,15 @@ static void game_tick_step(u16 input) {
         }
         return;
     }
+    /* Arcade Start belongs exclusively to the coin slot. A substitutes for
+       the cabinet start input in the introduction and continue handler. */
+    if(!frontend.mode){
+        input&=~IN_START;pressed&=~IN_START;
+        if(game.mode==INTRO || game.mode==GAMEOVER){
+            if(input&IN_ATTACK)input|=IN_START;
+            if(pressed&IN_ATTACK)pressed|=IN_START;
+        }
+    }
     if(game.mode==INTRO){if(intro_step(pressed)){game.frame=0;game_round(0);game.previous_input=input;}return;}
     if (game.mode == PAUSED) {
         if (pressed & IN_START)
@@ -968,7 +984,7 @@ static void game_tick_step(u16 input) {
     if(edges){u16 i;for(i=0;i<24;i++){u8 damage;if(!edge_shots[i].active)continue;damage=edge_shot_contact(i);if(damage)player_hurt_from(damage,edge_shots[i].x);}}
     if(reinforcements){u16 i;for(i=0;i<24;i++)if(reinforcement_shots[i].active && reinforcement_shot_contact(i))player_hurt_from(1,reinforcement_shots[i].x);}
     if(flailers){u16 i;for(i=0;i<flailers;i++){u8 contact;if(!flailer_weapons[i].active)continue;contact=flailer_weapon_contact(i);if(contact==1)player_hurt_from(1,flailer_weapons[i].x);else if(contact==2 && status_poison_cloud_contact())player_hurt_from(2,flailer_weapons[i].x);}}
-    if(traps){u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++){u8 contact;if(!container_traps[i].active)continue;contact=container_trap_contact(i);if(contact==1)player_hurt_from(1,container_traps[i].x);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
+    if(traps){u16 i;for(i=0;i<container_traps_occupied;i++){u8 contact;if(!container_traps[i].active)continue;contact=container_trap_contact(i);if(contact==1)player_hurt_from(1,container_traps[i].x);else if(contact==2 && !game.p.invincible)status_reverse_contact();}}
     }
     if(moving_missiles){
         u16 i;for(i=0;i<moving_missiles;i++) {

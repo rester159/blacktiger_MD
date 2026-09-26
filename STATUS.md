@@ -1,3 +1,26 @@
+# Source-only repository (v1.2)
+
+The current tree requires the owner-supplied Black Tiger ROM and locally regenerates its assets and observation fixtures. Generated ROMs, media, extracted tables and raw traces are no longer tracked. Source-only startup omits borrowed Sonic/Shinobi/Street Fighter boot data; Black Tiger’s own intro remains. See [build instructions](README.md) and [migration boundary](docs/source-only.md). The notes below describe prior local gameplay builds; their generated reports and media are available only after local generation or in earlier history.
+
+# v1.2 playability and Arcade controls
+
+- Arcade Start inserts one coin per press; A selects and spends a credit to play or continue. C/Mode no longer insert coins. The Arcade menu flashes INSERT COIN without a control hint, and the corner stamp is v1.2.
+- Source coin routine fixed 0A3A selects FM command 20, before the coinage award; 0A62 caps credits at nine. The native player now uses that captured jingle instead of pickup command 06. CREDIT appears at the original bottom-right title location; it is absent from the gameplay/shop HUD. The previous music track restarts after the jingle.
+- Main, Home, and Arcade menu labels are centered by their visible glyph bounds, including odd-length strings. A TO SELECT is removed; Arcade retains only the flashing INSERT COIN prompt. The version stamp moves to the lower-left to leave the original credit position clear.
+- Level 2 boss-area checkpoint camera Y=1008 formerly produced player Y=1152 below the 1024px map. Round entry now wraps the player coordinate and adjusts the nonwrapping camera; a 1,000-refresh no-input restart remains alive.
+- Dragon texture variants use the source palettes for rounds 3, 6 and 8 (blue, red, black), including Boss Rush. Healthy textures and the shared palette stay unchanged outside reserved atlas combinations.
+- Black dragon now uses smooth per-section palette selection instead of dithering. The hero palette's duplicate black entry becomes gray 4; palette-0 art remaps to the original black entry with identical RGB pixels. Dragon sections choose the hero or enemy palette by source-color error while retaining eight hardware sprites. Original spawn records still match Levels 3, 6, and 8; focused tests check source coordinates, physical palette selection, smooth colors, and unchanged hero pixels.
+- Boss HUD now follows original fixed 5D6D/5D88: 2/2/3/3/5/6/6/8 layer segments at row 4, column 7; stage-specific red/amber styles; filled/empty source glyphs. Partial hits and pending reactions retain the current layer; empty outlines remain during defeat. Original boss-entry Zenny hiding is reproduced. Boss Rush uses each boss's original stage; detached upper stones do not drive the row.
+- Removed the TRY AGAIN death overlay. Unarmored hero frames now use the hero palette while poisoned, including sprite codes above 255; normal skin and purple poison shades remain correct after armor loss.
+- Both emerging plants now apply the existing poison handler. Poison changes only the four skin shades to the original purple palette (fixed routine 195C/table 1B41), preserving armor and transparency, and dagger launch is suppressed; carried antidotes protect automatically, and buying an antidote cures poison. New round/death entry resets the contact gate.
+- Shop selection uses the original six-piece blue frame and per-item position table (fixed 6828/6E45), not the title Yashichi. HUD colors avoid the mutable skin entries; the black dragon uses a separate poison-safe atlas variant.
+- Shop displays the seated merchant and curtained room decoded from the original shop camera/map. Shop exit restores the level background and palettes. Palace torch flame colors animate through shared resident textures, staggered across four groups; no per-torch map rewriting.
+- The Level 1 far-left wall was already present: normal controller attacks reveal its bamboo, and normal movement collects +30 seconds. The supplied arcade initialization has zero keys and the chest handler requires one; no free starting key was introduced.
+
+- Final optimization reduces empty trap-pool scans and skips FM writer setup on empty music ticks. Across 229 sampled encounters, common-second FPS improves 53.29 → 53.62 and seconds below 30 FPS decrease 99 → 90. Four one-minute stress routes gain 0.38–4.02 average FPS; worst dips remain. The palace streaming edge case records one upload overrun before and two after. See [full measurements](reports/optimization-v12.md).
+
+Validation: all 171 test commands passed on SHA-256 `779228b30278f8fc269f0d7e91467134ab8f00f278a51f469fade5b0f50bc16b`; strict packaging passed. See `reports/v12-validation.json`. Focused checks: `tests/test_review_fixes_runtime.py`, `tests/test_arcade_coin_runtime.py`. These combine real menu/attack/movement input with controlled cartridge fixtures; they are not a full natural playthrough. Arcade reference checks also agree with [dragon order](https://gamefaqs.gamespot.com/arcade/583849-black-tiger/faqs/28580) and the [opening wall reward](https://strategywiki.org/wiki/Black_Tiger/Stage_1).
+
 # Status
 
 Tested cartridge: `dist/blacktiger_MD_v27.bin` (4 MiB).
@@ -29,7 +52,7 @@ cadence, presentation and audio. All eight maps use one renderer and game loop;
 normal locomotion and the known major enemy/boss families now have native routines.
 Injected actor/ending tests do not establish natural full-game completion.
 
-Boot presentation: user-supplied black-background Shinobi SEGA kit, now with the supplied Sonic 1 SEGA chant, and SF2 Capcom animation/jingle run before the title. Start skips either sequence with clean sound teardown. Copyright lines are separated by a blank row; the credit counter is above the logo.
+Boot presentation: user-supplied black-background Shinobi SEGA kit, now with the supplied Sonic 1 SEGA chant, and SF2 Capcom animation/jingle run before the title. Start skips either sequence with clean sound teardown. Copyright lines are centered above the original bottom-right title credit counter.
 
 New presentation/modes: original arcade title artwork with Arcade/Home menus, native source-derived start intro in Arcade and a direct Levels 1–8 selector under Home Debug, bounded credits, expanded HUD and eight-boss Home rush with a shop after each fight. Shared settings include source weapon damage and shop-price difficulty, lives, coinage, continue and audio toggles. The remaining original difficulty effects and physical arcade DIP functions are not yet fully reproduced.
 

@@ -20,11 +20,17 @@ The original start music command is 0x30. Genesis palette 0 holds palace colors,
 when they change. Both normal-game modes enter this presentation; a new Start
 press after 30 updates skips it. Continues and Boss Rush go directly to play.
 
-Arcade stores its coin bank separately from Home's limited run credits. Only
-six-button Mode (libretro Select) inserts coins. Start spends one credit to play;
-A selects submenus but cannot start a game. Home initializes its credit balance
-from Options on a new run and spends the first credit immediately: default three
-therefore permits two continues. Select never refills Home credits. DIP/Options
+Arcade stores its coin bank separately from Home's limited run credits. In v1.2,
+Start is the coin input inside Arcade, and A selects Play and accepts continues.
+Each new Start edge plays the original FM command 20 (fixed 0A3A), before the
+coinage meter awards a credit. The original cap is nine (0A62–0A6B), and the
+source CREDIT label is at 16FA. The original title capture places CREDIT at
+column 23, row 27, with its single digit at column 31. The native title follows
+that position; gameplay and shop use the original currency HUD without a credit
+overlay. Home balances above nine retain two digits. Coin sound temporarily takes the FM player; after it
+ends the previous gameplay track restarts. It remains audible with Music OFF
+and Sound FX ON. C/Mode cannot add credits. Home retains Start and its configured
+credit budget, defaulting to the initial game plus two continues. DIP/Options
 share lives, difficulty, coinage, allow-continue and music/SFX controls. Difficulty
 currently selects source bank 6 B6F0 weapon damage plus the existing source shop
 price table; remaining original difficulty effects and physical cabinet DIP

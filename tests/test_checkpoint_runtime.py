@@ -18,7 +18,10 @@ for level in range(8):
   s=state(r);s.mode=4;s.mode_timer=0;s.p.lives=3;s.cam_x=cx;s.cam_y=cy
   for i in range(160):s.spawned[i]=2
   put(r,s);s=death();ex,ey=data['grids'][level][cell]
-  assert (s.cam_x,s.cam_y,s.p.x,s.p.y)==(ex,ey,(ex+112)*256,(ey+144)*256),(level,cell,s.cam_x,s.cam_y,s.p.x//256,s.p.y//256,ex,ey)
+  height=2048 if level==2 else 1024
+  py=(ey+144)&(height-1)
+  if ey+144>=height:ey=(py-144)&65535 if level==2 else max(0,py-144)
+  assert (s.cam_x,s.cam_y,s.p.x,s.p.y)==(ex,ey,(ex+112)*256,py*256),(level,cell,s.cam_x,s.cam_y,s.p.x//256,s.p.y//256,ex,ey)
   assert s.p.vx==s.p.vy==0 and s.p.lives==2
   checks.append(dict(round=level+1,cell=cell,scroll=[ex,ey]))
   s.mode=2;put(r,s);r.run(12)

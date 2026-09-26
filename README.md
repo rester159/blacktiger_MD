@@ -1,249 +1,61 @@
-# Black Tiger MD — native SGDK development build
+# Black Tiger MD — source-only v1.2
 
+A native Sega Mega Drive/Genesis port built with SGDK. The cartridge runs native 68000 game logic; it does not emulate the arcade CPU.
 
-This port builds and runs native game logic on the
-68000 using SGDK. It does not execute the arcade program or emulate its CPU. All eight original
-background maps are converted.
-
-## Run
-
-Open `dist/blacktiger_MD_v1.bin` in a Genesis emulator, or run `tools/launch.sh` on this Mac.
-
-Home Play now shows the same original introduction as Arcade Play. Start skips it after the initial half-second guard. Boss Rush and Debug level selection still start directly. See [validation](reports/home-intro-validation.json).
-
-v36 hides Debug until you press **Up, Up, Down, Down, Left, Right, Left, Right** on the Home menu. A ping confirms the unlock (when Sound FX is enabled), and Debug appears selected. It remains available until reset. See [validation](reports/v36-validation.json).
-
-v35 restricts **Home → Options → LV7 JUMP → ASSIST** to rightward takeoffs at the pictured early Level 7 ledge. Jumps elsewhere retain original movement. Original remains the default. See [validation](reports/v35-validation.json).
-
-v34 adds **Home → Options → LV7 JUMP → ASSIST**. Original is the default. In v34, Assist gave jumps extra lift throughout Level 7 (superseded by the localized v35 behavior) so the early 64-pixel step-up can be cleared with a normal directional jump. Arcade, other levels, and Boss Rush retain their original movement. The preference lasts until reset, like the other menu settings. See [validation](reports/v34-validation.json).
-
-v33 fixes clipped Level 7 parallax windows, preserves readable blue Level 6 arrows, excludes the off-map enemy appearing in the wall, and applies the requested stone colors to spiked platforms. See [validation](reports/v33-validation.json).
-
-v32 keeps Level 5 parallax and removes the full source mountain tile set from the foreground, including the missed base strips in alternate colors. Eleven raised column caps now have solid collision shared by the player and enemies. See [validation](reports/v32-validation.json).
-
-v31 restores Level 5’s complete original mountain background and disables its parallax layer, removing the detached mountain strips. See [validation](reports/v31-validation.json).
-
-v30 restores Level 4’s original cave background and disables its repeated parallax layer. The reported upper room and four other views are checked against the original scenery. See [validation](reports/v30-validation.json).
-
-v29 restores the full original Level 8 scenery, including sky and windows, with parallax disabled. Boss Rush retains its separate arena presentation. See [validation](reports/v29-validation.json).
-
-v28 restores Level 3’s vertical map connection: the gold corridor now leads upward into the next section, with continuous camera scrolling, collision and actor spawning. The screenshot route is tested through two platforms above the former ceiling; this is not a full-level playthrough. See [validation](reports/v28-validation.json).
-
-v27 improves the worst sampled rolling second across a 229-case all-level survey from 12 to 15 FPS; the requested 40-FPS floor is not reached. See the [second-by-second report](reports/performance-profile-v23.md) for all levels, sustained encounters and regressions. Level 6 retains its restored original scenery with parallax disabled.
-
-- Boot: black-background animated SEGA logo, Capcom fade/glint with its FM jingle, then the title menu. Start skips the boot sequence. Arcade Play and Home Play both show the original Black Tiger intro before level one; Home Debug provides level selection.
-- D-pad: move; Down: crouch; Up/Down on ladders: climb.
-- A: chain attack and dagger volley (release to attack again); B: jump.
-- Select (Genesis six-button Mode): insert an Arcade coin. Start: play, pause/resume, accept a paid continue, or skip the intro after its first half-second. C does not insert coins.
-- Choose ARCADE for Play/DIP Switches or HOME for Play/Boss Rush/Options/Debug. Debug lists Levels 1–8 directly: Up/Down selects a level, Left/Right switches columns, Start/A begins, B returns. Debug level selection skips the intro and defaults invincibility, infinite lives, infinite time and FPS display to ON, plus Infinite Zenny to YES; both normal Play modes retain their intro.
-- Home defaults to three total credits: the initial game and two continues. Options sets 1–99 credits for a new run; Select cannot refill them.
-- Both settings menus provide lives, difficulty, coinage, continues, music and sound effects. Difficulty currently changes original weapon-damage tables and shop prices; full arcade difficulty behavior is not yet certified.
-- Home Boss Rush uses a three-screen-wide, horizontally scrolling palace hall for eight bosses, awards 1,000–4,500 Zenny, and opens a shop after every victory, including the last. Equipment, keys and remaining currency carry over. Each fight starts in the center with scrolling available left and right. Scenery through the palace windows scrolls at half speed for depth.
-- Arcade HUD: original top/bottom glyph layout, score/high score, TIME, VITALITY, Zenny, keys, weapon, armor and antidotes. Title screens retain CAPCOM 1987 and add RESTER159 2026.
-- RetroArch: use a six-button pad; keyboard Right Shift = Select, Enter = Start, A = attack, Z = jump. `tools/launch.sh` applies these bindings, audio sync and VSync, and disables fast-forward/slow-motion keyboard shortcuts for this run. Space is not jump. Global RetroArch settings are unchanged.
-- Contact a petrified NPC to rescue it. Merchant rescues open the arcade-style icon shop. Left/right selects within a row; up/down switches weapons/armor rows. A buys, B/Start exits. Purchases and refusals have feedback.
-- Chests need a key: buy KEY for 30 Zenny in a merchant shop, then touch the chest. Attacking does not unlock it. The HUD shows your key count.
+**You must supply the original Black Tiger arcade ROM set to build this project.** This checkout contains port code, conversion tools, and a filename/size/SHA-256 manifest. It does not include original ROMs, compiled cartridges, extracted graphics/music, generated C asset tables, screenshots, or original-ROM observation dumps.
 
 ## Build
 
-Requires SGDK with native `m68k-elf-gcc`, Java, and Python 3. The local installation is
-`~/mars/m68k-elf`. The Makefile explicitly selects GCC's **68000** libgcc: the toolchain's default
-library contains later-CPU instructions and produced a real exception in the first emulator run.
+Requirements:
+
+- Python 3 with support for the versions in `requirements.txt`.
+- SGDK with native `m68k-elf-gcc`, Make, and Java. The default SDK directory is `~/mars/m68k-elf`; override it with `GDK=/path/to/sgdk`.
+- MAME with Lua/debugger support to generate the local source observations. Tested with MAME 0.288. Put `mame` on PATH or set `MAME=/absolute/path/to/mame`.
+- The exact 20-file arcade set listed in [assets/rom_manifest.json](assets/rom_manifest.json). Other revisions are rejected rather than silently producing incorrect data.
 
 ```sh
-make
-make test
-python3 tools/package.py
-# Other SDK installations:
-make GDK=/path/to/sgdk JAVA=/path/to/java
-```
-
-The default asset source is the user's existing locked set in the sibling old project. On another
-machine, supply that same package (a `source_lock.json` and `payload/` directory):
-
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python tools/extract.py --source /path/to/source-package
+python3 tools/import_rom.py /path/to/blktiger.zip
 make
 ```
 
-Original arcade program ROMs are only read by the offline converter; they are not linked into the
-cartridge. Generated binary assets and the Python environment are excluded from Git. `src/data.c`
-and `inc/assets.h` are generated by `tools/extract.py`.
+The importer also accepts an extracted ROM directory. It validates the complete set before writing anything. It never downloads ROMs.
 
-## Implementation
+`make` creates the Python environment, verifies the original ROM, runs the offline MAME observations, converts graphics/maps/animation/music to native data, and compiles `out/release/rom.bin`. The first build takes longer because all observations and assets are generated locally; subsequent builds reuse verified local outputs. ROM validation is required even when generated assets already exist.
 
-One native state machine handles all rounds: movement, gravity, platform and wall collision,
-climbing, shooting, damage, armor, pickups, a shop, lives, respawning, round transitions, and ending.
-Fixed actor/projectile pools avoid gameplay allocations. Actor behavior is shared by family.
+For different tool locations:
 
-The asset pipeline verifies the supplied ROM hashes, decodes the original graphics, reads all eight
-maps and collision tables, extracts spawn records, and reduces palettes to Genesis RGB333. It uses
-two background palettes, the original 15-color hero palette, and a 15-color enemy palette. HUD colors map to the nearest actor-palette colors; the HUD no longer reduces sprite color fidelity. Transparent sprite pen 15
-becomes Genesis pen 0; opaque black stays opaque. Horizontal/vertical flip deduplication reduces tile
-storage. The renderer streams a 64×32 tile ring through a 1,056-tile background cache and an 80-entry
-sprite cache. Full bodies share this cache as 32×32 hardware sprites (four slots per body),
-with a fallback to individual pieces when needed. DMA queue capacity is 192; full round loading is batched with the display disabled.
+```sh
+MAME=/path/to/mame make GDK=/path/to/sgdk JAVA=/path/to/java
+```
 
-Files:
+To use a previously imported ROM package outside this checkout:
 
-- `src/game.c`: native game systems, independent of SGDK rendering.
-- `src/player_motion.c`: source-derived locomotion, chain attacks and jumping attacks.
-- `src/player_dagger.c`: three-way dagger volleys, terrain impacts and hit explosions.
-- `src/round_clear.c`: shared victory animation, armor restoration and round Zenny bonuses.
-- `src/animation.c`, `src/npc.c`: shared source-derived animation and eight NPC variants.
-- `src/video.c`: scrolling, tile/sprite caches, hardware sprite limits, HUD.
-- `src/loot.c`: common source drop tables, coin pickup animation/rewards, and random recurrence.
-- `src/skeleton.c`: shared skeleton movement, weapons, blocks, durability, and death.
-- `src/world.c`: sparse terrain changes, hidden walls, reveal effects, and rewards.
-- `src/audio.c` and `src/music.c`: native FM round music and provisional PSG effects.
-- `tools/extract.py`: source verification and asset conversion.
-- `tests/test_assets.py`: complete map decoding and corruption negative control.
-- `tests/test_runtime.py`: deterministic tests of the actual cartridge in Genesis Plus GX.
-- `reports/`: exact asset identities and measured test results.
+```sh
+BLACKTIGER_SOURCE=/path/to/package make
+# package/payload/ contains the filenames listed in assets/rom_manifest.json
+```
 
-## Known gaps — required before calling this a finished port
+The repository's manifest remains authoritative; a package's own lock file cannot substitute a different revision. The offline tools execute the supplied arcade ROM only to derive local data. No arcade program is linked into the cartridge.
 
-- Shared enemy and boss routines have source comparisons and cartridge fixtures, but
-  global scanner timing, pool contention, difficulty interactions and full-game routes
-  remain unverified. Actor-specific evidence is in `STATUS.md` and `reports/`.
-- Walking, crouching, ladders, jumps and falls now match controlled arcade traces.
-  Chain and dagger attacks now also have source comparisons. Armor-break fragments and death animations are integrated.
-  Screen-edge collision behavior, some compound-boss geometry and global camera limits
-  remain unfinished. See `reference/player_audit.md`.
-- Shops, rewards, progression and restarts have subsystem checks; complete rescue,
-  round-clear and ending presentation and natural progression still need validation.
-- Background priority groups, palette changes during play, arcade title presentation, original
-  remaining music event priorities and original sound effects are incomplete. The native YM2612 player supports 25 FM tracks, with round, boss, shop, clear, ending and game-over routing; PSG effects are still placeholders.
-- v19 restores horizontal map wraparound: movement, camera, terrain, and nearby
-  actor spawns continue across either edge. The reported level 2, 3 and 4 joins
-  are covered by runtime checks. The Yashichi cursor now uses stronger reds.
-- v18 adds the supplied Yashichi selection marker throughout Home menus. Debug
-  lists all eight levels directly below its four switches; A or Start launches
-  the selected level immediately. All four switches still default ON. The level-2
-  shopkeeper now stands above the ice platform and can be rescued normally.
-- v17 retains v16's graphics scheduling improvements and full scenery. Home uses
-  two columns: Play / Boss Rush on the left, Options / Debug on the right. All menu
-  and footer fonts are restored to their original size. Home Play starts normally
-  from level one; levels are listed directly in Debug alongside independent
-  invincibility, infinite-lives, infinite-time and live framerate switches (all default ON).
-  Normal Play and Boss Rush never inherit Debug effects. The launcher opens a
-  960×720 window without automatically loading saved states. The SEGA chant remains.
-  Rendering is still not uniformly 60 Hz; see `docs/performance.md`. PAL is unverified.
-- No complete natural playthrough or real-console test has passed. Tests that inject state explicitly
-  prove only the subsystem or round-entry path under test.
+Open the locally built `out/release/rom.bin` in a Genesis emulator. The original Black Tiger story intro remains. The earlier Sonic/Shinobi/Street Fighter boot sequence is omitted so those additional games are not required or distributed.
 
-## Evidence and provenance
+## Controls
 
-The tests compare every converted map pixel against the pre-packing conversion image, reject a
-corrupted map tile, and inspect actual emulator VRAM after scrolling every round. Integration tests
-also exercise input, jumping, climbing, combat, armor, shops, pause, respawning, and transitions.
-These are native implementation checks, **not evidence of arcade fidelity**.
+- D-pad: move, crouch, and climb.
+- A: chain attack and dagger volley; release to attack again. B: jump.
+- Arcade menu: Start inserts a coin; A selects and spends a credit to play or continue.
+- Home: Start plays and pauses/resumes. Home also includes Boss Rush and options.
+- Shop: D-pad selects; A buys; B exits.
 
-The headless frontend defaults to the previously installed Genesis Plus GX core. Set
-`BLACKTIGER_CORE=/path/to/genesis_plus_gx_libretro.dylib` to select another compatible local build.
-Tests require exported `work_ram` and `vram` symbols. The core is a development dependency, not part
-of the cartridge.
+## Development checks
 
-SGDK: https://github.com/Stephane-D/SGDK
+```sh
+make references    # Generate additional original-ROM test fixtures locally
+make test          # Build, prepare those fixtures, then run the full release suite
+```
 
-Graphics layout/topology reference: the previously pinned MAME Black Tiger driver and the old
-project's `board_graphics_contract.json`, copied here as `assets/board.json`. Supplied ROM identities
-and extracted-data provenance are recorded in `reports/assets.json`. Arcade graphics remain Capcom's
-assets. The emulator and SGDK retain their respective licenses; neither source tree is copied here.
+Runtime checks also require a Genesis Plus GX libretro core with exported diagnostic symbols; set `BLACKTIGER_CORE` to its path. The developer's default is `.local/test-core/genesis_plus_gx_libretro.dylib`. The instruction profiler additionally requires its pinned ARM64 core. These emulator dependencies are not needed to compile the cartridge.
 
-The shared five-byte actor animation format and eight NPC constructors/reward paths now have
-source witnesses in `reference/animation.json`. `tools/run_npc_oracle.py` executes the original
-constructors and animation loaders in development-only MAME; its trace is checked against the
-native C animator (235 observations). Cartridge tests cover all eight NPC variants, rewards, and
-persistence. Hint text, complete rescue timing, and arcade maximum-health progression remain gaps.
+`python3 tools/package.py` is an optional local packaging step after the complete release suite passes. `dist/` is private build output and is ignored by Git. Do not add ROMs, release binaries, or generated data to the source repository.
 
-`tools/run_constructor_oracle.py` records real template copies for all 66 known spawn constructors
-under four controlled RAM profiles. `reference/constructors.json` and its raw trace retain the
-observations. This replaces the adjacent-code template scan and fixes the collision-width-as-health
-bug. `tests/test_actor_contract.py` checks the compiled cartridge values and a wrong-offset negative
-control. Constructor coverage does not imply complete behavior coverage or complete spawn parsing.
-
-The hidden-wall family now uses one native implementation across all 39 source locations. Five-hit
-walls update both collision and cached Genesis tile pixels, expose one of 12 reward types, and keep
-their open state across camera despawns. The converter compiles original reveal/explosion clips.
-Original-ROM oracle checks cover all 39 patch writes and 12 reward handlers; actual cartridge tests
-cover every source row. Exact weapon/contact bounds, screen-attack target selection, and maximum-HP
-progression remain part of the unfinished combat/player systems.
-
-Three skeleton variants now use native state machines with 12/36/48 durability, directional
-blocking, original animation timing, obstacle jumps, falling, independent weapon actors, and death
-sequences. Thirty controlled original-ROM scenarios match 2,190 native ticks and 822 weapon frames.
-Linked-cartridge tests verify their actual source spawns, damage, guard behavior, scores, and
-retirement. Exact player/body/weapon collision bounds remain provisional; these checks do not
-establish a complete natural playthrough.
-
-The common loot routine uses 28 original drop tables, seven coin denominations, pickup animations,
-and the original random recurrence. Host checks match 896 original selections, 1,687 animation
-ticks, seven rewards, pool exhaustion, and 448 random updates. Cartridge checks exercise skeleton
-death drops, collection and expiry. Its dedicated 33-slot pool does not yet reproduce competition
-with other source small actors; contact geometry and exact random update phase remain provisional.
-
-The stationary directional actor (bank 2 constructor B67F, 24 source placements) now uses its
-source facing/blink cycles and death sequence instead of firing generic turret projectiles.
-The reusable 32-direction aiming routine matches 512 original-ROM observations; eight controlled
-actor scenarios match 1,440 ticks, including nonfatal/fatal damage and persistence. A linked-ROM
-check covers a real spawn, stationary behavior, absence of placeholder shots, score and retirement.
-Contact geometry remains provisional. These tests do not establish a natural full-game route.
-
-The 72 stationary lethal-zone placements (bank 1 B2A9) now use source normal-player contact
-dimensions and enter death directly, bypassing armor and hurt invulnerability. Boundary checks
-match 126 original-ROM cases; cartridge checks cover weapon immunity, fatal contact, interrupted
-post-death interactions and single-life respawn. Shared crouch/jump contact rules and source death animations are now integrated; see the latest status entry.
-
-Placed time-extension and screen-attack pickups (58 source placements) now give their distinct
-rewards instead of flat coins/score, use normal source contact bounds, persist after collection,
-and retire on the following tick. The placed and hidden screen-attack rewards share the source
-small/medium actor target filters, compiled from witnessed constructor pool/contact fields.
-Checks cover 406 item ticks, 192 original target cases, 66 compiled definition filters, and both
-actual cartridge pickup spawns. Unported enemy death callbacks, later contact-type changes and
-shared-pool/projectile effects remain incomplete; this is not full screen-attack fidelity.
-
-The renderer now packs four-piece bodies into one 32×32 hardware sprite, sharing the existing
-320 sprite tiles with small objects and retaining per-frame cache pinning. Forty-eight paused
-fixtures retain identical pixels, while direct VRAM checks validate mixed cache textures and
-hardware scanline limits. Sprite construction cost in those fixtures falls by 47.7%; a crowded
-case no longer drops a visible piece due to the old conservative band count. The slowest sampled
-route improves from 129 to 149 logic updates per 180 video frames; three additional sampled
-rounds reach 180/180. Other routes still overrun, and worst-case/PAL performance remains unproven.
-See `reports/renderer-performance.json` for the exact scope and before/after cartridge hashes.
-
-The two emerge/hide variants (bank 2 8000/81A2, 32 placements) now share source-compiled animation
-phases, 4/16 health, 50/100 scores, exposed-only projectile collision, alternate-frame contact,
-contact-extended exposure, hide/reappearance gates, and permanent death rewards. Checks compare
-1,200 original actor ticks and 672 constructor attempts, including byte-wrapped proximity
-boundaries. Cartridge tests cover both real spawns, early immunity, exposed hits, fatal hits,
-and normal reappearance. Exact source scanner scheduling and player hurt timing remain gaps.
-Renderer fixtures initialize these actors' first source frame and retain their unflipped source
-orientation; reference pixels were regenerated from the pinned pre-optimization cartridge.
-
-The wandering actor at bank 2 A6F8 (26 placements) now uses a native proximity/random movement
-routine and source animation segments instead of stationary turret shots. Hits reset its cycle
-and restore its one-point trigger without killing it or awarding score. Eight scenarios match
-1,920 original ticks for graphics, motion, repeated hits and proximity changes. A cartridge test
-covers an actual spawn, motion, absent placeholder shots and repeated nonlethal hit callbacks.
-Player damage details and common viewport retirement still need broader source matching.
-
-Local rebuild dependencies are kept inside this checkout: the verified supplied
-arcade package in `assets/source/arcade`, and the pinned test core in
-`.local/test-core` (identity in `tools/test_core.json`). These local dependencies
-are ignored by Git; keep them when moving the repository. `BLACKTIGER_SOURCE`
-and `BLACKTIGER_CORE` can override their locations. SGDK remains installed at
-`~/mars/m68k-elf`. Run `make` to build, `make test` to verify, and
-`tools/launch.sh` to play `dist/blacktiger_MD_v1.bin`.
-
-GitHub checkout: install Git LFS before cloning, or run `git lfs install` and
-`git lfs pull` afterward. Three large regression fixtures use LFS. The ignored
-arcade source package and local emulator core must be supplied separately on a
-new machine; they are not uploaded to GitHub.
-
-The Home title adds the approved MD monogram; Arcade retains the original
-logo. Main/Home/Arcade menus show `v1.1`. Level 4 cave stone, Level 6 sky/islands
-and Level 7 windows now scroll at half foreground speed, alongside the palace
-parallax in Level 8/Boss Rush. Updated native screenshots are in `screenshots/`.
+See [docs/source-only.md](docs/source-only.md) for the tracked/generated boundary and Git-history limitation, and [docs/performance.md](docs/performance.md) for recorded gameplay performance work.

@@ -30,9 +30,9 @@ def place(r,level,row,x,y):
    s.mode=1;put(r,s);return slot
  raise AssertionError(('wall did not spawn',level,row))
 def vram_patch(r,level,patch):
- s=state(r);v=(C.c_uint8*65536).in_dll(r.lib,'vram');patterns=(ROOT/(f'res/generated/backdrop_bg{level}.bin' if level in (3,4,6) else f'res/generated/bg{level}.bin')).read_bytes()
+ s=state(r);v=(C.c_uint8*65536).in_dll(r.lib,'vram');patterns=(ROOT/(f'res/generated/backdrop_bg{level}.bin' if level in (4,6) else f'res/generated/bg{level}.bin')).read_bytes()
  remap=None
- if level in (3,4,6):
+ if level in (4,6):
   data=(ROOT/f'res/generated/backdrop_remap{level}.bin').read_bytes();n=len(data)//4;remap=struct.unpack('>'+str(n*2)+'H',data)
  start=r.symbols[f'open_tile{level}'];words=struct.unpack_from('>4H',rom,start)
  checked=0
@@ -86,7 +86,10 @@ def run():
    for _ in range(12):
     r.run(1);s=state(r)
     found=[i for i,a in enumerate(s.actors) if a.active and a.source==row]
-    if found:slot=found[0];break
+    # A video refresh can stop after active/source are written but before
+    # hidden_spawn restores the open reward. The consumed-row flag is set
+    # at the end of initialization; inspect the completed actor only.
+    if found and s.spawned[row]&1:slot=found[0];break
    assert s.actors[slot].state==1,('closed wall respawned',level,row)
    s=state(r);s.mode=2;put(r,s);r.run(20)
    s=state(r);s.mode=1;a=s.actors[slot];s.p.x=a.x;s.p.y=a.y;s.p.vx=s.p.vy=0;s.p.invincible=10000;s.clock=0

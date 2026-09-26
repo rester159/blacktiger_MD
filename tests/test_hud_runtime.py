@@ -17,12 +17,13 @@ def glyph(x,y,code,attr):
  assert np.array_equal(actual==0,expected==3),(x,y,code,attr,'shape/transparency')
  colors=[color(pal,768+(attr&31)*4+i) for i in range(3)]
  banks=np.frombuffer((ROOT/"res/generated/object_palette.bin").read_bytes(),">u2").reshape(2,16)
- costs=[sum(min(sum((channels(c)-channels(v))**2) for v in p[1:]) for c in colors) for p in banks]
+ available=[[i for i in range(1,16) if i not in (7,8,9,10)],list(range(1,16))]
+ costs=[sum(min(sum((channels(c)-channels(banks[b][i]))**2) for i in available[b]) for c in colors) for b in range(2)]
  assert bank==2+int(np.argmin(costs))
  for pen in range(3):
   at=768+(attr&31)*4+pen;rgb=(pal[at]>>5)|(((pal[at]&15)>>1)<<3)|(((pal[1024+at]&15)>>1)<<6)
   values=set(int(cram[bank*16+v]) for v in actual[expected==pen])
-  best=banks[bank-2][1+int(np.argmin([sum((channels(colors[pen])-channels(v))**2) for v in banks[bank-2][1:]]))]
+  best=banks[bank-2][available[bank-2][int(np.argmin([sum((channels(colors[pen])-channels(banks[bank-2][i]))**2) for i in available[bank-2]]))]]
   expected_rgb=((int(best)>>1)&7)|(((int(best)>>5)&7)<<3)|(((int(best)>>9)&7)<<6)
   assert not values or values=={expected_rgb},(x,y,code,attr,"color",values,expected_rgb)
 def icon(x,y,ptr):

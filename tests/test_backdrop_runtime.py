@@ -36,7 +36,9 @@ for level,cx,cy in [(4,640,768),(6,784,304)]:
  assert hud==[word(0xc000+y*128+x*2) for y in range(5) for x in range(32)]
  check_video_cache(r,state(r))
  s=state(r);s.mode=3;put(r,s);r.run(30)
- for row in range(14,28):assert word(0xf000+row*32)==0,'Shop rows shifted'
+ registers=(C.c_uint8*32).in_dll(r.lib,'reg')
+ assert registers[11]&3==0 and word(0xf000)==word(0xf002)==0,'Shop planes shifted'
+ assert r.read('arena_video_active',1)==b'\0'
  s=state(r);s.mode=2;put(r,s);r.run(30)
  assert np.array_equal(near(),nb),'shop changed foreground'
  assert int.from_bytes(r.read('video_cache_faults'),'big')==0

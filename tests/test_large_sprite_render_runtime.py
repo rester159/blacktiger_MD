@@ -28,6 +28,7 @@ for bank,constructor,family,stride,columns in [(3,0x8000,'dragon',20,8),(3,0x991
    if signature not in [c[0] for c in cases]:cases.append((signature,seg,code,pal,flip))
 
  for _,seg,code,pal,flip in cases:
+  if family=='dragon' and pal==7:pal={0x8000:1,0x991d:2,0x9b24:3}[constructor]
   struct.pack_into('>HH',raw,slot*stride,0,1000);struct.pack_into('>H',raw,slot*stride+8,seg);r.write(name,0,raw);r.run(40)
   sat=r.read('vdpSpriteCache',512);keys=struct.unpack('>20H',r.read('body_keys',40));vram=(C.c_uint8*65536).in_dll(r.lib,'vram');actual=[];sprites=0
   for i in range(64):
@@ -35,6 +36,8 @@ for bank,constructor,family,stride,columns in [(3,0x8000,'dragon',20,8),(3,0x991
    if tile>=1088:
     assert size==15,('expected grouped 32x32 boss',family,size)
     key=keys[(tile-1088)//16];expected=b'';sprites+=1
+    physical_palette=(ROOT/'res/generated/black_dragon_palettes.bin').read_bytes()[key%2048-1536] if key//2048==3 and key%2048>=1536 else (3 if key//2048 else 2)
+    assert (attr>>13)&3==physical_palette,('physical palette',key,attr,physical_palette)
     for col in range(4):
      start=(key+col//2)*128+(col%2)*64
      expected+=atlas[start:start+64]+atlas[start+1024:start+1088]

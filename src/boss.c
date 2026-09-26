@@ -119,3 +119,5 @@ void boss_step(u16 slot) {
 const AnimFrame *boss_frame(u16 slot) {
  BossState *s=&bosses[slot];return s->animation.remaining?animation_current(&s->animation,segments(s)[s->segment].clip):0;
 }
+
+u8 boss_primary(u16 slot) {return !bosses[slot].part;}

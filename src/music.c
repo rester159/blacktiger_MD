@@ -40,7 +40,12 @@ void music_advance(u16 video_frames,u8 pal){
     if(t->loop_tick==65535){apply();music_stop();return;}
     music_tick=t->loop_tick;position=t->loop_offset;
    }
-   apply();
+   /* Most 250 Hz music ticks contain no writes. Avoid the FM stream
+      writer's register-save prologue until its next event is actually due. */
+   if(position<t->length) {
+    const u8 *next=t->data+position;
+    if((((u16)next[0]<<8)|next[1])<=music_tick)apply();
+   }
   }
  }
 }

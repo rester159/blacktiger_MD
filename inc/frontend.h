@@ -17,5 +17,5 @@ void ui_hud(void);
 void ui_hud_invalidate(void);
 void ui_title(void);
 void ui_shop_cursor_init(void);
-void ui_shop_cursor(u16 x,u16 y);
+void ui_shop_cursor(u16 selection);
 #endif

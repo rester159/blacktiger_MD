@@ -1,5 +1,5 @@
 #include "progress.h"
-/* Conservative render occupancy: allocation sets it, updates refresh it. */
+/* Conservative exclusive upper bound: allocation grows it, updates shrink it. */
 u8 container_traps_occupied;
 #include "container.h"
 #include "assets.h"
@@ -41,7 +41,7 @@ static void attack_spawn(s16 x,u8 left,const u16 *roots,u8 special) {
  for(i=0;i<6;i++) {
   ContainerTrap *t=&container_traps[base+i];animation_reset(&t->animation);
   t->segment=roots[i];t->x=x+(i>=3?(left?-24:24):0);t->y=y;
-  t->active=1;container_traps_occupied=1;t->left=left;t->contact=0;t->part=i%3+(special?3:0);
+  t->active=1;if(container_traps_occupied<base+i+1)container_traps_occupied=base+i+1;t->left=left;t->contact=0;t->part=i%3+(special?3:0);
  }
 }
 void container_ground_spawn(s16 x,u8 left){attack_spawn(x+8,left,container_trap_roots,0);}
@@ -77,8 +77,9 @@ const AnimFrame *container_frame(u16 slot) {
  ContainerState *s=&containers[slot];return animation_current(&s->animation,container_segments[s->segment].clip);
 }
 u8 container_traps_tick(void){u8 occupied=0;
- u16 i;for(i=0;i<MAX_CONTAINER_TRAPS;i++) {
-  ContainerTrap *t=&container_traps[i];u16 tries;if(!t->active)continue;occupied=1;
+ u16 i,end=container_traps_occupied?container_traps_occupied:MAX_CONTAINER_TRAPS;
+ for(i=0;i<end;i++) {
+  ContainerTrap *t=&container_traps[i];u16 tries;if(!t->active)continue;occupied=i+1;
   for(tries=0;tries<4;tries++) {
    const ContainerSegment *seg=&container_segments[t->segment];
    if(animation_step(&t->animation,seg->clip)) {

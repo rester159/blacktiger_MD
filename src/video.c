@@ -51,8 +51,9 @@ static const u16 *terrain_map;
 static const u32 *terrain_patterns;
 static u16 terrain_slots, terrain_width, terrain_height, terrain_shift;
 static const Backdrop *terrain_backdrop;
-static u8 shop_screen_active;
+static u8 shop_screen_active,torch_phase[4];
 static u8 clear_screen_active,ending_screen_active,ending_screen_scene,ending_screen_palette;
+static u8 poison_palette_active;
 static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
@@ -109,7 +110,7 @@ static u16 cached(u16 word) {
             logical_to_slot[old] = 65535;
         logical_to_slot[logical] = slot;
         slot_to_logical[slot] = logical;
-        terrain_upload_tile(slot,terrain_backdrop && logical>=terrain_backdrop->original_tiles?terrain_backdrop->extra+(u32)(logical-terrain_backdrop->original_tiles)*8:terrain_patterns + (u32)logical * 8);
+        terrain_upload_tile(slot,terrain_backdrop && logical>=terrain_backdrop->original_tiles?terrain_backdrop->extra+(u32)(logical-terrain_backdrop->original_tiles)*8:terrain_patterns + (u32)(game.round==7 && !boss_rush.active && bonus_phases[logical&3]?torch_alternate[logical]:logical) * 8);
         video_dma_bytes += 32;
     }
     return (word & 0xf800) | (16 + slot);
@@ -184,6 +185,20 @@ static void terrain_cell(s16 x,u16 y,u8 pass) {
  old=world_override(x,y,bonus_word_state(x,y,original,last_bonus_entered,last_bonus_phases),last_opened);
  next=world_word(x,y,original);
  terrain_change(x,y,old,next,pass);
+}
+static void palace_torches(void){
+ u16 i;u8 changed=0;
+ if(game.round!=7 || boss_rush.active)return;
+ for(i=0;i<4;i++)if(torch_phase[i]!=bonus_phases[i]){changed|=1<<i;torch_phase[i]=bonus_phases[i];}
+ if(!changed)return;
+ /* Upload each resident flame texture once, shared by every visible torch.
+    Four staggered groups bound DMA work without rewriting the tilemap. */
+ for(i=1;i<=torch_tiles[0];i++){
+  u16 logical=torch_tiles[i],slot=logical_to_slot[logical];
+  if(slot==65535 || !(changed&(1<<(logical&3))))continue;
+  terrain_upload_tile(slot,terrain_patterns+(u32)(torch_phase[logical&3]?torch_alternate[logical]:logical)*8);
+  video_dma_bytes+=32;
+ }
 }
 static void terrain_state(void){
  u8 i;last_opened=world_opened;last_bonus_entered=bonus_entered;
@@ -335,7 +350,12 @@ __attribute__((noinline)) static u16 piece_upload(u16 key) {
         video_dma_bytes += 128;
     return slot;
 }
+static u8 sprite_palette(u16 code,u8 pal) {
+    if(pal==7 && code>=1536)return poison_dragon_palettes[code-1536];
+    return pal==3 && code>=1536?black_dragon_palettes[code-1536]:(pal?PAL3:PAL2);
+}
 static void piece(u16 code, u8 palette, s16 x, s16 y, u8 flip) {
+    if(palette==3 && code>=1536 && shop_poison)palette=7;
     u16 key, slot,start,end;
     if (code >= 2048 || sprite_count >= 63 || x <= -16 || x >= 256 || y <= -16 || y >= 224)
         return;
@@ -347,7 +367,7 @@ static void piece(u16 code, u8 palette, s16 x, s16 y, u8 flip) {
     sprite_stamp[slot] = epoch;
     sprite_lines_add(start,end,1);
     VDP_setSpriteFull(sprite_count, x, y, SPRITE_SIZE(2, 2),
-                      TILE_ATTR_FULL(palette ? PAL3 : PAL2, TRUE, FALSE, flip, SPR_BASE + slot * 4),
+                      TILE_ATTR_FULL(sprite_palette(code,palette), TRUE, FALSE, flip, SPR_BASE + slot * 4),
                       sprite_count + 1);
     sprite_count++;
 }
@@ -405,6 +425,7 @@ __attribute__((noinline)) static u16 body_upload(u16 key) {
     return block;
 }
 static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
+    if(pal==3 && code>=1536 && shop_poison)pal=7;
     u16 key = code + pal * 2048, block, start, end;
     if (code > 2038 || sprite_count >= 63 || x <= -32 || x >= 256 || y <= -32 || y >= 224)
         return;
@@ -427,7 +448,7 @@ static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
     body_stamp[block] = epoch;
     sprite_lines_add(start,end,2);
     VDP_setSpriteFull(sprite_count, x, y, SPRITE_SIZE(4, 4),
-                      TILE_ATTR_FULL(pal ? PAL3 : PAL2, TRUE, FALSE, flip, SPR_BASE + block * 16),
+                      TILE_ATTR_FULL(sprite_palette(code,pal), TRUE, FALSE, flip, SPR_BASE + block * 16),
                       sprite_count + 1);
     sprite_count++;
 }
@@ -511,10 +532,11 @@ static void sprites(void) {
                     else if(visual->layout==DRAW_BODY)body(f->code,f->palette,x,y,f->flip);
                     else{
                         u16 col,row,columns=visual->layout==DRAW_DRAGON?8:4;
+                        u8 palette=visual->layout==DRAW_DRAGON && f->palette==7?dragon_kinds[a->def]:f->palette;
                         /* One 32x32 SAT entry replaces four 16x16 entries, using
                            the same source cells and whole-body flip order. */
                         for(row=0;row<4;row+=2)for(col=0;col<columns;col+=2)
-                            body(f->code+row*8+(f->flip?columns-2-col:col),f->palette,x+col*16,y+row*16,f->flip);
+                            body(f->code+row*8+(f->flip?columns-2-col:col),palette,x+col*16,y+row*16,f->flip);
                     }
                 }
                 continue;
@@ -537,7 +559,7 @@ static void sprites(void) {
     if(flailer_weapons_occupied || game.mode!=PLAY)for(i=0;i<(flailer_weapons_occupied?flailer_weapons_occupied:MAX_ACTORS);i++){const AnimFrame *f;if(!flailer_weapons[i].active)continue;f=flailer_weapon_frame(i);if(f)piece(f->code,f->palette,flailer_weapons[i].x-game.cam_x,flailer_weapons[i].y-game.cam_y,f->flip);}
     if(dragon_shots_occupied || game.mode!=PLAY)for(i=0;i<24;i++){const AnimFrame *f;if(!dragon_shots[i].active)continue;f=dragon_shot_frame(i);DragonShot *p=&dragon_shots[i];if(f){if(p->kind==2)body(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);else piece(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);}}
     if(waveboss_seeds_occupied || game.mode!=PLAY)for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){const AnimFrame *f;if(!waveboss_seeds[i].active)continue;f=waveboss_seed_frame(i);if(f)piece(f->code,f->palette,waveboss_seeds[i].x-game.cam_x,waveboss_seeds[i].y-game.cam_y,f->flip);}
-    if(container_traps_occupied || game.mode!=PLAY)for(i=0;i<MAX_CONTAINER_TRAPS;i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
+    if(container_traps_occupied || game.mode!=PLAY)for(i=0;i<(container_traps_occupied?container_traps_occupied:MAX_CONTAINER_TRAPS);i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     if(shell_pools_occupied[0] || shell_pools_occupied[1] || game.mode!=PLAY)for(i=0;i<MAX_STATUE_SHELLS;i++) {
         const AnimFrame *f=hunter_shells[i].active?hunter_shell_frame(&hunter_shells[i]):0;
         if(f)piece(f->code,f->palette,hunter_shells[i].x-game.cam_x,hunter_shells[i].y-game.cam_y,f->flip);
@@ -576,7 +598,7 @@ static void sprites(void) {
 static void text(u16 x, u16 y, const char *s) {
     VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),arena_video_text_x(x,y),y,DMA_QUEUE);
 }
-static u8 last_shop = 255,last_npc_page=255;
+static u8 last_shop = 255,last_npc_page=255,last_credits=255;
 static void digits(char *p, u16 v, u16 count) {
     while (count) {
         p[--count] = '0' + v % 10;
@@ -585,6 +607,8 @@ static void digits(char *p, u16 v, u16 count) {
 }
 static void overlay(void) {
     u8 m = game.mode, changed = m != last_mode || (m==CLEAR && last_clear_phase!=round_clear.phase);
+    if(m==GAMEOVER && last_credits!=frontend.credits)changed=1;
+    last_credits=frontend.credits;
     if(m==GAMEOVER && (last_game_over_phase!=game_over.phase || last_continue_digit!=game_over.digit))changed=1;
     last_game_over_phase=game_over.phase;last_continue_digit=game_over.digit;
     last_clear_phase=round_clear.phase;
@@ -630,13 +654,11 @@ static void overlay(void) {
         /* The arcade panel is handled by shop_video_frame. */
     } else if (m == CLEAR) {
         /* The source bonus artwork is installed by video_frame. */
-    } else if (m == DEAD)
-        text(10, 11, "TRY AGAIN...");
-    else if (m == GAMEOVER) {
+    } else if (m == GAMEOVER) {
         text(11, 10, "GAME OVER");
         if(game_over.phase==2) {
             text(10,12,"CONTINUE? 0");b[0]='0'+game_over.digit;b[1]=0;text(20,12,b);
-            text(8,14,frontend.credits?"START TO CONTINUE":"SELECT TO ADD COIN");
+            text(8,14,frontend.credits?(frontend.mode?"START TO CONTINUE":"A TO CONTINUE    "):"START TO ADD COIN");
         }
     } else if (m == ENDING) {
         /* Source timed lettering is rendered by ending_screen. */
@@ -672,7 +694,7 @@ void video_round(void) {
     shop_screen_active=0;
     clear_screen_active=ending_screen_active=0;
     terrain_state();
-    u16 i;
+    u16 i;for(i=0;i<4;i++)torch_phase[i]=bonus_phases[i];
     SYS_disableInts();
     VDP_setEnable(FALSE);
     DMA_flushQueue();
@@ -685,7 +707,7 @@ void video_round(void) {
     memset(body_keys, 255, sizeof body_keys);
     eviction = sprite_eviction = body_eviction = epoch = 0;
     PAL_setColors(0, rounds[game.round].palette, 32, CPU);
-    PAL_setColors(32, object_palette, 32, CPU); /* SGDK font uses foreground pen 15. */
+    PAL_setColors(32, object_palette, 32, CPU);poison_palette_active=0; /* SGDK font uses foreground pen 15. */
     PAL_setColor(63, 0xeee);
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
@@ -781,21 +803,10 @@ void video_frame(void) {
         ending_screen();overlay();
         if(profile_frame){video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;}return;
     }
-    if(shop_screen_active && game.mode!=SHOP){
-        /* Only sprite VRAM was borrowed: retain the terrain cache on return. */
-        SYS_disableInts();VDP_setEnable(FALSE);DMA_flushQueue();
-        memset(sprite_keys,255,sizeof sprite_keys);
-        memset(sprite_slot_for_key,255,sizeof sprite_slot_for_key);
-        memset(sprite_stamp,0,sizeof sprite_stamp);
-        memset(body_keys,255,sizeof body_keys);memset(body_stamp,0,sizeof body_stamp);
-        sprite_eviction=body_eviction=epoch=0;
-        VDP_clearPlane(BG_A,TRUE);ui_hud_invalidate();
-        if(arena_video_active)arena_video_restore(0);
-        shop_screen_active=0;last_mode=255;
-        VDP_setEnable(TRUE);SYS_enableInts();
-    }
+    if(shop_screen_active && game.mode!=SHOP)video_round();
     if(game.mode==SHOP){
-        if(!shop_screen_active){shop_video_init();shop_screen_active=1;if(arena_video_active)arena_video_restore(1);}
+        if(poison_palette_active){PAL_setColors(39,object_palette+7,4,CPU);poison_palette_active=0;}
+        if(!shop_screen_active){if(arena_video_active)arena_video_reset();shop_video_init();shop_screen_active=1;}
         shop_video_frame();last_mode=SHOP;
         if(profile_frame){video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;}return;
     }
@@ -812,11 +823,18 @@ void video_frame(void) {
         old_y - ((s16)game.cam_y >> 3) > MAX_SCROLL_STRIPS)
         video_round();
     if(boss_rush.active){arena_video_frame();old_x=(s16)game.cam_x>>3;old_y=(s16)game.cam_y>>3;}
-    else {terrain_updates();scene(0);if(arena_video_active)arena_video_frame();}
+    else {palace_torches();terrain_updates();scene(0);if(arena_video_active)arena_video_frame();}
     terrain_upload_flush();
     if(profile_frame){u32 now=getSubTick();video_cost[0]=now-t;t=now;}
     if(!arena_video_active){VDP_setHorizontalScrollVSync(BG_B, -game.cam_x);
     VDP_setVerticalScrollVSync(BG_B, game.cam_y);}
+    /* Source fixed 195C changes skin only, never transparency or terrain colors. */
+    {u8 poisoned=shop_poison!=0;
+    if(poisoned!=poison_palette_active){
+        PAL_setColors(39,poisoned?poison_skin_palette:object_palette+7,4,DMA_QUEUE);
+        video_dma_bytes+=8;poison_palette_active=poisoned;
+    }
+    }
     sprites();
     if(profile_frame){u32 now=getSubTick();video_cost[1]=now-t;t=now;}
     overlay();

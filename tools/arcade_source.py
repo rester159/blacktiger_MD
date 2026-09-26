@@ -5,10 +5,15 @@ ROOT=Path(__file__).resolve().parents[1]
 DEFAULT=ROOT/'assets/source/arcade'
 class Source:
  def __init__(self,root=None):
-  self.root=Path(root or os.environ.get('BLACKTIGER_SOURCE',DEFAULT));self.lock=json.loads((self.root/'source_lock.json').read_text());self.files={};self.witnesses={}
+  self.root=Path(root or os.environ.get('BLACKTIGER_SOURCE',DEFAULT)).expanduser().resolve()
+  self.lock=json.loads((ROOT/'assets/rom_manifest.json').read_text());self.files={};self.witnesses={}
   for row in self.lock['files']:
-   raw=(self.root/'payload'/row['path']).read_bytes()
-   assert len(raw)==row['size'] and hashlib.sha256(raw).hexdigest()==row['sha256'],row['path']
+   path=self.root/'payload'/row['path']
+   if not path.is_file():
+    raise ValueError('Original Black Tiger ROM set required. Run: python3 tools/import_rom.py /path/to/blktiger.zip (missing '+row['path']+')')
+   raw=path.read_bytes()
+   if len(raw)!=row['size'] or hashlib.sha256(raw).hexdigest()!=row['sha256']:
+    raise ValueError('Wrong ROM revision or damaged file: '+row['path'])
    self.files[row['path']]=raw
  def locate(self,bank,pc,n):
   if pc<0x8000:name='bdu-01a.5e';offset=pc;assert pc+n<=0x8000
@@ -23,3 +28,11 @@ class Source:
  def word(self,bank,pc):return int.from_bytes(self.read(bank,pc,2),'little')
  def expect(self,bank,pc,data):
   assert self.read(bank,pc,len(bytes.fromhex(data)))==bytes.fromhex(data),(bank,hex(pc),'source contract')
+
+if __name__=='__main__':
+ import sys
+ try:
+  source=Source()
+ except (ValueError,OSError) as error:
+  sys.exit(str(error))
+ print('Verified original Black Tiger ROM set ('+str(len(source.files))+' files).')

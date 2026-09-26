@@ -3,7 +3,7 @@ import hashlib,json
 from test_runtime import ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100)
 def tap(mask):r.run(8,mask);r.run(8)
-for key in (32,8,128,32,8):tap(key)
+for key in (32,8,16,16,32,32,64,128,64,128,8):tap(key)
 assert r.read('frontend',17)[16]==1,'Infinite Zenny must default YES'
 tap(16);assert r.read('frontend',14)[13]==12
 r.capture('v21-debug-zenny.png');tap(2);assert r.read('frontend',17)[16]==0
@@ -35,6 +35,11 @@ max_bottom=0
 for _ in range(600):
  s=state(r);s.p.x=1760*256;s.p.y=224*256;s.p.vx=s.p.vy=0;put(r,s);r.run(1);a=state(r).actors[slot]
  if 552<=a.x//256+64<1896:
+  # A refresh can stop between dragon motion and its floor clamp. Settle that
+  # in-flight tick before judging a below-floor RAM observation.
+  if a.y//256+64>256:
+   s=state(r);s.mode=2;put(r,s);r.run(8);a=state(r).actors[slot]
+   s=state(r);s.mode=1;put(r,s)
   max_bottom=max(max_bottom,a.y//256+64);assert a.y//256+64<=256,'Dragon descended into ground'
 r.capture('v21-dragon-above-floor.png');r.close()
 report=dict(passed=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),zenny_default_yes=True,toggle_off_charges=True,repeat_purchases_free=True,normal_play_reset=True,dragon_source_row=row,dragon_floor=256,maximum_body_bottom=max_bottom,scope=__doc__+' Menu inputs are real; shop/dragon fixtures inject positions and balances. Existing dragon tests cover attacks, damage and clear.')

@@ -1,3 +1,4 @@
+from oracle_runner import mame_binary
 #!/usr/bin/env python3
 """Execute a bounded original-ROM oracle and verify independently decoded data."""
 import os,subprocess,json,hashlib
@@ -10,7 +11,7 @@ for name in source.files:
  p=romdir/name
  if not p.exists():p.symlink_to((source.root/'payload'/name).resolve())
 for name in ('cfg','nvram','sta','snap','diff','home'):(out/name).mkdir(exist_ok=True)
-command=['/opt/homebrew/bin/mame','blktiger','-rompath',str(romdir.parent),'-debug','-debugger','none','-autoboot_delay','0','-autoboot_script',str(ROOT/'tools/npc_oracle.lua'),'-video','none','-sound','none','-nothrottle','-skip_gameinfo','-noconfirm_quit','-noplugins','-nohttp','-nowriteconfig','-cfg_directory','cfg','-nvram_directory','nvram','-state_directory','sta','-snapshot_directory','snap','-diff_directory','diff','-homepath','home','-inipath','home']
+command=[mame_binary(),'blktiger','-rompath',str(romdir.parent),'-debug','-debugger','none','-autoboot_delay','0','-autoboot_script',str(ROOT/'tools/npc_oracle.lua'),'-video','none','-sound','none','-nothrottle','-skip_gameinfo','-noconfirm_quit','-noplugins','-nohttp','-nowriteconfig','-cfg_directory','cfg','-nvram_directory','nvram','-state_directory','sta','-snapshot_directory','snap','-diff_directory','diff','-homepath','home','-inipath','home']
 run=subprocess.run(command,cwd=out,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),capture_output=True,timeout=60)
 (out/'stdout.txt').write_bytes(run.stdout);(out/'stderr.txt').write_bytes(run.stderr)
 assert run.returncode==0,run.stderr.decode(errors='replace')

@@ -12,7 +12,7 @@ colors=(rgb.astype(np.uint16)//32);words=colors[:,:,0]*2+colors[:,:,1]*32+colors
 words=words.copy();words[128:200]=0
 # Restore the original 8-pixel copyright lettering without resampling.
 footer=words[208:216,8:].copy()
-words[200:224]=0;words[200:208,8:256]=footer
+words[200:224]=0 # Footer is centered by the native menu renderer.
 sets=[]
 for y in range(0,224,8):
  for x in range(0,256,8):sets.append(frozenset(map(int,words[y:y+8,x:x+8].flat))|{0})
@@ -111,9 +111,9 @@ assert 16+len(tiles)+len(md_tiles)<1000
 out+=f'#define HOME_MD_TILE_COUNT {len(md_tiles)}\n'
 out+=binary('home_md_tiles',b''.join(md_tiles))+array('home_md_map','u16',map(str,md_map))
 Image.fromarray(md_preview).save(ROOT/'res/generated/home_md_logo.png')
-# Tiny 13x5 v1.1 stamp, independent of the arcade's 8x8 menu font.
+# Tiny 13x5 v1.2 stamp, independent of the arcade's 8x8 menu font.
 version=np.zeros((8,16),np.uint8)
-for x,y,rows in [(0,4,['101','101','010']),(4,2,['010','110','010','010','111']),(8,6,['1']),(10,2,['010','110','010','010','111'])]:
+for x,y,rows in [(0,4,['101','101','010']),(4,2,['010','110','010','010','111']),(8,6,['1']),(10,2,['110','001','010','100','111'])]:
  for dy,row in enumerate(rows):
   for dx,bit in enumerate(row):version[y+dy,x+dx]=15 if bit=='1' else 0
 out+=binary('title_version_tiles',pack(version[:,:8])+pack(version[:,8:]))
@@ -131,11 +131,6 @@ yashichi_indices[yashichi.max(axis=2)<48]=0
 yashichi_indices=np.pad(np.asarray(Image.fromarray(yashichi_indices).resize((12,12),Image.Resampling.NEAREST)),((2,2),(2,2)))
 # Genesis sprite patterns are stored top-to-bottom, then left-to-right.
 out+=binary('home_cursor_tiles',b''.join(pack(yashichi_indices[y:y+8,x:x+8]) for x in (0,8) for y in (0,8)))
-shop_pal=np.fromfile(ROOT/'res/generated/object_palette.bin',dtype='>u2')[16:]
-shop_rgb=np.array([[((int(c)>>shift)&7)*255//7 for shift in (1,5,9)] for c in shop_pal])
-shop_indices=1+((pal[yashichi_indices][:,:,None,:]-shop_rgb[None,None,1:,:])**2).sum(3).argmin(2)
-shop_indices[yashichi_indices==0]=0
-out+=binary('shop_cursor_tiles',b''.join(pack(shop_indices[y:y+8,x:x+8]) for x in (0,8) for y in (0,8)))
 Image.fromarray(pal[yashichi_indices].astype(np.uint8)).save(ROOT/'res/generated/home_cursor.png')
 
 (ROOT/'src/ui_data.inc').write_text(out)
@@ -143,7 +138,7 @@ report=dict(source_set=source.lock['aggregate_sha256'],source_png_sha256=hashlib
 report['home_md']={'source_sha256':hashlib.sha256(concept_path.read_bytes()).hexdigest(),'rectangle':[96,104,64,32],'tiles':len(md_tiles),'original_palette_unchanged':True,'home_only':True}
 report['menu_font']={'glyph_pixels':[8,8],'advance_pixels':8,'scale':1.0,'requested_scale':1.0,'scope':'Original full-size arcade lettering in all menu options and Capcom/Rester footers; Home, settings, Debug and level selection use two columns.'}
 report['home_cursor']={'source_sha256':hashlib.sha256(yashichi_path.read_bytes()).hexdigest(),'pixels':[16,16],'source_grid_crop':[16,14,208,206],'home_only':False,'palette_unchanged':True,'warm_body_color':'red'}
-report['version_stamp']={'text':'v1.1','rectangle':[232,216,16,8]}
+report['version_stamp']={'text':'v1.2','rectangle':[232,216,16,8]}
 (ROOT/'reference/title_graphics.json').write_text(json.dumps(report,indent=2)+'\n')
 print(report)
 

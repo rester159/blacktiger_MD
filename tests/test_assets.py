@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate complete exported worlds through an independent Genesis tile decoder."""
-import json,hashlib,re
+import json,hashlib,re,sys
 from pathlib import Path
 import numpy as np
 from PIL import Image
@@ -49,8 +49,39 @@ def main():
   for v in np.frombuffer((ROOT/f'res/generated/pal{r}.bin').read_bytes(),'>u2'):assert not v&0xf111
  checks.append('Genesis RGB333 and four palette lines')
  # Pinned pre-HUD sprite allocation (4657999); HUD changes must not recolor actors.
- assert sha((ROOT/'res/generated/object_palette.bin').read_bytes())=='a0cb487bb5002eeffdee4fc229798fbbcfa746e591a5657756710b2507fb2cbc'
- assert sha((ROOT/'res/generated/object_patterns.bin').read_bytes())=='57ba9b32a865803a02dcddd831ca95cd94f81879866ed49f7db97dfb0276d645'
- checks.append('pre-HUD hero/enemy palette and entire sprite atlas preserved')
+ normalized_palette=bytearray((ROOT/'res/generated/object_palette.bin').read_bytes())
+ assert palette[15]==0x888 and palette[1]==0
+ normalized_palette[30:32]=b'\0\0' # Former duplicate black, now the dragon's gray 4.
+ assert sha(normalized_palette)=='a0cb487bb5002eeffdee4fc229798fbbcfa746e591a5657756710b2507fb2cbc'
+ sys.path.insert(0,str(ROOT/'tools'))
+ from arcade_source import Source
+ from extract import decode as source_decode,pack
+ from hud_assets import rgb
+ import struct
+ source=Source();board=json.loads((ROOT/'assets/board.json').read_text())
+ sprites=source_decode(b''.join(source.files[f['path']] for f in board['regions']['sprites']['files']),board['layouts']['sprites'])
+ mem=bytearray(2048);ptr=source.word(6,0x8136)
+ for _ in range(20):
+  start,dest,count=struct.unpack('<HHH',source.read(6,ptr,6))
+  if start==65535:break
+  mem[dest-0xd800:dest-0xd800+count]=source.read(6,start,count);ptr+=6
+ colors=[((mem[i]>>5)<<1)|(((mem[i]&15)>>1)<<5)|(((mem[1024+i]&15)>>1)<<9)for i in range(1024)]
+ enemy=np.array([rgb(int(v)) for v in palette[17:]])
+ restored=bytearray((ROOT/'res/generated/object_patterns.bin').read_bytes())
+ # Every palette-0 pixel retains its old RGB after the duplicate-black remap.
+ for code in range(2048):
+  pens=sprites[code];old=np.where(pens==15,0,pens+1);new=np.where(pens==14,1,old)
+  expected=b''.join(pack(new[y:y+8,x:x+8]) for x,y in ((0,0),(0,8),(8,0),(8,8)))
+  assert restored[code*128:(code+1)*128]==expected
+  assert np.array_equal(palette[new],np.frombuffer(normalized_palette,'>u2')[old])
+  restored[code*128:(code+1)*128]=b''.join(pack(old[y:y+8,x:x+8]) for x,y in ((0,0),(0,8),(8,0),(8,8)))
+ for bank,lo,hi in ((1,1536,2048),(2,1536,2048),(3,1536,2048),(7,0,256),(7,1536,2048)):
+  pens=[int(((enemy-rgb(c))**2).sum(1).argmin())+1 for c in colors[512+bank*16:527+bank*16]]+[0]
+  for code in range(lo,hi):
+   tile=np.array(pens,dtype=np.uint8)[sprites[code]]
+   raw=b''.join(pack(tile[y:y+8,x:x+8]) for x,y in ((0,0),(0,8),(8,0),(8,8)))
+   restored[(bank*2048+code)*128:(bank*2048+code+1)*128]=raw
+ assert sha(restored)=='57ba9b32a865803a02dcddd831ca95cd94f81879866ed49f7db97dfb0276d645'
+ checks.append('all original hero pixel colors preserved; enemy palette and atlas unchanged outside dragon/poison variants')
  out={'passed':len(checks),'checks':checks};(ROOT/'reports/asset-tests.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))
 if __name__=='__main__':main()

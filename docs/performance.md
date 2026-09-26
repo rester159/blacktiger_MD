@@ -491,3 +491,7 @@ All 17 samples recorded zero terrain-cache faults and zero VBlank overruns. The 
 Some scenes remain below 60 updates per second, especially crowded Level 3/4/6/7 sections and the upper palace. Near-full-rate entry scenes show little change, and small differences of a few updates should not be treated as meaningful gains.
 
 Reproduce with `make test`, then `.venv/bin/python tools/package.py`. `tools/profile_all_levels.py` accepts `--rom`, `--symbols`, and `--output` for comparison against an older matching ROM/symbol pair.
+
+## v1.2 final optimization pass
+
+The final pass bounds container/dragon-wave trap scans by occupied slots and avoids entering the FM stream writer on empty music ticks. The 229-encounter survey improves common-second presentation FPS from 53.29 to 53.62, with 99 → 90 seconds below 30 FPS; its minimum remains 14 FPS. Four one-minute stress routes gain 0.38–4.02 FPS on average, with mixed rolling-second lows. These are emulator route comparisons, not a guaranteed frame-rate floor. See [measurements and limitations](../reports/optimization-v12.md) and the [per-second comparison](../reports/optimization-v12-long-cadence.html).

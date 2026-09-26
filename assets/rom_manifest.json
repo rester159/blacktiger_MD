@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "source_set_id": "arcade:blktiger:supplied_romset:e54221c17ce6b5ee",
+  "identity_status": "exact_files_locked_set_revision_unknown",
+  "payload_root": "payload",
+  "file_count": 20,
+  "total_size": 889856,
+  "aggregate_algorithm": "sha256 of LC_ALL=C full-line-sorted lines formatted '<sha256>  <filename>\\n'",
+  "aggregate_sha256": "e54221c17ce6b5ee4b98c63205f02d6a14ad9c2532b52263be9a25335700d30e",
+  "rights_disposition": "owner_supplied_local_only_not_committed",
+  "files": [
+    {"path": "bd-04.9e", "size": 65536, "sha256": "1453582afa2aaedffaa5730db84d942f6558a9eabdefcdbf05f8fb5f5e5493c0"},
+    {"path": "bd-05.10e", "size": 65536, "sha256": "287296a7a725ab589529be82fc58b1916dd7185fddda092fa6a460d6686772b8"},
+    {"path": "bd-06.1l", "size": 32768, "sha256": "bad9b23139d665cb97755575764ff6ce0a6abb2cebd426c31aa997c597ab7b35"},
+    {"path": "bd-07.4a", "size": 65536, "sha256": "65a46e4203941f2b767ab67df4a100606a3f074176da46ff93dd8d6f5d53635d"},
+    {"path": "bd-08.5a", "size": 65536, "sha256": "7a3af158108dd0c41b61267ec2876f35c117265dd5bc02a2d4f2c4a75da7beba"},
+    {"path": "bd-09.8a", "size": 65536, "sha256": "63da75c0f0f486400065ff714ad01e9f67ccef50dee682715e577a8978606a1b"},
+    {"path": "bd-10.9a", "size": 65536, "sha256": "ecbdca250de439e49d2827e997b6a5e9034f0fcd23a1326ad4465a8581456b18"},
+    {"path": "bd-11.4b", "size": 65536, "sha256": "5f0c171797d18835dea7cf20a3dbf1544c23b88a7be9868c508fd537873cdec8"},
+    {"path": "bd-12.5b", "size": 65536, "sha256": "1ace0649a2603fcb403377fb6e87856986714ebf7914fa71c8b148f3318bf07b"},
+    {"path": "bd-13.8b", "size": 65536, "sha256": "f1f36e016a56e9478b0a1231cd044057b43b42209d1529ea8d314b1b27145c40"},
+    {"path": "bd-14.9b", "size": 65536, "sha256": "2ca27caebc8745208ee66ba8aedc1621be98ade6e1fab8fc6420084c7042013a"},
+    {"path": "bd-15.2n", "size": 32768, "sha256": "79e6e29b171803df3617b08f5c9cd73a7fb98cf78db9a791f0f914709ab953a4"},
+    {"path": "bd.6k", "size": 4096, "sha256": "e00ff122f00423df53df61bcf1de7f5218bcc8ee932c6858f0c9cc2a23476307"},
+    {"path": "bd01.8j", "size": 256, "sha256": "0c171bd21fd1ddb17c3a6d4f03cb900c2657a143ff17f9214ea1e4b181b87ff9"},
+    {"path": "bd02.9j", "size": 256, "sha256": "47929e73081adafc9e3d901e777682c90e6a43f146903b24a4a2f310ba7d77f1"},
+    {"path": "bd03.11k", "size": 256, "sha256": "8b4778032f291e59010ef82fd3e66926387c36a6ffd12b8321e2262ba3997bbe"},
+    {"path": "bd04.11l", "size": 256, "sha256": "7fd131de4e562c45bde650337401f1a15ed5ef8efcaa8f38518099f50ac9cedc"},
+    {"path": "bdu-01a.5e", "size": 32768, "sha256": "ac78220bab5e7a14e38a65e0ede74bfe9aa2b97896da7d4ad91934d08c273394"},
+    {"path": "bdu-02a.6e", "size": 65536, "sha256": "48393d2c8bc76ec7a845ed154bce526837d09068d4f937f7ed1c3f5b08e35298"},
+    {"path": "bdu-03a.8e", "size": 65536, "sha256": "b3fdeb107ee0e45c2a44f76ab7d7b5a1ee05b56ba8c7da49f936adeb68a10f08"}
+  ]
+}

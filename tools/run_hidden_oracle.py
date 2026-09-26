@@ -1,3 +1,4 @@
+from oracle_runner import mame_binary
 #!/usr/bin/env python3
 import os,subprocess,json,hashlib
 from pathlib import Path
@@ -11,7 +12,7 @@ for name in s.files:
 for name in ('cfg','nvram','sta','snap','diff','home'):(out/name).mkdir(exist_ok=True)
 cases=['{round=%d,persistent=%d,bank=%d,address=%d}'%(r,p['persistent'],p['bank'],p['address']) for r,patches in enumerate(d['rounds']) for p in patches]
 (out/'cases.lua').write_text('return {'+','.join(cases)+'}\n')
-command=['/opt/homebrew/bin/mame','blktiger','-rompath',str(romdir.parent),'-debug','-debugger','none','-autoboot_delay','0','-autoboot_script',str(ROOT/'tools/hidden_oracle.lua'),'-video','none','-sound','none','-nothrottle','-skip_gameinfo','-noconfirm_quit','-noplugins','-nohttp','-nowriteconfig','-cfg_directory','cfg','-nvram_directory','nvram','-state_directory','sta','-snapshot_directory','snap','-diff_directory','diff','-homepath','home','-inipath','home']
+command=[mame_binary(),'blktiger','-rompath',str(romdir.parent),'-debug','-debugger','none','-autoboot_delay','0','-autoboot_script',str(ROOT/'tools/hidden_oracle.lua'),'-video','none','-sound','none','-nothrottle','-skip_gameinfo','-noconfirm_quit','-noplugins','-nohttp','-nowriteconfig','-cfg_directory','cfg','-nvram_directory','nvram','-state_directory','sta','-snapshot_directory','snap','-diff_directory','diff','-homepath','home','-inipath','home']
 run=subprocess.run(command,cwd=out,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),capture_output=True,timeout=60)
 (out/'stdout.txt').write_bytes(run.stdout);(out/'stderr.txt').write_bytes(run.stderr);assert run.returncode==0
 lines=(out/'events.txt').read_text().splitlines();assert lines[-1]=='COMPLETE'

@@ -80,7 +80,7 @@ for effect_kind in ('poison','reverse'):
 s=state(r)
 # Return to the actual Arcade menu and start a new run: exploration must reset.
 s.mode=0;put(r,s);r.write('frontend',0,bytes([0,1,0]));r.run(30)
-r.run(8,4);r.run(8);r.run(8,8);r.run(30)
+r.run(8,8);r.run(8);r.run(8,2);r.run(30)
 assert not state(r).p.exploration,'exploration leaked into Arcade'
 r.close()
 report=dict(passed=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),checks=checks,session_protection_restored=True,status_immunity=True,damage_immunity=True,hazard_immunity=True,pit_recovery=True,arcade_reset=True,cancel_without_spending=True,wrap_and_column_navigation=True)

@@ -58,7 +58,7 @@ assert r.read('world_opened',1)==old_opened and r.read('container_collected',8)[
 # A separate new game from the title clears persistent objects and resources.
 r.run(3);s=state(r);s.mode=0;s.previous_input=0;put(r,s)
 # Ordinary Home Play starts a fresh normal game directly.
-r.run(10,8);r.run(30);s=state(r)
+r.run(10,8);r.skip_intro();r.run(30);s=state(r)
 assert s.mode==1 and s.p.lives==3 and s.coins==200 and r.read('world_opened',1)==b'\0',(s.mode,s.p.lives,s.coins,r.read('world_opened',1))
 assert r.read('container_opened',8)==bytes(8) and r.read('container_collected',8)==bytes(8)
 r.close();report={'passed':True,'equipment_and_inventory_retained':True,'armor_restored_and_poison_cleared':True,'consumed_rows_retained_active_rows_released':True,'collected_chest_and_hidden_wall_retained':True,'last_life_consumed':True,'continue_retains_progress_and_resets_score':True,'held_start_does_not_pause':True,'new_game_clears_persistence':True,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Native life-loss integration with actual chest and hidden-wall rows, backed by source death resource writes and four-byte persistence-copy loop. Native continue timing checked separately; continues consume a configured credit. Complete arcade presentation remains unfinished.'}

@@ -1,4 +1,5 @@
 #include "frontend.h"
+#include "music.h"
 Frontend frontend;
 GameSettings settings[2];
 void frontend_init(void){u8 i;frontend=(Frontend){.debug_invincible=1,.debug_lives=1,.debug_time=1,.debug_framerate=1,.debug_zenny=1};for(i=0;i<2;i++)settings[i]=(GameSettings){1,4,3,1,1,1,3};}
@@ -6,9 +7,10 @@ u8 frontend_lives(void){static const u8 lives[]={2,3,5,7};return lives[settings[
 void frontend_coin(u16 pressed){
  static const u8 needed[]={4,3,2,1,1,1,1,1},awarded[]={1,1,1,1,2,3,4,5};
  if(frontend.message)frontend.message--;
- if(frontend.mode==0 && (pressed&IN_COIN)){
+ if(frontend.mode==0 && !(game.mode==TITLE && frontend.page==0) && (pressed&IN_START)){
+  if(settings[0].sfx)music_request=0x20;
   if(++frontend.coin_meter>=needed[settings[0].coinage]){
-   u16 n=frontend.credits+awarded[settings[0].coinage];frontend.credits=n>99?99:n;frontend.arcade_credits=frontend.credits;frontend.coin_meter=0;game_sound(6);
+   u16 n=frontend.credits+awarded[settings[0].coinage];frontend.credits=n>9?9:n;frontend.arcade_credits=frontend.credits;frontend.coin_meter=0;
   }
   frontend.revision++;
  }
@@ -19,6 +21,7 @@ void frontend_return(void){frontend.page=1;frontend.selected=0;frontend.message=
 static u8 cycle(u8 value,u8 count,u8 down){return down?(value?value-1:count-1):(value+1==count?0:value+1);}
 u8 frontend_step(u16 pressed){
  u8 home=frontend.mode,back=home?8:6;
+ if(!home && frontend.page!=0)pressed&=~IN_START;
  if(!pressed)return 0;
  frontend.revision++;
  if(home && frontend.page==1 && !frontend.debug_unlocked){
@@ -83,7 +86,7 @@ u8 frontend_step(u16 pressed){
   if(pressed&(IN_START|IN_ATTACK)){
    if(frontend.selected==(home?2:1)){frontend.page=2;frontend.option=0;return 0;}
    if(home && frontend.debug_unlocked && frontend.selected==3){frontend.page=4;frontend.debug_option=0;return 0;}
-   if(!(pressed&IN_START))return 0;
+   if(!(pressed&(home?IN_START:IN_ATTACK)))return 0;
    if(home)frontend.credits=settings[1].credits;
    if(!frontend.credits){frontend.message=120;return 0;}
    frontend_spend();return home && frontend.selected==1?2:1;

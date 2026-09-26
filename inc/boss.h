@@ -11,4 +11,5 @@ u8 boss_contact_damage(u16 slot);
 const AnimFrame *boss_frame(u16 slot);
 void boss_spawn(u16 slot);
 u8 boss_break_layer(Actor *actor);
+u8 boss_primary(u16 slot);
 #endif
