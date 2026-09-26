@@ -23,6 +23,7 @@
 #include "boss.h"
 #include "assets.h"
 #include "loot.h"
+#include "pots.h"
 #include "sentry.h"
 #include "hazard.h"
 #include "pickup.h"
@@ -106,6 +107,7 @@ void game_round(u8 round) {
     zombie_reset();
     missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();
     loot_reset();
+    pots_round(preserve);
     container_round(round);
     if(preserve)container_actor_restart();else container_actor_reset();
     game.mode_timer = 0;
@@ -140,7 +142,7 @@ void game_bonus_transition(void) {
  for(i=0;i<160;i++)game.spawned[i]&=254;
  world_restart();npc_reset();skeleton_reset();emerge_reset();zombie_reset();
  missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();
- reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();container_actor_restart();
+ reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();container_actor_restart();pots_clear();
  player_attack=(PlayerAttack){0};player_daggers_reset();armor_break_reset();
  shop_poison=0;game.p.attack=0;
  player_motion.scroll_x=x;player_motion.scroll_y=y;
@@ -170,7 +172,7 @@ void game_boss_clear(void) {
  round_clear_reset();armor_break_reset();game.p.attack=0;
  player_attack=(PlayerAttack){0};player_daggers_reset();
  zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
- missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();
+ missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();pots_clear();
  if(boss_rush.active){game.boss_dead=1;boss_rush_win();return;}
  game.boss_dead=1;game.mode=CLEAR;game.mode_timer=0;game.sound=SND_CLEAR;
 }
@@ -289,7 +291,7 @@ static void spawn_actors(u8 bosses) {
         if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def] || dragon_kinds[s->def]) {
             music_request=music_boss_commands[game.round];
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
-            missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();
+            missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();pots_clear();
         }
         for (j = 0; j < MAX_ACTORS; j++)
             if (!game.actors[j].active) {
@@ -751,6 +753,11 @@ static void player_weapons_contact(void) {
         }
         if(chain_hit)return;
     }
+    for(i=0;i<player_attack.count;i++){
+        s16 x=PX(game.p.x)+(((player_attack.selector+1)&4)?-16-16*i:32+16*i);
+        if(pots_weapon(x,y,0)){player_attack_hit(&player_attack);return;}
+    }
+    for(i=0;i<PLAYER_DAGGERS;i++)if(player_daggers[i].active==1 && pots_weapon(player_daggers[i].x,player_daggers[i].y,1))player_dagger_hit(i,0);
     pools=weapon_pools();
     if(!pools)return;
     for(i=0;i<player_attack.count;i++) {
@@ -963,6 +970,7 @@ static void game_tick_step(u16 input) {
     player_step(input, pressed);
     if (game.mode != PLAY)
         return;
+    pots_tick(bosses);
     if(loot_active_end)loot_tick();
     {
     u8 moving_missiles=(missiles_occupied?missile_tick():0);

@@ -20,6 +20,7 @@
 #include "shop.h"
 #include "progress.h"
 #include "loot.h"
+#include "pots.h"
 #include "sentry.h"
 #include "emerge.h"
 #include "wisp.h"
@@ -571,6 +572,8 @@ static void sprites(void) {
         if(f)body(f->code,f->palette,statue_blasts[i].x-game.cam_x,statue_blasts[i].y-game.cam_y,f->flip);
     }
     if(missiles_occupied || game.mode!=PLAY)for(i=0;i<(missiles_occupied?missiles_occupied:MAX_MISSILES);i++){const AnimFrame *f;if(!missiles[i].active)continue;f=missile_frame(i);if(f)piece(f->code,f->palette,missiles[i].x-game.cam_x,missiles[i].y-game.cam_y,f->flip);}
+    for(i=0;i<pot_puffs_end;i++)if(pot_puffs[i].active){const AnimFrame *f=animation_current(&pot_puffs[i].animation,pot_segments[pot_puff].clip);if(f)body(f->code,f->palette,pot_puffs[i].x-game.cam_x,pot_puffs[i].y-game.cam_y,f->flip);}
+    for(i=0;i<pots_end;i++){const AnimFrame *f=pot_frame(i);if(f)piece(f->code,f->palette,pots[i].x-game.cam_x,pots[i].y-game.cam_y,f->flip);}
     for (i = 0; i < loot_active_end; i++) {
         const AnimFrame *f;
         if(!loot[i].active)continue;

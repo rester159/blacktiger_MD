@@ -31,6 +31,8 @@ void player_dagger_hit(u16 slot,u8 effect){record(3000+slot*2+!!effect);player_d
 static u8 weapon_target(u16 j){return game.actors[j].active && actor_weapon_enabled[game.actors[j].def];}
 static u8 weapon_pools(void){return 0;}
 static u8 weapon_projectile(s16 x,s16 y,u8 damage,u8 dagger,u8 pools){return 0;}
+/* This scalar-equivalence fixture has no pots; cartridge tests cover them. */
+u8 pots_weapon(s16 x,s16 y,u8 dagger){return 0;}
 u8 dragon_weapon_contact(u16 j,s16 x,s16 y,u8 dagger){return 0;}
 u8 waveboss_weapon_contact(u16 j,s16 x,s16 y,u8 dagger){return 0;}
 '''

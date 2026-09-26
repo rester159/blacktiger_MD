@@ -1,4 +1,4 @@
-# Black Tiger MD — source-only v1.2
+# Black Tiger MD — source-only v1.3
 
 A native Sega Mega Drive/Genesis port built with SGDK. The cartridge runs native 68000 game logic; it does not emulate the arcade CPU.
 

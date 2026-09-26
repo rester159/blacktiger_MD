@@ -19,6 +19,9 @@ references: all
 test: all
 	.venv/bin/python tests/test_source_only.py
 	.venv/bin/python tools/prepare_source_data.py --all
+	.venv/bin/python tests/test_pots.py
+	.venv/bin/python tests/test_pots_runtime.py
+	.venv/bin/python tests/test_pot_placements_runtime.py
 	.venv/bin/python tests/test_boss_hud_runtime.py
 	.venv/bin/python tests/test_menu_shop_poison_runtime.py
 	.venv/bin/python tests/test_dragon_colors_runtime.py
