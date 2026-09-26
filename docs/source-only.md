@@ -11,9 +11,11 @@ Ignored local outputs include:
 
 A normal build validates all ROM hashes before compiling, including incremental builds with cached assets. `tools/import_rom.py` supports ZIP and extracted inputs and validates everything before changing a local package. No ROM download service or bundled payload is provided.
 
-The conversion removes generated content from the current Git tree. **It does not erase earlier commits, existing Git LFS objects, remote release attachments, forks, or cached downloads.** Removing historical copies requires a separately authorized history rewrite and remote cleanup.
+The current tree and published Git history have been rewritten to remove ROMs, compiled cartridges, extracted/generated assets, raw observation dumps, screenshots and borrowed boot data. The historical audit removed 661 paths across 107 commits while preserving the current source tree. No GitHub release attachments were present.
 
-The local migration backup is under `.local/source-only-backup/`. It includes the previous working files and index; the original local ROM and compiled v1.2 remain outside the tracked source tree. The source-only startup omits assets copied from Sonic, Shinobi and Street Fighter II. Black Tiger's own title, story intro, music and gameplay are still generated from its ROM.
+Old clones, forks, cached downloads and server-retained unreachable objects are outside the rewritten branch history. GitHub may retain cached commit views or orphaned LFS objects; the force-push does not prove physical deletion from GitHub storage. Re-clone after this rewrite; do not merge an old clone back into the cleaned repository.
+
+The local migration backup is under `.local/source-only-backup/`. It includes the previous working files and index, `pre-history-rewrite.bundle`, and `pre-history-lfs/`; the original local ROM and compiled v1.2 remain outside the tracked source tree. The source-only startup omits assets copied from Sonic, Shinobi and Street Fighter II. Black Tiger's own title, story intro, music and gameplay are still generated from its ROM.
 
 ## Migration validation
 

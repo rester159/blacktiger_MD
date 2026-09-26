@@ -1,6 +1,6 @@
 # Source-only repository (v1.2)
 
-The current tree requires the owner-supplied Black Tiger ROM and locally regenerates its assets and observation fixtures. Generated ROMs, media, extracted tables and raw traces are no longer tracked. Source-only startup omits borrowed Sonic/Shinobi/Street Fighter boot data; Black Tiger’s own intro remains. See [build instructions](README.md) and [migration boundary](docs/source-only.md). The notes below describe prior local gameplay builds; their generated reports and media are available only after local generation or in earlier history.
+The current tree requires the owner-supplied Black Tiger ROM and locally regenerates its assets and observation fixtures. Generated ROMs, media, extracted tables and raw traces are no longer tracked and have been removed from the published branch history. Source-only startup omits borrowed Sonic/Shinobi/Street Fighter boot data; Black Tiger’s own intro remains. See [build instructions](README.md) and [migration boundary](docs/source-only.md). The notes below describe prior local gameplay builds; their generated reports and media are available only after local generation or in the private local backup.
 
 # v1.2 playability and Arcade controls
 
