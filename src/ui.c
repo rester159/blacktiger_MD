@@ -9,6 +9,7 @@
 #include <genesis.h>
 #include "ui_data.inc"
 static u8 title_ready,title_page=255,title_revision=255,title_message=255,title_coin_phase=255;
+static u32 title_high_score;
 static u16 hud_previous[256];
 static u8 hud_invalid=1;
 extern volatile u32 pacing_presentations;
@@ -27,6 +28,12 @@ static void cursor(u8 selected,u16 x,u16 y){
  if(selected)VDP_setSpriteFull(0,x*8-2,y*8-4,SPRITE_SIZE(2,2),TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,HOME_CURSOR_TILE),0);
 }
 static void number(u16 x,u16 y,u32 value,u8 count){char b[9];u8 n=count;b[count]=0;while(n){b[--n]='0'+value%10;value/=10;}draw(b,x,y);}
+static void score_number(u16 x,u16 y,u32 value){
+ char b[9];u8 n=8;b[8]=0;
+ do{b[--n]='0'+value%10;value/=10;}while(value && n);
+ while(n)b[--n]=' ';
+ draw(b,x,y);
+}
 static void center(u16 y,const char *text){
  u16 n=strlen(text),i,line,left=0,right=0,x,shift,base,words[32];
  u32 edge=0;
@@ -159,19 +166,33 @@ void ui_title(void){
  u8 coin_phase=page==1 && !home && !(game.frame&32),page_changed;
  GameSettings *s=&settings[home];
  if(!title_ready)title_load();
- if(title_page==page && title_revision==frontend.revision && title_message==message && title_coin_phase==coin_phase)return;
+ if(title_page==page && title_revision==frontend.revision && title_message==message && title_coin_phase==coin_phase && title_high_score==high_score)return;
  page_changed=title_page!=page;
  if(page_changed){
   DMA_flushQueue();SYS_disableInts();VDP_setEnable(FALSE);
   VDP_clearPlane(BG_A,TRUE);VDP_clearPlane(BG_B,TRUE);
-  if(page!=2 && page!=4)VDP_setTileMapDataRectEx(BG_B,title_map,0,0,0,32,28,32,CPU);
+  if(page!=2 && page!=4 && page!=5 && page!=6)VDP_setTileMapDataRectEx(BG_B,title_map,0,0,0,32,28,32,CPU);
   if(page==1 && home)VDP_setTileMapDataRectEx(BG_B,home_md_map,0,12,13,8,4,8,CPU);
  }
  VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);
  title_page=page;title_revision=frontend.revision;title_message=message;
- title_coin_phase=coin_phase;
+ title_coin_phase=coin_phase;title_high_score=high_score;
  VDP_setTextPlane(BG_A);VDP_setTextPalette(PAL3);VDP_setTextPriority(TRUE);
- if(page==2){
+ if(page==5 || page==6){
+  u8 i;center(3,page==6?"ENTER INITIALS":"HIGH SCORES");
+  draw("RANK NAME    SCORE   MODE",2,6);
+  for(i=0;i<HIGH_SCORE_COUNT;i++){
+   const HighScoreEntry *entry=&high_scores[i];u8 y=8+i*3;char name[4];
+   name[0]=entry->initials[0];name[1]=entry->initials[1];name[2]=entry->initials[2];name[3]=0;
+   number(3,y,i+1,1);draw(name,7,y);
+   if(entry->score){score_number(11,y,entry->score);draw(entry->mode==2?"RUSH":entry->mode?"HOME":"ARCD",23,y);}
+   else{draw("       -",11,y);draw("----",23,y);}
+   draw("   ",7,y+1);
+   if(page==6 && high_score_pending==i)draw("-",7+high_score_cursor,y+1);
+  }
+  if(page==6){center(23,"UP / DOWN LETTER");center(25,"A NEXT / CONFIRM");center(27,"B PREVIOUS LETTER");}
+  else center(25,"A / B BACK");
+ }else if(page==2){
   u8 i,last=home?8:6;static const char *const labels[]={"LIVES","DIFFICULTY","COINAGE","CONTINUE","MUSIC","SOUND FX","CREDITS","LV7 JUMP"};
   center(3,home?"HOME OPTIONS":"DIP SWITCHES");
   for(i=0;i<=last;i++){
@@ -208,13 +229,14 @@ void ui_title(void){
   cursor(frontend.debug_option==12,1,23);draw("INFINITE ZENNY",3,23);draw(frontend.debug_zenny?"YES":"NO ",18,23);
   center(25,"A / START SELECT");center(27,"B BACK");
  }else{
-  u8 i,count=page==0?2:home?(frontend.debug_unlocked?4:3):2;
+  u8 i,count=page==0?3:home?(frontend.debug_unlocked?4:3):2;
   VDP_clearTextArea(0,16,32,9);
   for(i=0;i<count;i++){
-   const char *label=page==0?(i?"HOME":"ARCADE"):i==0?"PLAY":home?(i==1?"BOSS RUSH":i==2?"OPTIONS":"DEBUG"):"DIP SWITCHES";
+   const char *label=page==0?(i==2?"HIGH SCORES":i?"HOME":"ARCADE"):i==0?"PLAY":home?(i==1?"BOSS RUSH":i==2?"OPTIONS":"DEBUG"):"DIP SWITCHES";
    {u8 y=18+i*2;center(y,label);cursor(i==frontend.selected,(32-strlen(label))/2-3,y);}
   }
   if(page==1 && !home && coin_phase)center(23,"INSERT COIN");
+  score_number(13,1,high_score);
   center(25,"(C)CAPCOM 1987");center(26,"RESTER159 2026");
   VDP_setTileMapDataRectEx(BG_A,title_version_map,0,0,27,2,1,2,CPU);
   {u8 credit=home && page==1?s->credits:frontend.credits;

@@ -35,8 +35,8 @@ for poison in (38,0):
   if r.read('player_attack',12)[0]:break
  assert r.read('player_attack',12)[0]
  assert any(r.read('player_daggers',18*9)[i*18+14] for i in range(9))==(not poison)
-# Buy the fifth tier at the source default-difficulty price.
-s=state(r);s.mode=3;s.shop_item=3;s.coins=12800;s.p.weapon=4;s.previous_input=0;put(r,s);r.run(2);r.run(3,1<<1)
+# Buy the fifth tier at the US catalog price.
+s=state(r);s.mode=3;s.shop_item=3;s.coins=9600;s.p.weapon=4;s.previous_input=0;put(r,s);r.run(2);r.run(3,1<<1)
 assert state(r).p.weapon==5 and state(r).coins==0
 r.close();report={'passed':True,'cases':cases,'fifth_tier_purchase':True,'poison_dagger_suppression':True,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'All five source damage/reach tiers through real input; three-dagger volleys, release-to-retrigger, poison suppression and fifth-tier purchase.'}
 (ROOT/'reports/weapon-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

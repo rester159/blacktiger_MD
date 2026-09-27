@@ -1,5 +1,6 @@
 #include "frontend.h"
 #include "music.h"
+#include "high_score.h"
 Frontend frontend;
 GameSettings settings[2];
 void frontend_init(void){u8 i;frontend=(Frontend){.debug_invincible=1,.debug_lives=1,.debug_time=1,.debug_framerate=1,.debug_zenny=1};for(i=0;i<2;i++)settings[i]=(GameSettings){1,4,3,1,1,1,3};}
@@ -17,7 +18,7 @@ void frontend_coin(u16 pressed){
 }
 u8 frontend_continue(void){return settings[frontend.mode].continues && frontend.credits!=0;}
 void frontend_spend(void){if(frontend.credits)frontend.credits--;if(!frontend.mode)frontend.arcade_credits=frontend.credits;}
-void frontend_return(void){frontend.page=1;frontend.selected=0;frontend.message=0;frontend.revision++;}
+void frontend_return(void){high_score_finish();frontend.page=high_score_pending<5?6:1;frontend.selected=0;frontend.message=0;frontend.revision++;}
 static u8 cycle(u8 value,u8 count,u8 down){return down?(value?value-1:count-1):(value+1==count?0:value+1);}
 u8 frontend_step(u16 pressed){
  u8 home=frontend.mode,back=home?8:6;
@@ -33,8 +34,21 @@ u8 frontend_step(u16 pressed){
    game.sound=SND_COIN;return 0;
   }
  }else frontend.debug_code=0;
+ if(frontend.page==5 || frontend.page==6){
+  if(frontend.page==6){
+   if(pressed&IN_UP)high_score_letter(1);
+   if(pressed&IN_DOWN)high_score_letter(0);
+   if((pressed&IN_JUMP) && high_score_cursor)high_score_cursor--;
+   if(pressed&(IN_ATTACK|IN_START)){
+    if(++high_score_cursor==3){high_score_confirm();frontend.page=5;}
+   }
+  }else if(pressed&(IN_JUMP|IN_ATTACK|IN_START)){frontend.page=0;frontend.selected=2;}
+  return 0;
+ }
  if(frontend.page==0){
-  if(pressed&(IN_UP|IN_DOWN))frontend.selected^=1;
+  if(pressed&IN_UP)frontend.selected=cycle(frontend.selected,3,1);
+  if(pressed&IN_DOWN)frontend.selected=cycle(frontend.selected,3,0);
+  if(frontend.selected==2 && (pressed&(IN_START|IN_ATTACK))){frontend.page=5;return 0;}
   if(pressed&(IN_START|IN_ATTACK)){frontend.mode=frontend.selected;frontend.credits=frontend.mode?settings[1].credits:frontend.arcade_credits;frontend.page=1;frontend.selected=0;frontend.coin_meter=0;}
   return 0;
  }

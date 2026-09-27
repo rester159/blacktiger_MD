@@ -26,7 +26,7 @@ const ROMHeader rom_header = {
     "RA",
     0xF820,
     0x00200001,
-    0x0020007F,
+    0x0020013F,
     "            ",
     "NATIVE SGDK DEVELOPMENT BUILD          ",
     "JUE             "

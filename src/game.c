@@ -4,6 +4,7 @@
 #include "boss_rush.h"
 #include "round_clear.h"
 #include "game_over.h"
+#include "high_score.h"
 #include "actor_dispatch.h"
 #include "bonus.h"
 #include "music.h"
@@ -152,6 +153,7 @@ void game_bonus_transition(void) {
  game.cam_y=camera_y(PX(game.p.y)-144);
 }
 void game_new(void) {
+    high_score_begin();
     frontend.debug_active=0;
     ending_reset();boss_rush=(BossRush){0};
     restart_pending=0;loaded_round=255;
@@ -163,7 +165,9 @@ void game_new(void) {
     progress_new();
     game.coins=progress_initial_coins;
     game.p.lives = frontend_lives();
-    combat_difficulty=shop_difficulty=settings[frontend.mode].difficulty;
+    combat_difficulty=settings[frontend.mode].difficulty;
+    /* US catalog requested for the port; combat DIP changes do not reprice it. */
+    shop_difficulty=0;
     game.p.armor = progress_initial_armor;
     game.p.weapon = 1;
     game_round(0);

@@ -29,7 +29,12 @@ for accept in (False,True):
  else:
   assert s.mode==0 and digits==set(range(10)) and 0x34 in commands
   r.run(5);assert not r.read('music_active',1)[0]
-  r.run(5,8);r.run(3);r.run(3,8);r.skip_intro();r.run(30);s=state(r);assert s.mode==1 and s.coins==200 and s.score==0 and s.p.weapon==1
+  # A qualifying run now enters initials before returning to the mode picker.
+  assert r.read('frontend',2)[1]==6
+  for _ in range(3):r.run(5,2);r.run(5)
+  assert r.read('frontend',2)[1]==5
+  r.run(5,1);r.run(5);r.run(5,16);r.run(5);r.run(5,2);r.run(5);r.run(5,8)
+  r.skip_intro();r.run(30);s=state(r);assert s.mode==1 and s.coins==200 and s.score==0 and s.p.weapon==1
  cases.append(dict(accept=accept,notice_blocks_start=True,continue_offer=True,expiry_to_title=not accept,held_start_safe=accept));r.close()
-report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Last-life entry, all countdown digits, notice/continue FM cues, offer expiry to title, new-game reset, paid continuation retaining inventory and held-Start edge. Exact task-relative durations checked by host test; original UI artwork/fades and high-score initials excluded.')
+report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Last-life entry, all countdown digits, notice/continue FM cues, offer expiry to title, new-game reset, paid continuation retaining inventory and held-Start edge. Exact task-relative durations checked by host test; qualifying initials entry and new-run reset checked; original UI artwork/fades remain outside scope.')
 (ROOT/'reports/game-over-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

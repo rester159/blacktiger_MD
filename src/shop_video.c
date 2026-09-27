@@ -11,7 +11,13 @@ static void label(u16 x,u16 y,const char *text){
  u16 words[28],n=0;while(*text && n<28){u8 c=*text++;words[n++]=shop_font[c>=32 && c<=90?c-32:0];}
  VDP_setTileMapDataRow(BG_A,words,y,x,n,DMA_QUEUE_COPY);
 }
-static void price(u16 x,u16 y,u16 value){char s[6];u8 i=5;s[5]=0;while(i){s[--i]='0'+value%10;value/=10;}for(i=0;i<4 && s[i]=='0';i++);label(x,y,s+i);}
+static void price(u16 x,u16 y,u16 value,u8 width){
+ char digits[6],text[7];u8 i=5,j=0;digits[5]=0;
+ do{digits[--i]='0'+value%10;value/=10;}while(value && i);
+ while(i<5 && j<width)text[j++]=digits[i++];
+ while(j<width)text[j++]=' ';
+ text[j]=0;label(x,y,text);
+}
 void shop_video_init(void){
  u16 i;
  DMA_flushQueue();SYS_disableInts();VDP_setEnable(FALSE);
@@ -42,7 +48,7 @@ void shop_video_frame(void){
  for(i=0;i<12;i++){
   u8 good=shop_grid[i],col=i%6,row=i/6;
   if(!good)continue;
-  if(good!=11)price(columns[col],20+row*3,shop_price(good,shop_difficulty));
+  if(good!=11)price(columns[col],20+row*3,shop_price(good,shop_difficulty),columns[col+1]-columns[col]);
   label(columns[col]-1,18+row*3," ");
  }
  ui_shop_cursor(selection);

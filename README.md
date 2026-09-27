@@ -1,6 +1,12 @@
-# Black Tiger MD — source-only v1.4
+# Black Tiger MD — source-only v1.5
 
-High scores now persist in cartridge SRAM (enable battery/save RAM in your emulator). Two validated records preserve the previous high score if a write is interrupted. Home Up/Down cycles through Play, Boss Rush, and Options. Ground acid blobs finish their death animation after a hit instead of returning as harmless moving ghosts.
+The title displays the live SRAM high score. Select HIGH SCORES below Arcade/Home to view five saved records; qualifying runs offer three-letter initials (Up/Down changes a letter, A advances or confirms, B returns to the previous letter). Records show Arcade, Home, or Boss Rush mode. Existing v1.4 high scores migrate automatically; interrupted saves can recover the previous record.
+
+Enable battery/save RAM in your emulator. When moving from the v1.4 to v1.5 ROM filename, copy the old battery save to the new filename so the emulator loads it. Debug sessions do not enter the table.
+
+US shop prices are weapons 100/1000/2400/9600, armor 80/300/800/1600, key 30, and antidote 150; combat difficulty does not change this catalog. Dialogue draws over overlapping world sprites.
+
+Home Up/Down cycles through Play, Boss Rush, and Options. Ground acid blobs finish their death animation after a hit instead of returning as harmless moving ghosts.
 
 A native Sega Mega Drive/Genesis port built with SGDK. The cartridge runs native 68000 game logic; it does not emulate the arcade CPU.
 

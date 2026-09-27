@@ -595,6 +595,12 @@ static void sprites(void) {
         VDP_setSpriteFull(0, 0, -32, SPRITE_SIZE(1, 1), 0, 0);
         sprite_count = 1;
     }
+    /* High-priority sprites win over high-priority dialogue tiles. Lower only
+       sprites crossing the message band, leaving normal gameplay untouched. */
+    if(game.mode==RESCUE)for(i=0;i<sprite_count;i++){
+        VDPSprite *sprite=&vdpSpriteCache[i];s16 top=(sprite->y&511)-128;
+        if(top<80 && top+((sprite->size&3)+1)*8>48)sprite->attribut&=0x7fff;
+    }
     VDP_updateSprites(sprite_count, DMA_QUEUE);
     video_dma_bytes += sprite_count * 8;
 }

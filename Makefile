@@ -58,6 +58,8 @@ test: all
 	.venv/bin/python tests/test_settings_runtime.py
 	.venv/bin/python tests/test_frontend_runtime.py
 	.venv/bin/python tests/test_high_score_runtime.py
+	.venv/bin/python tests/test_high_score_table_runtime.py
+	.venv/bin/python tests/test_v15_shop_dialogue_runtime.py
 	.venv/bin/python tests/test_boss_rush_runtime.py
 	.venv/bin/python tests/test_presentation_runtime.py
 	.venv/bin/python tests/test_sfx.py
