@@ -15,7 +15,7 @@ assert int.from_bytes(raw[0x1a4:0x1a8],'big')==len(raw)-1
 presentation_revision_checks={}
 pot_checks=json.loads((ROOT/'reports/pots-runtime-tests.json').read_text())
 assert pot_checks['passed'] and pot_checks['rom_sha256']==sha(rom),'pots-runtime-tests.json'
-for name in ('boss-hud-runtime-tests.json','menu-shop-poison-runtime-tests.json','dragon-colors-runtime-tests.json','arcade-coin-runtime-tests.json','review-fixes-runtime-tests.json'):
+for name in ('high-score-runtime-tests.json','boss-hud-runtime-tests.json','menu-shop-poison-runtime-tests.json','dragon-colors-runtime-tests.json','arcade-coin-runtime-tests.json','review-fixes-runtime-tests.json'):
  result=json.loads((ROOT/'reports'/name).read_text())
  assert result['passed'] and result['rom_sha256']==sha(rom),name
  presentation_revision_checks[name]=result

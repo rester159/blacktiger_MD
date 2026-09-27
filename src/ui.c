@@ -5,10 +5,10 @@
 #include "container.h"
 #include "shop.h"
 #include "progress.h"
+#include "high_score.h"
 #include <genesis.h>
 #include "ui_data.inc"
 static u8 title_ready,title_page=255,title_revision=255,title_message=255,title_coin_phase=255;
-static u32 high_score=20000;
 static u16 hud_previous[256];
 static u8 hud_invalid=1;
 extern volatile u32 pacing_presentations;

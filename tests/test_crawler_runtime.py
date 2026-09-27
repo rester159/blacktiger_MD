@@ -40,6 +40,11 @@ for profile,(bank,constructor,health,reward_points) in enumerate(((3,0xaab3,2,10
    if s.actors[part].state and s.score==before+reward:break
    r.run(1);s=state(r)
   assert s.actors[part].state and s.score==before+reward,(part,damage,s.score,before,s.actors[part].state)
+ # Every hit body must actually leave the actor pool, including weak hits.
+ for _ in range(180):
+  r.run(1)
+  if all(not state(r).actors[i].active for i in parts):break
+ assert all(not state(r).actors[i].active for i in parts), 'Harmless ghost survived its death animation'
  assert state(r).score==score+2*reward_points
  assert state(r).mode==1 and not state(r).boss_dead, "Crawler must not clear the round"
  r.close();cases.append(dict(profile=profile,source_round=level+1,source_row=row,three_bodies=True,initial_immunity=True,health=health,weak_hit_score=0,strong_hit_score=reward_points))

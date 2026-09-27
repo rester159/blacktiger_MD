@@ -63,7 +63,12 @@ __attribute__((noinline)) static void crawler_transition(u16 slot) {
    }
    target=roots(a)[3];break;
   }
-  case 4:s->mode=8;break;
+  case 4:
+   s->mode=8;
+   /* A spent body must finish its hit/death sequence. Following the normal
+      terrain/jump branch here can leave a moving, permanently harmless ghost. */
+   if(a->state)target=roots(a)[9];
+   break;
   case 5:
    if(!ground(a,8,16)) {
     s->animation.vx=s->animation.vy=s->fraction=0;gravity(s);target=roots(a)[7];

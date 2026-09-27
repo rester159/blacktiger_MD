@@ -1,5 +1,6 @@
 #include "game.h"
 #include "frontend.h"
+#include "high_score.h"
 #include "boot_logos.h"
 #include <genesis.h>
 volatile u16 late_vblank_debug[4];
@@ -39,6 +40,7 @@ int main(bool hardReset) {
     u8 previous_mode, previous_round;
     (void)hardReset;
     JOY_init();
+    high_score_init();
     boot_logos();
     video_init();
     frontend_init();
@@ -143,6 +145,7 @@ int main(bool hardReset) {
            refresh clock and consumes the same queued game events. */
         if(profile_frame)t0=getSubTick();
         audio_tick();
+        high_score_save();
         if(profile_frame){frame_cost[2]=getSubTick()-t0;profile_samples++;}
     }
     return 0;

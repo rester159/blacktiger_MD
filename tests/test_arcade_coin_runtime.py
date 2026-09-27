@@ -50,7 +50,7 @@ tap(8);check('Start adds credit without accepting continue',state(r).mode==7 and
 r.capture('v12-arcade-continue.png');tap(2);check('A accepts continue and spends one credit',state(r).mode==1 and credits()==1)
 s=state(r);s.mode=2;put(r,s);r.run(20);s=state(r);s.mode=3;put(r,s);r.run(20);tap(8)
 check('shop coin accounting updates without a purchase',state(r).mode==3 and credits()==2 and r.read('hud_credit',1)==b'\2')
-check('version metadata is v1.3',json.loads((ROOT/'reference/title_graphics.json').read_text())['version_stamp']['text']=='v1.3')
+check('version metadata is v1.4',json.loads((ROOT/'reference/title_graphics.json').read_text())['version_stamp']['text']=='v1.4')
 r.close()
 report=dict(passed=True,checks=checks,source_witnesses=list(source.witnesses.values()),rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope=__doc__+' Coin FM stream has separate original-ROM register-trace checks; native PCM audibility tested here. CREDIT follows the original title-screen position; gameplay and shop retain the original Zenny HUD.')
 (ROOT/'reports/arcade-coin-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(passed=True,checks=checks)))

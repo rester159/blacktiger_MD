@@ -74,10 +74,8 @@ u8 frontend_step(u16 pressed){
  if(frontend.page==1){
   if(pressed&IN_JUMP){frontend.page=0;frontend.selected=frontend.mode;return 0;}
   if(home){
-   if(pressed&(IN_UP|IN_DOWN)){
-    u8 next=frontend.selected^1;
-    if(next!=3 || frontend.debug_unlocked)frontend.selected=next;
-   }
+   if(pressed&IN_UP)frontend.selected=cycle(frontend.selected,frontend.debug_unlocked?4:3,1);
+   if(pressed&IN_DOWN)frontend.selected=cycle(frontend.selected,frontend.debug_unlocked?4:3,0);
    if(pressed&(IN_LEFT|IN_RIGHT)){
     u8 next=frontend.selected^2;
     frontend.selected=next==3 && !frontend.debug_unlocked?2:next;

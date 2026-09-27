@@ -1,4 +1,6 @@
-# Black Tiger MD — source-only v1.3
+# Black Tiger MD — source-only v1.4
+
+High scores now persist in cartridge SRAM (enable battery/save RAM in your emulator). Two validated records preserve the previous high score if a write is interrupted. Home Up/Down cycles through Play, Boss Rush, and Options. Ground acid blobs finish their death animation after a hit instead of returning as harmless moving ghosts.
 
 A native Sega Mega Drive/Genesis port built with SGDK. The cartridge runs native 68000 game logic; it does not emulate the arcade CPU.
 

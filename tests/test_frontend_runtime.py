@@ -33,7 +33,10 @@ exhaust(r);r.run(300,8);check('three-credit Home run ends without another contin
 r.run(8);tap(r,1);tap(r,16);tap(r,8)
 check('Home credits do not become arcade coins',front(r)[0]==0 and front(r)[4]==0)
 r.close()
-r=boot();tap(r,32);tap(r,8);tap(r,128);tap(r,8)
+r=boot();tap(r,32);tap(r,8)
+for key,selected in ((32,1),(32,2),(32,0),(16,2),(16,1),(16,0),(32,1),(32,2)):
+ tap(r,key);check('Home vertical navigation '+str(len(checks)),front(r)[2]==selected)
+tap(r,2)
 check('Home Options opens',front(r)[1]==2)
 for _ in range(6):tap(r,32)
 tap(r,128);check('Home credit limit is adjustable',r.read('settings',14)[13]==4)

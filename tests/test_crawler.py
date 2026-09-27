@@ -14,6 +14,8 @@ with tempfile.TemporaryDirectory() as folder:
  void setup(int px,int y,int part,int obstacle,int definition,int random) {
  game=(Game){0};wall=obstacle;loot_random=random<<8;game.p.x=px*256;game.p.y=120*256;game.mode=PLAY;game.spawned[0]=1;
  game.actors[0]=(Actor){.active=1,.x=128*256,.y=y*256,.def=definition};crawler_spawn(0,part);}
+ int spent_death(void){return game.actors[0].state==1 && crawlers[0].segment==roots(&game.actors[0])[9];}
+ int contact(void){return crawler_contact(0);}
  void pow_hit(void){crawler_screen_attack(0);}
  void children(int *out) {for(int i=0;i<2;i++){Actor *a=&game.actors[i+1];out[i*3]=a->active;out[i*3+1]=PX(a->x);out[i*3+2]=PX(a->y);}}
  void tick(int damage,int *out) {
@@ -24,7 +26,7 @@ with tempfile.TemporaryDirectory() as folder:
  for(int i=0;i<15;i++)out[i]=v[i];}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/name) for name in ('animation.c','progress.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'s.dylib')],check=True)
- lib=C.CDLL(str(tmp/'s.dylib'));out=(C.c_int*15)();current=-1;count=0;splits=0
+ lib=C.CDLL(str(tmp/'s.dylib'));out=(C.c_int*15)();current=-1;count=0;splits=0;bounded=0;death_tick=None
  for line in (ROOT/'reference/crawler_oracle_events.txt').read_text().splitlines():
   if line=='COMPLETE':break
   if line.startswith('SPLIT|'):
@@ -36,9 +38,17 @@ with tempfile.TemporaryDirectory() as folder:
    splits+=1
    continue
   _,case,tick,a,display,clear,persist,task=line.split('|');case=int(case);tick=int(tick);a=bytes.fromhex(a);display=bytes.fromhex(display);c=ref['cases'][case]
-  if current!=case:lib.setup(c['px'],c['y'],c['part'],c['wall'],definitions[c['profile']],c['random']);current=case
+  if current!=case:lib.setup(c['px'],c['y'],c['part'],c['wall'],definitions[c['profile']],c['random']);current=case;death_tick=None
   if tick==c.get('pow_tick'):lib.pow_hit()
   lib.tick(c['damage'] if tick in (c['hit_tick'],c['hit2_tick']) else 0,out)
+  # Intentional bug fix: spent bodies finish death instead of re-entering
+  # source terrain/jump movement. All ticks before this transition stay exact.
+  if death_tick is None and lib.spent_death():death_tick=tick;bounded+=1
+  if death_tick is not None:
+   assert not lib.contact(),(case,tick,'spent body can hurt player')
+   assert out[13]==0,(case,tick,'weak hit awarded score twice')
+   if tick-death_tick>=32:assert not out[0],(case,tick,'ghost remained active')
+   continue
   assert out[0]==bool(a[0]),(case,tick,'active',list(out),a.hex())
   if a[0]:
    flip=(a[5]>>3)&1;code=display[0]|((a[5]&224)<<3)
@@ -47,5 +57,5 @@ with tempfile.TemporaryDirectory() as folder:
   assert out[13]==((10,15,15,15)[c['profile']] if task!='0000' else 0),(case,tick,'score',task)
   assert out[14]==int(persist,16),(case,tick,'persistence',out[14],persist)
   count+=1
- report={'passed':True,'source_actor_ticks':count,'cases':len(ref['cases']),'source_splits':splits,'scope':'Four falling-seed families with two child body profiles each: proximity, gravity, terrain, facing, damage and death. Also checks source child construction. Native family integrated; shared global pool contention and full routes remain unverified.'}
+ report={'passed':True,'source_actor_ticks':count,'cases':len(ref['cases']),'source_splits':splits,'bounded_weak_deaths':bounded,'scope':'Four falling-seed families with two child body profiles each: proximity, gravity, terrain, facing, damage and death. Also checks source child construction. Weak-hit death recovery intentionally terminates rather than returning a harmless body to movement; all preceding ticks match. Native family integrated; shared global pool contention and full routes remain unverified.'}
  (ROOT/'reports/crawler-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
