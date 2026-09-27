@@ -20,16 +20,11 @@ r=Runner(rom);r.run(100)
 centered(r,18,96,168);centered(r,20,104,152)
 assert not r.frame[184:192].any(),'main select hint still present'
 logo=r.frame[:128].copy();r.run(8,2);r.run(25)
-centered(r,18,104,152);centered(r,20,72,184)
-assert np.array_equal(r.frame[:128],logo),'logo lost on page transition'
+assert r.read('attract_running',1)==b'\1'
+# Arcade presentation now has its own source-timed ranking/demo renderer.
 for _ in range(2):r.run(8,8);r.run(8)
-assert r.read('frontend',9)[4]==2
-assert np.array_equal(r.frame[:128],logo),'logo lost on credit redraw'
-phases=[]
-for _ in range(80):r.run(1);phases.append(bool(r.frame[184:192].any()))
-assert any(phases) and not all(phases)
-assert not r.frame[168:176].any(),'arcade control hint present'
-checks.append('centered main/Arcade text, absent hints, blinking prompt, stable logo and credits')
+assert r.read('frontend',9)[4]==2 and r.read('attract_credit',1)==b'\1'
+checks.append('centered main text, absent hint, Arcade attract and coin interruption')
 r.run(8,2);r.run(40);r.run(8,2);r.run(20)
 assert state(r).mode==1
 vram=(C.c_uint8*65536).in_dll(r.lib,'vram')

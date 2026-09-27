@@ -40,7 +40,7 @@ u8 frontend_step(u16 pressed){
    if(pressed&IN_DOWN)high_score_letter(0);
    if((pressed&IN_JUMP) && high_score_cursor)high_score_cursor--;
    if(pressed&(IN_ATTACK|IN_START)){
-    if(++high_score_cursor==3){high_score_confirm();frontend.page=5;}
+    if(++high_score_cursor==3){high_score_confirm();frontend.page=home?5:1;}
    }
   }else if(pressed&(IN_JUMP|IN_ATTACK|IN_START)){frontend.page=0;frontend.selected=2;}
   return 0;
@@ -87,6 +87,11 @@ u8 frontend_step(u16 pressed){
  }
  if(frontend.page==1){
   if(pressed&IN_JUMP){frontend.page=0;frontend.selected=frontend.mode;return 0;}
+  if(!home){
+   if(pressed&(IN_UP|IN_DOWN)){frontend.page=2;frontend.option=0;return 0;}
+   if(pressed&IN_ATTACK){if(frontend.credits){frontend_spend();return 1;}frontend.message=120;}
+   return 0;
+  }
   if(home){
    if(pressed&IN_UP)frontend.selected=cycle(frontend.selected,frontend.debug_unlocked?4:3,1);
    if(pressed&IN_DOWN)frontend.selected=cycle(frontend.selected,frontend.debug_unlocked?4:3,0);

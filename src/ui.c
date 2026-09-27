@@ -1,3 +1,4 @@
+#include "attract.h"
 #include "frontend.h"
 #include "boss_rush.h"
 #include "boss.h"
@@ -160,7 +161,9 @@ static void title_load(void){
  VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);VDP_updateSprites(1,DMA);
  VDP_setEnable(TRUE);SYS_enableInts();title_ready=1;title_page=255;
 }
+void ui_attract_version(void){VDP_loadTileData(title_version_tiles,1278,2,DMA);}
 void ui_title(void){
+ if(attract_active()){title_ready=0;attract_video();return;}
  static const char *const coinage[]={"4 COINS:1 CR","3 COINS:1 CR","2 COINS:1 CR","1 COIN:1 CR","1 COIN:2 CR","1 COIN:3 CR","1 COIN:4 CR","1 COIN:5 CR"};
  u8 page=frontend.page,home=frontend.mode,message=frontend.message!=0;
  u8 coin_phase=page==1 && !home && !(game.frame&32),page_changed;

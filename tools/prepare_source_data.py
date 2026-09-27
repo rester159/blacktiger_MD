@@ -10,7 +10,7 @@ from arcade_source import Source, ROOT
 from oracle_runner import mame_binary
 
 BUILD_ORACLES = ('constructor', 'progress', 'shop', 'clear', 'clear_screen',
-                 'ending', 'npc_sequence', 'hud', 'shop_screen', 'intro', 'title')
+                 'ending', 'npc_sequence', 'hud', 'shop_screen', 'intro', 'title', 'attract')
 
 def run(name, *arguments):
     script = ROOT/'tools'/f'run_{name}_oracle.py'
@@ -47,6 +47,7 @@ def main():
                 outputs += [ROOT/'reference'/f'{name}_oracle.json', ROOT/'reference'/f'{name}_oracle_events.txt{ ".gz" if name == "intro" else "" }']
         outputs += list((ROOT/'reference/music').glob('*.json')) + list((ROOT/'reference/music').glob('*.txt'))
         outputs.append(ROOT/'assets/ui/title_arcade.png')
+        outputs.append(ROOT/'reference/attract_oracle_frames.bin.gz')
         marker.write_text(json.dumps(dict(signature=signature, outputs={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in outputs}),indent=2)+'\n')
     if args.all:
         # Build data must already have been converted for behavior fixture runners.

@@ -8,7 +8,7 @@ import sys
 from arcade_source import ROOT, Source
 
 GENERATORS = ('extract.py', 'build_ui.py', 'build_intro.py', 'build_hud.py',
-              'build_shop.py', 'build_arena_parallax.py', 'build_backdrops.py',
+              'build_shop.py', 'build_attract.py', 'build_arena_parallax.py', 'build_backdrops.py',
               'pack_sprite_atlas.py', 'build_cave_geometry.py')
 
 def digest(path):

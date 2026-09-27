@@ -25,6 +25,7 @@ test: all
 	.venv/bin/python tests/test_boss_hud_runtime.py
 	.venv/bin/python tests/test_menu_shop_poison_runtime.py
 	.venv/bin/python tests/test_dragon_colors_runtime.py
+	.venv/bin/python tests/test_attract_runtime.py
 	.venv/bin/python tests/test_arcade_coin_runtime.py
 	.venv/bin/python tests/test_review_fixes_runtime.py
 	.venv/bin/python tests/test_cadence_stats.py

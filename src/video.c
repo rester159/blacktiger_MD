@@ -1,6 +1,7 @@
 #include "ending.h"
 #include "frontend.h"
 #include "intro.h"
+#include "attract.h"
 #include "boss_rush.h"
 #include "arena_video.h"
 #include "backdrop.h"
@@ -44,7 +45,7 @@ static u16 visible[1800];
 static u16 visible_words[2048];
 /* A body occupies four existing 16x16 cache slots; both formats share the same VRAM. */
 static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
-static u8 line_count[28], sprite_slot_for_key[16384];
+static u8 line_count[28], sprite_slot_for_key[16384] __attribute__((aligned(2)));
 static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
 static s16 old_x, old_y;
 static u8 terrain_wrapped;
@@ -294,7 +295,12 @@ static void scene(u8 full) {
 /* Paired source rows are stored in hardware 32x32 column order. A small
    sprite reads two column spans; aligned bodies need only one DMA request. */
 static const u32 *sprite_source(u16 key){
- return object_patterns+((u32)sprite_atlas_blocks[key>>4]<<9)+((key&7)<<6)+((key&8)<<1);
+ return object_patterns+((u32)sprite_atlas_blocks[(key>>4)*4+((key&7)>>1)]<<7)+((key&1)<<6)+((key&8)<<1);
+}
+u8 *video_attract_workspace(void){return sprite_slot_for_key;}
+void video_attract_piece(u16 key,u16 slot){
+ const u32 *p=sprite_source(key);
+ VDP_loadTileData(p,slot,2,DMA_QUEUE);VDP_loadTileData(p+32,slot+2,2,DMA_QUEUE);
 }
 /* Counts are 16-pixel units in [0,16]. OR-ing biased counts tests all
    covered bands at once; no per-band branch in the common sprite path. */
@@ -411,7 +417,9 @@ __attribute__((noinline)) static u16 body_upload(u16 key) {
             sprite_keys[slot] = 65535;
         }
         body_keys[block] = key;
-        if(!(key&8) && (key&7)!=7){
+        u16 group=(key>>4)*4+((key&7)>>1);
+        if(!(key&8) && (key&7)!=7 &&
+           (!(key&1) || sprite_atlas_blocks[group+1]==sprite_atlas_blocks[group]+1)){
             VDP_loadTileData(sprite_source(key),SPR_BASE+block*16,16,DMA_QUEUE);
         }else{
             u32 *tiles=DMA_allocateAndQueueDma(DMA_VRAM,(SPR_BASE+block*16)*32,256,2);

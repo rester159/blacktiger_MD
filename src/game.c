@@ -1,3 +1,4 @@
+#include "attract.h"
 #include "ending.h"
 #include "frontend.h"
 #include "intro.h"
@@ -870,8 +871,9 @@ static void game_tick_step(u16 input) {
     frontend_coin(pressed);
     if (game.mode == TITLE) {
         u8 start=frontend_step(pressed);
+        attract_step();
         if(start){
-            game_new();game.previous_input=input;
+            attract_reset();game_new();game.previous_input=input;
             if(start==2){boss_rush.active=1;progress_max_hp=4;game_round(7);game.previous_input=input;}else if(start==3){frontend.debug_active=1;game.p.exploration=frontend.debug_invincible;game_round(frontend.level);game.previous_input=input;}else intro_start();
         }
         return;

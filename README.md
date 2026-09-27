@@ -1,5 +1,9 @@
 # Black Tiger MD — source-only v1.5
 
+Arcade now opens into the original ranking/title/demo sequence. Its Top 5 and title header display SRAM-backed records; demo playback cannot earn scores, overwrite initials, or spend credits. Press Start to insert a coin, A to start, Up/Down for DIP switches, and B to return to the mode selector. Arcade returns to attract after game over (and after confirming qualifying initials).
+
+The attract presentation replays an observed original arcade cycle with native tiles and sprites, including the large logo over the gameplay demonstration. It preserves the captured frame sequence, scrolling and sprite positions; subsequent loops repeat that witnessed cycle. Mega Drive palette and sprite limits still apply. The cartridge does not execute the arcade CPU.
+
 The title displays the live SRAM high score. Select HIGH SCORES below Arcade/Home to view five saved records; qualifying runs offer three-letter initials (Up/Down changes a letter, A advances or confirms, B returns to the previous letter). Records show Arcade, Home, or Boss Rush mode. Existing v1.4 high scores migrate automatically; interrupted saves can recover the previous record.
 
 Enable battery/save RAM in your emulator. When moving from the v1.4 to v1.5 ROM filename, copy the old battery save to the new filename so the emulator loads it. Debug sessions do not enter the table.

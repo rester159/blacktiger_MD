@@ -1,5 +1,6 @@
 #include "game.h"
 #include "frontend.h"
+#include "attract.h"
 #include "high_score.h"
 #include "boot_logos.h"
 #include <genesis.h>
@@ -60,8 +61,12 @@ int main(bool hardReset) {
         /* A late presentation must not slow the world clock. Catch up at most
            two missed refreshes before drawing, preserving every collision/AI
            step. Menus and scene transitions never inherit gameplay debt. */
-        if(mode==PLAY && previous_mode==PLAY && round==previous_round) {
-            if(elapsed>6){pacing_discarded_ticks+=elapsed-6;elapsed=6;}
+        if((mode==PLAY && previous_mode==PLAY && round==previous_round) ||
+           (attract_active() && previous_mode==TITLE)) {
+            /* A source title/demo transition can replace both planes. Keep
+               its timeline debt so the replay catches up without losing ticks. */
+            u16 limit=attract_active()?120:6;
+            if(elapsed>limit){pacing_discarded_ticks+=elapsed-limit;elapsed=limit;}
             ticks=elapsed>3?3:elapsed?elapsed:1;
             /* Keep a small remaining debt for the next iteration. A single
                four-refresh spike must not permanently lose a world tick. */
