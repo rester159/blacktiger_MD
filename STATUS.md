@@ -1,5 +1,12 @@
 # Source-only repository (v1.2)
 
+# v1.6 fix
+
+- Fixed horizontal flip decoding in the Arcade attract demo. The captured SAT attribute stored right-facing flip as bit 3 (value 8), while SGDK expects a one-bit boolean; passing 8 set the wrong sprite attribute and corrupted right-facing character/enemy colors. The normalized bit now drives horizontal flip.
+- Updated the generated menu version stamp to v1.6 and changed the README migration note and current version assertion.
+
+See [v1.6 fixes](reports/v1.6-fixes.md). Build and runtime validation have not yet been run.
+
 The current tree requires the owner-supplied Black Tiger ROM and locally regenerates its assets and observation fixtures. Generated ROMs, media, extracted tables and raw traces are no longer tracked and have been removed from the published branch history. Source-only startup omits borrowed Sonic/Shinobi/Street Fighter boot data; Black Tiger’s own intro remains. See [build instructions](README.md) and [migration boundary](docs/source-only.md). The notes below describe prior local gameplay builds; their generated reports and media are available only after local generation or in the private local backup.
 
 # v1.2 playability and Arcade controls

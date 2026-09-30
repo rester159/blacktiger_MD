@@ -132,7 +132,7 @@ void attract_video(void){
   if(sx<=-16 || sx>=256 || sy<=-16 || sy>=224)continue;
   u16 key=code+(u16)(p[1]&7)*2048;
   if(key!=shown_sprite[n]){video_attract_piece(key,1280+n*4);shown_sprite[n]=key;}
-  VDP_setSpriteFull(n,sx,sy,SPRITE_SIZE(2,2),TILE_ATTR_FULL((p[1]&7)?PAL3:PAL2,FALSE,FALSE,p[1]&8,1280+n*4),n+1);n++;
+  VDP_setSpriteFull(n,sx,sy,SPRITE_SIZE(2,2),TILE_ATTR_FULL((p[1]&7)?PAL3:PAL2,FALSE,FALSE,(p[1]>>3)&1,1280+n*4),n+1);n++;
  }
  if(n)VDP_setSpriteLink(n-1,0);else VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);
  VDP_updateSprites(n?n:1,initial?DMA:DMA_QUEUE);
