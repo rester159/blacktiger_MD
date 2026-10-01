@@ -17,6 +17,22 @@ def run(name, *arguments):
     print(f'Observing original ROM: {name} {" ".join(arguments)}', flush=True)
     subprocess.run([sys.executable, str(script), *arguments], cwd=ROOT, check=True)
 
+def cached_dragon_oracle_is_valid(source):
+    """Reuse the checked-in local Dragon trace instead of replaying 1M MAME ticks."""
+    report_path = ROOT/'reference/dragon_oracle.json'
+    events_path = ROOT/'reference/dragon_oracle_events.txt'
+    lua_path = ROOT/'tools/dragon_oracle.lua'
+    if not (report_path.is_file() and events_path.is_file()):
+        return False
+    report = json.loads(report_path.read_text())
+    mame = Path(mame_binary())
+    return (
+        report.get('source_set') == source.lock['aggregate_sha256']
+        and report.get('lua_sha256') == hashlib.sha256(lua_path.read_bytes()).hexdigest()
+        and report.get('mame_sha256') == hashlib.sha256(mame.read_bytes()).hexdigest()
+        and report.get('trace_sha256') == hashlib.sha256(events_path.read_bytes()).hexdigest()
+    )
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--all', action='store_true', help='Also generate source-oracle fixtures for the complete development test suite')
@@ -56,6 +72,9 @@ def main():
         for script in sorted((ROOT/'tools').glob('run_*_oracle.py')):
             name = script.stem.removeprefix('run_').removesuffix('_oracle')
             if name not in BUILD_ORACLES and name != 'music':
+                if name == 'dragon' and cached_dragon_oracle_is_valid(source):
+                    print('Reusing verified original-ROM observation: dragon', flush=True)
+                    continue
                 run(name)
     print('Original-ROM observations ready.', flush=True)
 

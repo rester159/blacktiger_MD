@@ -112,9 +112,9 @@ assert 16+len(tiles)+len(md_tiles)<1000
 out+=f'#define HOME_MD_TILE_COUNT {len(md_tiles)}\n'
 out+=binary('home_md_tiles',b''.join(md_tiles))+array('home_md_map','u16',map(str,md_map))
 Image.fromarray(md_preview).save(ROOT/'res/generated/home_md_logo.png')
-# Tiny 13x5 v1.6 stamp, independent of the arcade's 8x8 menu font.
+# Tiny 13x5 v1.7 stamp, independent of the arcade's 8x8 menu font.
 version=np.zeros((8,16),np.uint8)
-for x,y,rows in [(0,4,['101','101','010']),(4,2,['010','110','010','010','111']),(8,6,['1']),(10,2,['011','100','110','101','011'])]:
+for x,y,rows in [(0,4,['101','101','010']),(4,2,['010','110','010','010','111']),(8,6,['1']),(10,2,['111','001','010','010','010'])]:
  for dy,row in enumerate(rows):
   for dx,bit in enumerate(row):version[y+dy,x+dx]=15 if bit=='1' else 0
 out+=binary('title_version_tiles',pack(version[:,:8])+pack(version[:,8:]))
@@ -139,7 +139,7 @@ report=dict(source_set=source.lock['aggregate_sha256'],source_png_sha256=hashlib
 report['home_md']={'source_sha256':hashlib.sha256(concept_path.read_bytes()).hexdigest(),'rectangle':[96,104,64,32],'tiles':len(md_tiles),'original_palette_unchanged':True,'home_only':True}
 report['menu_font']={'glyph_pixels':[8,8],'advance_pixels':8,'scale':1.0,'requested_scale':1.0,'scope':'Original full-size arcade lettering in all menu options and Capcom/Rester footers; Home, settings, Debug and level selection use two columns.'}
 report['home_cursor']={'source_sha256':hashlib.sha256(yashichi_path.read_bytes()).hexdigest(),'pixels':[16,16],'source_grid_crop':[16,14,208,206],'home_only':False,'palette_unchanged':True,'warm_body_color':'red'}
-report['version_stamp']={'text':'v1.6','rectangle':[232,216,16,8]}
+report['version_stamp']={'text':'v1.7','rectangle':[232,216,16,8]}
 (ROOT/'reference/title_graphics.json').write_text(json.dumps(report,indent=2)+'\n')
 print(report)
 

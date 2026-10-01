@@ -5,7 +5,7 @@ const ROMHeader rom_header = {
 #if (MODULE_MEGAWIFI  && (MEGAWIFI_IMPLEMENTATION == MEGAWIFI_IMPLEMENTATION_MW_CART))
     "SEGA MEGAWIFI   ",
 #elif (ENABLE_BANK_SWITCH != 0)
-    "SEGA SSF        ",
+    "SEGA MEGA DRIVE ",
 #else
     "SEGA MEGA DRIVE ",
 #endif
@@ -26,7 +26,7 @@ const ROMHeader rom_header = {
     "RA",
     0xF820,
     0x00200001,
-    0x0020013F,
+    0x002007FF,
     "            ",
     "NATIVE SGDK DEVELOPMENT BUILD          ",
     "JUE             "

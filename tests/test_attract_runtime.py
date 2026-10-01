@@ -23,7 +23,9 @@ def row(r,y):
  v=(C.c_ubyte*65536).in_dll(r.lib,'vram')
  return [(v[(0xc000+y*128+x*2)^1]<<8)|v[(0xc001+y*128+x*2)^1] for x in range(32)]
 record=bytearray(b'BTL2'+struct.pack('>I',1))
-entries=[(90000,b'ACE',0),(80000,b'BOB',1),(70000,b'CAT',2),(60000,b'DAN',0),(50000,b'EVE',1)]
+# The Arcade attract ranking now shows only Arcade records. Independent Home
+# and Boss Rush tables are verified by test_high_score_table_runtime.py.
+entries=[(90000,b'ACE',0),(80000,b'BOB',0),(70000,b'CAT',0),(60000,b'DAN',0),(50000,b'EVE',0)]
 for score,name,mode in entries:record+=struct.pack('>I3sB',score,name,mode)
 h=2166136261
 for b in record[4:48]:h=((h^b)*16777619)&0xffffffff

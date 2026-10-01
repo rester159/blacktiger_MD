@@ -15,6 +15,9 @@ def boot(saved=None):
  r.run(100);return r
 def tap(r,key):r.run(6,key);r.run(6)
 def table(r):return [struct.unpack_from('>I3sB',r.read('high_scores',40),8*i) for i in range(5)]
+def open_high_scores(r):
+ tap(r,32);tap(r,32);tap(r,2)
+ assert r.read('frontend',2)[1]==5,'HIGH SCORES was not reachable from the public selector'
 def finish(r,score,name='AAA'):
  s=state(r);s.score=score;s.mode=2;put(r,s);r.run(10)
  s=state(r);s.mode=7;s.previous_input=0;put(r,s)
@@ -48,24 +51,22 @@ r.start_game();r.run(20)
 for score,name in ((60000,'BOB'),(40000,'ACE'),(90000,'ZED'),(70000,'ANN'),(80000,'MAX')):
  assert finish(r,score,name)
  if score!=80000:next_run(r)
-expected=[(90000,b'ZED',1),(80000,b'MAX',1),(70000,b'ANN',1),(60000,b'BOB',1),(54321,b'---',0)]
+expected=[(90000,b'ZED',1),(80000,b'MAX',1),(70000,b'ANN',1),(60000,b'BOB',1),(40000,b'ACE',1)]
 assert table(r)==expected,table(r)
 r.capture('v15-high-score-table.png');saved=bytes(memory(r))
 r.run(80);assert bytes(memory(r))==saved,'Idle table rewrites SRAM'
 next_run(r);assert not finish(r,10),'Nonqualifying score opened initials'
 assert table(r)==expected
-r.close();r=boot(saved);assert table(r)==expected
-# The new menu entry is available from the public Arcade/Home selector.
-tap(r,32);tap(r,32);tap(r,2);assert r.read('frontend',2)[1]==5
-assert table(r)==expected;r.close()
+r.close();r=boot(saved);open_high_scores(r);tap(r,128);assert table(r)==expected
+tap(r,2);r.close()
 # Corrupt any byte in the current record: the other journal slot survives.
-logical=saved[1::2];slots=[(struct.unpack_from('>I',logical,o+4)[0],o) for o in (32,96)]
-_,latest=max(slots);previous=96 if latest==32 else 32
+logical=saved[1::2];slots=[(struct.unpack_from('>I',logical,o+4)[0],o) for o in (224,368)]
+_,latest=max(slots);previous=368 if latest==224 else 224
 fallback=[struct.unpack_from('>I3sB',logical,previous+8+i*8) for i in range(5)]
-for i in range(52):
+for i in range(132):
  bad=bytearray(saved);bad[(latest+i)*2+1]^=0xff
  r=boot(bad);assert table(r)==fallback,(i,table(r));r.close()
-report=dict(passed=True,v14_migration=True,title_digits=True,ranked_records=expected,initials_and_modes=True,nonqualifying_ignored=True,power_cycle=True,corrupt_record_cases=52,rom_sha256=hashlib.sha256(rom.read_bytes()).hexdigest())
+report=dict(passed=True,v14_migration=True,title_digits=True,separate_mode_tables=True,ranked_records=expected,initials_and_modes=True,nonqualifying_ignored=True,power_cycle=True,corrupt_record_cases=132,rom_sha256=hashlib.sha256(rom.read_bytes()).hexdigest())
 # Names are stored as exactly three bytes; JSON uses their ASCII representation.
 report['ranked_records']=[(score,name.decode(),mode) for score,name,mode in expected]
 (ROOT/'reports/high-score-table-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

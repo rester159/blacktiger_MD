@@ -557,6 +557,8 @@ static void sprites(void) {
         else
             piece(code, d->palette, x, y, 0);
     }
+    /* Trap flames sit in front of the chest in the arcade. */
+    if(container_traps_occupied || game.mode!=PLAY)for(i=0;i<(container_traps_occupied?container_traps_occupied:MAX_CONTAINER_TRAPS);i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     if(skeleton_weapons_occupied || game.mode!=PLAY)for (i = 0; i < MAX_ACTORS; i++) {
         s16 wx, wy;
         const AnimFrame *f = skeleton_weapon_frame(i, &wx, &wy);
@@ -568,7 +570,6 @@ static void sprites(void) {
     if(flailer_weapons_occupied || game.mode!=PLAY)for(i=0;i<(flailer_weapons_occupied?flailer_weapons_occupied:MAX_ACTORS);i++){const AnimFrame *f;if(!flailer_weapons[i].active)continue;f=flailer_weapon_frame(i);if(f)piece(f->code,f->palette,flailer_weapons[i].x-game.cam_x,flailer_weapons[i].y-game.cam_y,f->flip);}
     if(dragon_shots_occupied || game.mode!=PLAY)for(i=0;i<24;i++){const AnimFrame *f;if(!dragon_shots[i].active)continue;f=dragon_shot_frame(i);DragonShot *p=&dragon_shots[i];if(f){if(p->kind==2)body(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);else piece(f->code,f->palette,p->x-game.cam_x,p->y-game.cam_y,f->flip);}}
     if(waveboss_seeds_occupied || game.mode!=PLAY)for(i=0;i<MAX_WAVEBOSS_SEEDS;i++){const AnimFrame *f;if(!waveboss_seeds[i].active)continue;f=waveboss_seed_frame(i);if(f)piece(f->code,f->palette,waveboss_seeds[i].x-game.cam_x,waveboss_seeds[i].y-game.cam_y,f->flip);}
-    if(container_traps_occupied || game.mode!=PLAY)for(i=0;i<(container_traps_occupied?container_traps_occupied:MAX_CONTAINER_TRAPS);i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     if(shell_pools_occupied[0] || shell_pools_occupied[1] || game.mode!=PLAY)for(i=0;i<MAX_STATUE_SHELLS;i++) {
         const AnimFrame *f=hunter_shells[i].active?hunter_shell_frame(&hunter_shells[i]):0;
         if(f)piece(f->code,f->palette,hunter_shells[i].x-game.cam_x,hunter_shells[i].y-game.cam_y,f->flip);

@@ -8,17 +8,21 @@ u8 arena_video_active;
 static u8 shop_rows;
 static const Backdrop *backdrop;
 static s16 previous_x;
+static u8 previous_mode=255;
 static u16 wall(s16 x,s16 y){return x<72 || x>=169 || y<8 || y>=37?0:arena_near[(y-8)*97+x-72];}
 static u16 scroll_x=65535,scroll_y=65535;
 const u16 *arena_video_map(void){return arena_walls;}
 const u32 *arena_video_pattern(u16 tile){return arena_patterns+(u32)tile*8;}
 static void scroll(void){
  s16 near[28],far[28];u16 y;
- if(scroll_x==game.cam_x && scroll_y==game.cam_y)return;
+ if(scroll_x==game.cam_x && scroll_y==game.cam_y && previous_mode==game.mode)return;
  scroll_x=game.cam_x;scroll_y=game.cam_y;
+ previous_mode=game.mode;
  for(y=0;y<28;y++){
   near[y]=-(s16)game.cam_x;
-  far[y]=y>=5 && y<(shop_rows?14:25)?-(s16)(game.cam_x/2):0;
+  /* Hold dialogue rows still during rescue; level 5 shares this plane with
+     half-speed parallax, which otherwise displaces centered text. */
+  far[y]=y>=5 && y<(shop_rows?14:25) && !(game.mode==RESCUE && y>=6 && y<10)?-(s16)(game.cam_x/2):0;
  }
  VDP_setHorizontalScrollTile(BG_B,0,near,28,DMA_QUEUE_COPY);
  VDP_setHorizontalScrollTile(BG_A,0,far,28,DMA_QUEUE_COPY);

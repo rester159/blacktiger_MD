@@ -183,6 +183,7 @@ void ui_title(void){
  VDP_setTextPlane(BG_A);VDP_setTextPalette(PAL3);VDP_setTextPriority(TRUE);
  if(page==5 || page==6){
   u8 i;center(3,page==6?"ENTER INITIALS":"HIGH SCORES");
+  if(page==5)center(5,high_score_mode==0?"ARCADE":high_score_mode==1?"HOME":"BOSS RUSH");
   draw("RANK NAME    SCORE   MODE",2,6);
   for(i=0;i<HIGH_SCORE_COUNT;i++){
    const HighScoreEntry *entry=&high_scores[i];u8 y=8+i*3;char name[4];
@@ -194,7 +195,7 @@ void ui_title(void){
    if(page==6 && high_score_pending==i)draw("-",7+high_score_cursor,y+1);
   }
   if(page==6){center(23,"UP / DOWN LETTER");center(25,"A NEXT / CONFIRM");center(27,"B PREVIOUS LETTER");}
-  else center(25,"A / B BACK");
+  else center(25,"LEFT / RIGHT TABLE   A / B BACK");
  }else if(page==2){
   u8 i,last=home?8:6;static const char *const labels[]={"LIVES","DIFFICULTY","COINAGE","CONTINUE","MUSIC","SOUND FX","CREDITS","LV7 JUMP"};
   center(3,home?"HOME OPTIONS":"DIP SWITCHES");

@@ -6,13 +6,13 @@
 #include "shop_visual_data.inc"
 static u8 selection,result;
 static u16 coins;
-static const u8 columns[6]={3,7,12,17,23,27};
+static const u8 columns[7]={3,7,12,17,23,27,31};
 static void label(u16 x,u16 y,const char *text){
  u16 words[28],n=0;while(*text && n<28){u8 c=*text++;words[n++]=shop_font[c>=32 && c<=90?c-32:0];}
  VDP_setTileMapDataRow(BG_A,words,y,x,n,DMA_QUEUE_COPY);
 }
 static void price(u16 x,u16 y,u16 value,u8 width){
- char digits[6],text[7];u8 i=5,j=0;digits[5]=0;
+ char digits[6],text[7];u8 i=5,j=0;if(width>6)width=6;digits[5]=0;
  do{digits[--i]='0'+value%10;value/=10;}while(value && i);
  while(i<5 && j<width)text[j++]=digits[i++];
  while(j<width)text[j++]=' ';

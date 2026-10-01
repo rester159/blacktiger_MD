@@ -89,6 +89,8 @@ static u8 support(s16 x, s16 y) {
     return terrain(x, y) >= 2;
 }
 static u8 restart_pending,loaded_round=255;
+static u8 boss_room_locked;
+static u16 boss_room_camera;
 void game_round(u8 round) {
     round_clear_reset();game_over_reset();
     music_request=0x21+(round&7);
@@ -98,6 +100,8 @@ void game_round(u8 round) {
     u16 restart_x=r->start_x,restart_y=r->start_y;
     if(preserve)checkpoint_lookup(round,game.cam_x,game.cam_y,&restart_x,&restart_y);
     status_new();shop_poison=0;loaded_round=round;game.round = round;
+    boss_room_locked=0;
+    if(frontend.debug_active && frontend.debug_zenny)game.coins=65535;
     zero(game.actors, sizeof game.actors);
     zero(game.shots, sizeof game.shots);
     if(preserve){u16 i;for(i=0;i<160;i++)game.spawned[i]&=254;world_restart();}
@@ -674,6 +678,18 @@ static void actor_step(u16 i,u16 pressed) {
     (void)pressed;
     updates[actor_update_class[game.actors[i].def]](i);
 }
+static void boss_wall_clip(Actor *a,s32 old_x,s32 old_y) {
+    u8 is_dragon,is_wave;s16 width,height,x,y;
+    if(!a->active || a->state==2)return;
+    is_dragon=dragon_kinds[a->def]!=0;is_wave=waveboss_kinds[a->def]!=0;
+    if(!is_dragon && !is_wave && !layered_boss_kinds[a->def] && hunter_kinds[a->def]!=2)return;
+    width=is_dragon?128:is_wave?64:32;height=is_dragon||is_wave?64:32;
+    x=PX(a->x);y=PX(a->y);
+    if(x!=PX(old_x) && (terrain(x+8,y+height/2)==3 || terrain(x+width-8,y+height/2)==3))a->x=old_x;
+    x=PX(a->x);
+    if(y>PX(old_y) && terrain(x+width/2,y+height)==3)a->y=old_y;
+    else if(y<PX(old_y) && terrain(x+width/2,y+8)==3)a->y=old_y;
+}
 static u8 weapon_target(u16 j) {
     ActorVulnerable check;
     if(!game.actors[j].active)return 0;
@@ -972,6 +988,13 @@ static void game_tick_step(u16 input) {
     }
     world_tick();
     u8 bosses=boss_flags();
+    /* Round 3 and 5 boss rooms are fixed-screen encounters. Keep the camera
+       on the room and stop the player leaving through either open edge. */
+    if((game.round==2 || game.round==4) && (bosses&1)) {
+        if(!boss_room_locked){boss_room_camera=game.cam_x;boss_room_locked=1;}
+        if(p->x<(s32)(boss_room_camera+8)*FX){p->x=(s32)(boss_room_camera+8)*FX;if(p->vx<0)p->vx=0;}
+        if(p->x>(s32)(boss_room_camera+216)*FX){p->x=(s32)(boss_room_camera+216)*FX;if(p->vx>0)p->vx=0;}
+    } else boss_room_locked=0;
     if (bosses&2) input=pressed=0;
     player_step(input, pressed);
     if (game.mode != PLAY)
@@ -1025,7 +1048,10 @@ static void game_tick_step(u16 input) {
                 if(boss_rush.active){
                     s32 previous_x=game.actors[i].x;
                     actor_step(i,pressed);boss_rush_actor_bounds(&game.actors[i],previous_x);
-                }else actor_step(i,pressed);
+                }else{
+                    s32 previous_x=game.actors[i].x,previous_y=game.actors[i].y;
+                    actor_step(i,pressed);boss_wall_clip(&game.actors[i],previous_x,previous_y);
+                }
                 if (game.mode != PLAY)
                     return;
             }
@@ -1043,7 +1069,7 @@ static void game_tick_step(u16 input) {
             player_hurt(1);
         }
     }
-    game.cam_x = boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):(u16)(PX(p->x)-112);
+    game.cam_x = boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):boss_room_locked?boss_room_camera:(u16)(PX(p->x)-112);
     game.cam_y = boss_rush.active?RUSH_Y:camera_y(PX(p->y)-144);
 }
 

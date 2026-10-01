@@ -50,7 +50,7 @@ void waveboss_step(u16 slot){
   case 2:target=choose(a,s);break;
   case 3:if(!seed_spawn(a,s))target=choose(a,s);break;
   case 6:
-   if(--a->life){a->hp=waveboss_health[s->profile];a->state=0;target=waveboss_roots[12+s->left];}
+   if(--a->life){a->hp=waveboss_health[s->profile];a->state=0;s->mode=24;target=waveboss_roots[12+s->left];}
    else {a->state=2;game.boss_dead=1;shop_poison=0;game.spawned[a->source]|=2;game.kills++;progress_score(waveboss_scores[s->profile]);target=waveboss_roots[14+s->left];}
    break;
   case 7:break; /* The original schedules a separate death-flash presentation task. */

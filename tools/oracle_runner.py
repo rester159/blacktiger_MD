@@ -20,7 +20,10 @@ def run_oracle(source,name,cases='return {}\n'):
  script=ROOT/'tools'/(name.replace('-','_')+'.lua')
  command=[mame_binary(),'blktiger','-rompath',str(romdir.parent),'-debug','-debugger','none','-autoboot_delay','0','-autoboot_script',str(script),'-video','none','-sound','none','-nothrottle','-skip_gameinfo','-noconfirm_quit','-noplugins','-nohttp','-nowriteconfig','-cfg_directory','cfg','-nvram_directory','nvram','-state_directory','sta','-snapshot_directory','snap','-diff_directory','diff','-homepath','home','-inipath','home']
  try:
-  run=subprocess.run(command,cwd=out,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),capture_output=True,timeout=60)
+  # Large actor fixtures execute tens of thousands of debugger calls under
+  # MAME. Allow slower machines enough time to finish the same deterministic
+  # observation instead of leaving a truncated trace at the old 60s limit.
+  run=subprocess.run(command,cwd=out,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),capture_output=True,timeout=300)
  except subprocess.TimeoutExpired as error:
   (out/'stdout.txt').write_bytes(error.stdout or b'');(out/'stderr.txt').write_bytes(error.stderr or b'');raise
  (out/'stdout.txt').write_bytes(run.stdout);(out/'stderr.txt').write_bytes(run.stderr)

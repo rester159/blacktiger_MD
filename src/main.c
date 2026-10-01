@@ -41,13 +41,13 @@ int main(bool hardReset) {
     u8 previous_mode, previous_round;
     (void)hardReset;
     JOY_init();
-    high_score_init();
     boot_logos();
     video_init();
     frontend_init();
     game_new();
     game.mode = TITLE;
     video_round();
+    high_score_init();
     logic_video_frame=vtimer-1;
     previous_mode=game.mode;
     previous_round=game.round;

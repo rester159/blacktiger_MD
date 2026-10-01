@@ -54,6 +54,7 @@ test: all
 	.venv/bin/python tests/test_backdrop_runtime.py
 	.venv/bin/python tests/test_home_logo_runtime.py
 	.venv/bin/python tests/test_arena_parallax_runtime.py
+	.venv/bin/python tests/test_boss_arena_runtime.py
 	.venv/bin/python tests/test_boot_logos_runtime.py
 	.venv/bin/python tests/test_hud_runtime.py
 	.venv/bin/python tests/test_settings_runtime.py

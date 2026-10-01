@@ -25,14 +25,17 @@ u8 shop_purchase(u8 item,u8 difficulty,ShopInventory *s) {
  s->coins-=price;return 1;
 }
 u8 shop_buy(u8 item) {
- ShopInventory s;
- s.coins=frontend.debug_active && frontend.debug_zenny?65535:game.coins;s.invincible=game.p.invincible;s.weapon=game.p.weapon?game.p.weapon-1:0;
+ ShopInventory s;u8 debug_funds=frontend.debug_active && frontend.debug_zenny;
+ /* Reassert the Debug wallet at the transaction boundary so a level restart,
+    round transition, or shop entry cannot leave equipment unaffordable. */
+ if(debug_funds)game.coins=65535;
+ s.coins=debug_funds?65535:game.coins;s.invincible=game.p.invincible;s.weapon=game.p.weapon?game.p.weapon-1:0;
  s.armor=game.p.armor;s.keys=container_keys;s.antidotes=shop_antidotes;s.poison=shop_poison || status_reverse;
  if(!shop_purchase(item,shop_difficulty,&s)){
   shop_result=s.coins<shop_price(item,shop_difficulty)?2:item<=8?3:4;return 0;
  }
  shop_result=1;
- game.coins=frontend.debug_active && frontend.debug_zenny?65535:s.coins;game.p.invincible=s.invincible;game.p.weapon=s.weapon+1;game.p.armor=s.armor;
+ game.coins=debug_funds?65535:s.coins;game.p.invincible=s.invincible;game.p.weapon=s.weapon+1;game.p.armor=s.armor;
  container_keys=s.keys;shop_antidotes=s.antidotes;if(item==10 && !s.poison){shop_poison=0;status_reverse=0;}game_sound(0x12);return 1;
 }
 void shop_move(u16 pressed) {

@@ -155,7 +155,7 @@ player_death_runtime=json.loads((ROOT/'reports/player-death-runtime-tests.json')
 armor_break=json.loads((ROOT/'reports/armor-break-tests.json').read_text());assert armor_break['passed']
 armor_break_runtime=json.loads((ROOT/'reports/armor-break-runtime-tests.json').read_text());assert armor_break_runtime['passed'] and armor_break_runtime['rom_sha256']==sha(rom)
 frontend_checks={}
-for name in ('arcade-coin-runtime-tests','review-fixes-runtime-tests','frontend-runtime-tests','boss-rush-runtime-tests','presentation-runtime-tests','settings-runtime-tests','hud-runtime-tests','boot-logos-runtime-tests','arena-parallax-runtime-tests','home-logo-runtime-tests','backdrop-runtime-tests','level-select-runtime-tests','debug-runtime-tests','level2-routes-runtime-tests','horizontal-wrap-runtime-tests'):
+for name in ('arcade-coin-runtime-tests','review-fixes-runtime-tests','frontend-runtime-tests','boss-rush-runtime-tests','presentation-runtime-tests','settings-runtime-tests','hud-runtime-tests','boot-logos-runtime-tests','arena-parallax-runtime-tests','boss-arena-runtime-tests','home-logo-runtime-tests','backdrop-runtime-tests','level-select-runtime-tests','debug-runtime-tests','level2-routes-runtime-tests','horizontal-wrap-runtime-tests'):
  result=json.loads((ROOT/f'reports/{name}.json').read_text());assert result['passed'] and result['rom_sha256']==sha(rom),name
  frontend_checks[name]=result
 performance=json.loads((ROOT/'reports/performance-profile.json').read_text());assert performance['rom_sha256']==sha(rom)

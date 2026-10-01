@@ -3,7 +3,7 @@ import ctypes as C, hashlib, json, struct
 from test_runtime import ROOT, Runner, state, put
 rom=ROOT/'out/release/rom.bin'
 header=rom.read_bytes()[0x1b0:0x1bc]
-assert header==b'RA\xf8\x20'+struct.pack('>II',0x200001,0x20013f),header.hex()
+assert header==b'RA\xf8\x20'+struct.pack('>II',0x200001,0x2007ff),header.hex()
 def memory(r):
  r.lib.retro_get_memory_data.argtypes=[C.c_uint];r.lib.retro_get_memory_data.restype=C.c_void_p
  r.lib.retro_get_memory_size.argtypes=[C.c_uint];r.lib.retro_get_memory_size.restype=C.c_size_t

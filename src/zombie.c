@@ -10,13 +10,23 @@ static u8 spawn_delay[160];
 void zombie_reset(void) {u16 i;for(i=0;i<160;i++)spawn_delay[i]=0;}
 u8 zombie_prepare(u16 row,s16 *x,s16 *y) {return zombie_prepare_variant(row,0,x,y);}
 u8 zombie_prepare_variant(u16 row,u8 variant,s16 *x,s16 *y) {
- u16 i;u8 count=0;
+ u16 i;u8 count=0;s16 base;
  if (++spawn_delay[row]!=30) return 0;
  spawn_delay[row]=0;
  for(i=0;i<MAX_ACTORS;i++)if(game.actors[i].active && zombie_kinds[game.actors[i].def]==variant+1)count++;
  if(count>=3)return 0;
- *x=game.cam_x+(variant==2?spitter_spawn_x:variant?thrower_spawn_x:zombie_spawn_x)[(loot_random>>9)&7];*y=game.cam_y+112;
- for(i=0;i<5;i++,*y+=16) {u8 t=terrain(*x+16,*y+32);if(t==2 || t==3)return 1;}
+ base=game.cam_x+(variant==2?spitter_spawn_x:variant?thrower_spawn_x:zombie_spawn_x)[(loot_random>>9)&7];
+ /* Choose a clear 32px body column before checking the landing surface. The
+    old spawn test accepted any nearby floor and could place a respawn inside
+    a solid wall. */
+ for(i=0;i<5;i++) {
+  s16 candidate=base+(i?(i&1?-(s16)((i+1)/2*16):(s16)(i/2*16)):0),scan_y=game.cam_y+112;u8 k;
+  for(k=0;k<5;k++,scan_y+=16){
+   u8 t=terrain(candidate+16,scan_y+32);
+   if(terrain(candidate+8,scan_y+8)==3 || terrain(candidate+24,scan_y+8)==3 || terrain(candidate+8,scan_y+24)==3 || terrain(candidate+24,scan_y+24)==3)continue;
+   if(t==2 || t==3){*x=candidate;*y=scan_y;return 1;}
+  }
+ }
  return 0;
 }
 static u8 variant(u16 slot) {return zombie_kinds[game.actors[slot].def]-1;}

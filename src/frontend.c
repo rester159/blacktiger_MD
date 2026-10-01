@@ -42,7 +42,11 @@ u8 frontend_step(u16 pressed){
    if(pressed&(IN_ATTACK|IN_START)){
     if(++high_score_cursor==3){high_score_confirm();frontend.page=home?5:1;}
    }
-  }else if(pressed&(IN_JUMP|IN_ATTACK|IN_START)){frontend.page=0;frontend.selected=2;}
+  }else {
+   if(pressed&IN_LEFT)high_score_view(high_score_mode?high_score_mode-1:2);
+   if(pressed&IN_RIGHT)high_score_view((high_score_mode+1)%3);
+   if(pressed&(IN_JUMP|IN_ATTACK|IN_START)){frontend.page=0;frontend.selected=2;}
+  }
   return 0;
  }
  if(frontend.page==0){
