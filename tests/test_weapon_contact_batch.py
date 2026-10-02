@@ -32,6 +32,7 @@ static u8 weapon_target(u16 j){return game.actors[j].active && actor_weapon_enab
 static u8 weapon_pools(void){return 0;}
 static u8 weapon_projectile(s16 x,s16 y,u8 damage,u8 dagger,u8 pools){return 0;}
 /* This scalar-equivalence fixture has no pots; cartridge tests cover them. */
+void pots_prepare_weapons(void){}
 u8 pots_weapon(s16 x,s16 y,u8 dagger){return 0;}
 u8 dragon_weapon_contact(u16 j,s16 x,s16 y,u8 dagger){return 0;}
 u8 waveboss_weapon_contact(u16 j,s16 x,s16 y,u8 dagger){return 0;}

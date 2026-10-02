@@ -31,7 +31,9 @@ test: all
 	.venv/bin/python tests/test_cadence_stats.py
 	.venv/bin/python tests/test_animation_step.py
 	.venv/bin/python tests/test_terrain_strips.py
+	.venv/bin/python tests/test_sprite_lines.py
 	.venv/bin/python tests/test_weapon_contact_batch.py
+	.venv/bin/python tests/test_pot_weapon_batch.py
 	.venv/bin/python tests/test_encounter_pacing.py
 	.venv/bin/python tests/test_level_select_runtime.py
 	.venv/bin/python tests/test_debug_runtime.py
@@ -55,6 +57,7 @@ test: all
 	.venv/bin/python tests/test_home_logo_runtime.py
 	.venv/bin/python tests/test_arena_parallax_runtime.py
 	.venv/bin/python tests/test_boss_arena_runtime.py
+	.venv/bin/python tests/test_boss_terrain_runtime.py
 	.venv/bin/python tests/test_boot_logos_runtime.py
 	.venv/bin/python tests/test_hud_runtime.py
 	.venv/bin/python tests/test_settings_runtime.py

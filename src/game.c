@@ -298,6 +298,7 @@ static void spawn_actors(u8 bosses) {
         if (!npc_spawn_ready(i))
             continue;
         if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def] || dragon_kinds[s->def]) {
+            world_close_boss();
             music_request=music_boss_commands[game.round];
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
             missile_reset();statue_shell_reset();waveboss_reset();flailer_reset();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();loot_reset();skeleton_reset();container_actor_restart();pots_clear();
@@ -720,11 +721,18 @@ static u8 weapon_projectile(s16 x,s16 y,u8 damage,u8 dagger,u8 pools) {
 }
 static void player_weapons_contact(void) {
     u16 i,j,k,dagger_count=0;u8 dagger_slots[PLAYER_DAGGERS];
+    s16 chain_x[7],player_x;u8 chain_left;
     u8 damage=player_attack.damage,pools;
     s16 y=PX(game.p.y)+(player_motion.jumping || player_motion.ladder || !(player_motion.selector&3)?6:14);
     if(player_attack.hit)return;
     for(i=0;i<PLAYER_DAGGERS;i++)if(player_daggers[i].active==1)dagger_slots[dagger_count++]=i;
     if(!player_attack.count && !dagger_count)return;
+    /* Chain geometry is shared by every target and the later pot/projectile
+       passes. Resolve each link once instead of rebuilding it per actor. */
+    if(player_attack.count){
+        player_x=PX(game.p.x);chain_left=((player_attack.selector+1)&4)!=0;
+        for(i=0;i<player_attack.count;i++)chain_x[i]=player_x+(chain_left?-16-16*i:32+16*i);
+    }
     /* Each source actor checks every extended link, then the nine daggers. */
     for(j=0;j<MAX_ACTORS;j++) {
         Actor *a=&game.actors[j];
@@ -747,8 +755,7 @@ static void player_weapons_contact(void) {
         }
         if(!weapon_target(j))continue;
         for(i=0;i<player_attack.count;i++) {
-            s16 x=PX(game.p.x)+(((player_attack.selector+1)&4)?-16-16*i:32+16*i);
-            u8 contact;
+            s16 x=chain_x[i];u8 contact;
             if(fast) {
                 s16 dx=(u8)(x-game.cam_x-offset)-ax,dy=(u8)(y-game.cam_y-offset)-ay;
                 contact=((u16)(dx+width+8)<=2*(width+8) && (u16)(dy+height+4)<=2*(height+4))?2:0;
@@ -774,15 +781,18 @@ static void player_weapons_contact(void) {
         }
         if(chain_hit)return;
     }
-    for(i=0;i<player_attack.count;i++){
-        s16 x=PX(game.p.x)+(((player_attack.selector+1)&4)?-16-16*i:32+16*i);
-        if(pots_weapon(x,y,0)){player_attack_hit(&player_attack);return;}
+    if(player_attack.count || !(game.frame&1)){
+        pots_prepare_weapons();
+        for(i=0;i<player_attack.count;i++){
+            s16 x=chain_x[i];
+            if(pots_weapon(x,y,0)){player_attack_hit(&player_attack);return;}
+        }
+        for(i=0;i<PLAYER_DAGGERS;i++)if(player_daggers[i].active==1 && pots_weapon(player_daggers[i].x,player_daggers[i].y,1))player_dagger_hit(i,0);
     }
-    for(i=0;i<PLAYER_DAGGERS;i++)if(player_daggers[i].active==1 && pots_weapon(player_daggers[i].x,player_daggers[i].y,1))player_dagger_hit(i,0);
     pools=weapon_pools();
     if(!pools)return;
     for(i=0;i<player_attack.count;i++) {
-        s16 x=PX(game.p.x)+(((player_attack.selector+1)&4)?-16-16*i:32+16*i);
+        s16 x=chain_x[i];
         if(weapon_projectile(x,y,damage,0,pools)){player_attack_hit(&player_attack);return;}
     }
     for(i=0;i<PLAYER_DAGGERS;i++) {
@@ -1048,10 +1058,11 @@ static void game_tick_step(u16 input) {
                 if(boss_rush.active){
                     s32 previous_x=game.actors[i].x;
                     actor_step(i,pressed);boss_rush_actor_bounds(&game.actors[i],previous_x);
-                }else{
+                }else if(bosses){
                     s32 previous_x=game.actors[i].x,previous_y=game.actors[i].y;
-                    actor_step(i,pressed);boss_wall_clip(&game.actors[i],previous_x,previous_y);
-                }
+                    actor_step(i,pressed);
+                    boss_wall_clip(&game.actors[i],previous_x,previous_y);
+                }else actor_step(i,pressed);
                 if (game.mode != PLAY)
                     return;
             }

@@ -1,8 +1,31 @@
 #!/usr/bin/env python3
 import json,hashlib,struct,ctypes as C
+import numpy as np
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(3);r.run(20);r.write('progress_max_hp',0,b'\x05');checks=[]
 rom=(ROOT/'out/release/rom.bin').read_bytes()
+def check_flame_priority(slot):
+ hold_contact(slot,35,False)
+ s=state(r);s.mode=2;put(r,s);r.run(30)
+ saved=bytes(state(r));traps=r.read('container_traps',18*24)
+ visible=next(i for i in range(24) if traps[i*18+14] and int.from_bytes(traps[i*18+2:i*18+4],'big'))
+ flame=bytearray(18*24);flame[:18]=traps[visible*18:(visible+1)*18]
+ s=state(r);x=s.actors[slot].x//256;y=s.actors[slot].y//256
+ struct.pack_into('>hh',flame,10,x+8,y+8)
+ frames={}
+ for chest_on,flame_on in ((False,False),(True,False),(False,True),(True,True)):
+  s=type(s).from_buffer_copy(saved);s.p.x=s.p.y=-1024*256
+  for i,a in enumerate(s.actors):a.active=bool(chest_on and i==slot)
+  for q in s.shots:q.active=0
+  put(r,s);r.write('container_traps',0,bytes(flame) if flame_on else bytes(18*24));r.run(30)
+  frames[chest_on,flame_on]=r.frame.copy()
+ base=frames[False,False]
+ overlap=np.any(frames[True,False]!=base,axis=2)&np.any(frames[False,True]!=base,axis=2)
+ assert overlap.sum()>0,'flame fixture has no opaque chest overlap'
+ r.capture('container-flame-overlap.png')
+ assert np.array_equal(frames[True,True][overlap],frames[False,True][overlap]),'chest obscures trap flame'
+ put(r,type(s).from_buffer_copy(saved));r.write('container_traps',0,traps);r.run(30)
+ return int(overlap.sum())
 def hold_contact(slot,ticks,near=True):
  start=state(r).frame
  for _ in range(500):
@@ -13,6 +36,7 @@ def hold_contact(slot,ticks,near=True):
  raise AssertionError('logic stalled')
 for pc in (0xacbe,0xacd3):
  for content in range(6):
+  flame_overlap=0
   # Each content case starts with independently unopened persistence.
   r.write('container_opened',0,bytes(8));r.write('container_collected',0,bytes(8))
   r.write('container_keys',0,b'\0')
@@ -34,6 +58,7 @@ for pc in (0xacbe,0xacd3):
   if content==0:
    raw=r.read('container_traps',18*24)
    assert sum(raw[i*18+14]!=0 for i in range(24))==6,(pc,'trap allocation',raw.hex())
+   flame_overlap=check_flame_priority(slot)
   else:
    assert r.read('container_collected',8)[persistent]==0
    s=hold_contact(slot,4)
@@ -56,6 +81,6 @@ for pc in (0xacbe,0xacd3):
   slot=found[0];s=hold_contact(slot,6);assert s.coins==before and r.read('container_keys',1)==b'\x01'
   s.mode=2;put(r,s);r.run(5)
   if content in (0,5):r.capture('container-%x-%d.png'%(pc,content))
-  checks.append(dict(constructor=pc,content=content,key_debit_once=True,persistent_empty_respawn=True))
+  checks.append(dict(constructor=pc,content=content,key_debit_once=True,persistent_empty_respawn=True,flame_foreground_pixels=flame_overlap))
 r.close();report={'passed':True,'cases':checks,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'Injected key inventory and contents exercise actual source rows: silent refusal without key, opening delay, trap allocation, coin/heal collection and empty reconstruction. Natural key acquisition, source startup inventory and equipment maximum remain unported.'}
 (ROOT/'reports/container-open-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

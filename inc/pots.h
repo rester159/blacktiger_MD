@@ -14,6 +14,8 @@ extern const AnimSegment pot_segments[];
 void pots_round(u8 preserve);
 void pots_clear(void);
 void pots_tick(u8 bosses);
+/* Prepare once before a batch; only pending-hit flags change within it. */
+void pots_prepare_weapons(void);
 u8 pots_weapon(s16 x,s16 y,u8 dagger);
 const AnimFrame *pot_frame(u16 slot);
 u16 pots_shuffle(u8 round,u16 seed,u8 *out);

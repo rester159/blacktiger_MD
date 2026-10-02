@@ -11,6 +11,8 @@
 Pot pots[MAX_POTS],pot_puffs[8];
 u8 pots_end,pot_puffs_end,pot_contents[32];
 static u8 pot_opened[32],pot_collected[32];
+static Pot *weapon_pots[MAX_POTS];
+static u8 weapon_pot_count;
 static u8 rotate(u8 v){return (v>>1)|(v<<7);}
 u16 pots_shuffle(u8 round,u16 seed,u8 *out){
  u16 i;for(i=0;i<32;i++)out[i]=pot_initial[round][i];
@@ -87,11 +89,18 @@ void pots_tick(u8 bosses){
  }
  while(pots_end && !pots[pots_end-1].active)--pots_end;
 }
-u8 pots_weapon(s16 x,s16 y,u8 dagger){
- u16 i;if(dagger && (game.frame&1))return 0;
+void pots_prepare_weapons(void){
+ u16 i;weapon_pot_count=0;
  for(i=0;i<pots_end;i++){
-  Pot *p=&pots[i];s16 dx,dy;u16 w=8+(dagger?dagger_width:8),h=8+(dagger?dagger_height:4);
-  if(!p->active || p->phase || p->pending || (u16)(p->x-game.cam_x)>=256 || (dagger && (u16)(x-game.cam_x)>=256))continue;
+  Pot *p=&pots[i];
+  if(p->active && !p->phase && !p->pending && (u16)(p->x-game.cam_x)<256)weapon_pots[weapon_pot_count++]=p;
+ }
+}
+u8 pots_weapon(s16 x,s16 y,u8 dagger){
+ u16 i;if(dagger && ((game.frame&1) || (u16)(x-game.cam_x)>=256))return 0;
+ for(i=0;i<weapon_pot_count;i++){
+  Pot *p=weapon_pots[i];s16 dx,dy;u16 w=8+(dagger?dagger_width:8),h=8+(dagger?dagger_height:4);
+  if(p->pending)continue;
   dx=(u8)(x-game.cam_x)-(u8)(p->x-game.cam_x);dy=(u8)(y-game.cam_y)-(u8)(p->y-game.cam_y);
   if((u16)(dx+w)<=2*w && (u16)(dy+h)<=2*h){p->pending=1;return 1;}
  }return 0;

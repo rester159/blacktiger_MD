@@ -6,7 +6,7 @@ ref=json.loads((ROOT/'reference/zombie_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/zombie_oracle_events.txt'),('lua_sha256','tools/zombie_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text()
- stubs=['#include "assets.h"','Game game;','static int wall;','u8 terrain(s16 x,s16 y){return y>=160 || (wall && x>=160 && x<176 && y>=wall)?3:0;}','#include "'+str(ROOT/'src/zombie.c')+'"']
+ stubs=['#include "assets.h"','Game game;','static int wall,wall_left=160,wall_right=176;','u8 terrain(s16 x,s16 y){return y>=160 || (wall && x>=wall_left && x<wall_right && y>=wall)?3:0;}','#include "'+str(ROOT/'src/zombie.c')+'"']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''void setup(int root,int px,int y,int obstacle) {
@@ -15,8 +15,11 @@ with tempfile.TemporaryDirectory() as folder:
  for(int i=0;i<66;i++)if(zombie_kinds[i]==1)game.actors[0].def=i;
  zombie_spawn(0);zombies[0].segment=zombie_roots[root];}
  void spawn_setup(int cap,int sample) {
- game=(Game){0};wall=0;zombie_reset();loot_random=sample*512;
+ game=(Game){0};wall=0;wall_left=160;wall_right=176;zombie_reset();loot_random=sample*512;
  for(int i=0;i<cap;i++){game.actors[i].active=1;for(int d=0;d<66;d++)if(zombie_kinds[d]==1)game.actors[i].def=d;}
+ }
+ void spawn_wall_setup(int left,int right,int top) {
+ game=(Game){0};wall=top;wall_left=left;wall_right=right;zombie_reset();loot_random=0;
  }
  void spawn_attempt(int *out) {s16 x=0,y=0;out[0]=zombie_prepare(0,&x,&y);out[1]=x;out[2]=y;out[3]=spawn_delay[0];}
  void tick(int damage,int *out) {
@@ -51,5 +54,13 @@ with tempfile.TemporaryDirectory() as folder:
   assert (bool(out[0]),out[3])==(bool(active),delay),(sample,cap,attempt,list(out))
   if active:assert list(out)[1:3]==[x,y],(sample,cap,attempt,list(out),x,y)
   spawn_checks+=1
- report={'constructor_attempts':spawn_checks,'passed':True,'source_actor_ticks':count,'scope':'Controlled emergence, walking, turns, falling, natural retirement and death. Also validates constructor delay, random placement, support search on controlled ground and family cap. Original scanner cadence, global pool contention and full routes remain unverified.'}
+ lib.spawn_wall_setup(104,128,112)
+ result=0
+ for _ in range(30):lib.spawn_attempt(out);result=out[0]
+ assert result and list(out)[1:3]==[64,128],('wall respawn relocation',list(out))
+ lib.spawn_wall_setup(32,160,112)
+ result=1
+ for _ in range(30):lib.spawn_attempt(out);result=out[0]
+ assert not result,('blocked respawn must be skipped',list(out))
+ report={'constructor_attempts':spawn_checks,'wall_clear_respawn':True,'blocked_respawn_skipped':True,'passed':True,'source_actor_ticks':count,'scope':'Controlled emergence, walking, turns, falling, natural retirement and death. Also validates constructor delay, random placement, support search, family cap, relocation to clear space when the base spawn is blocked, and refusal when every nearby column is blocked. Original scanner cadence, global pool contention and full routes remain unverified.'}
  (ROOT/'reports/zombie-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

@@ -57,6 +57,24 @@ for rush in (False,True):
  r.capture('v21-palace-columns-rush.png' if rush else 'v21-palace-columns.png')
  assert int.from_bytes(r.read('video_cache_faults'),'big')==0
  r.close();column_checks.append(dict(boss_rush=rush,camera_step=8,column_step=8,wall_step=8,scenery_step=4 if rush else 8,columns_in_terrain=True))
+r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game(exploration=True);r.run(30)
+s=state(r);s.round=4;s.mode=4;s.mode_timer=0;put(r,s);r.run(80)
+s=state(r);s.mode=2;put(r,s);r.run(30)
+assert state(r).round==4 and r.read('arena_video_active',1)==b'\1'
+v=(C.c_uint8*65536).in_dll(r.lib,'vram')
+# Round 5 rescue text shares the parallax plane. Its four text rows must stay
+# fixed while surrounding scenery keeps the half-speed camera motion.
+s=state(r);s.mode=8;s.cam_x=832;put(r,s);r.run(30)
+assert state(r).mode==8 and state(r).round==4
+for row in range(28):
+ expected=0 if 6<=row<10 else ((-832//2)&65535 if 5<=row<25 else 0)
+ assert word(0xf000+row*32)==expected,('rescue text scroll',row,hex(word(0xf000+row*32)))
+s=state(r);s.cam_x=848;put(r,s);r.run(30)
+for row in range(6,10):assert word(0xf000+row*32)==0,('dialogue moved with camera',row)
+assert word(0xf000+5*32)==(-848//2)&65535 and word(0xf000+10*32)==(-848//2)&65535,'surrounding parallax stopped during rescue'
+s=state(r);s.mode=2;put(r,s);r.run(12)
+r.close()
+report['round5_rescue_dialogue_fixed']=True
 report['column_checks']=column_checks
 (ROOT/'reports/arena-parallax-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n')
 print(json.dumps(column_checks))

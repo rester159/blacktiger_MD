@@ -5,6 +5,15 @@
 u8 world_opened, world_rows[256];
 static u8 taken, effect_active[6];
 static AnimState animations[MAX_ACTORS], effects[6];
+static const BossTerrainPatch *boss_patch(u16 cell) {
+    const BossTerrain *b = &boss_terrain[game.round];
+    u16 lo=0, hi=b->count;
+    while(lo<hi){u16 mid=(lo+hi)>>1;if(b->patches[mid].cell<cell)lo=mid+1;else hi=mid;}
+    return lo<b->count && b->patches[lo].cell==cell ? &b->patches[lo] : 0;
+}
+void world_close_boss(void) {
+    if(boss_terrain[game.round].count)world_opened |= WORLD_BOSS_CLOSED;
+}
 static u8 patch_for(u16 source) {
     const Round *r = &rounds[game.round];
     u8 i;
@@ -26,15 +35,25 @@ void world_reset(void) {
         for (j = 0; j < 4; j++)
             world_rows[y + j] |= 1 << i;
     }
+    for(i=0;i<boss_terrain[game.round].count;i++) {
+        u16 y=(boss_terrain[game.round].patches[i].cell>>shift)*2;
+        world_rows[y] |= WORLD_BOSS_CLOSED;
+        world_rows[y+1] |= WORLD_BOSS_CLOSED;
+    }
 }
 void world_restart(void) {
-    u8 opened=world_opened,collected=taken;
+    u8 opened=world_opened & ~WORLD_BOSS_CLOSED,collected=taken;
     world_reset();world_opened=opened;taken=collected;
 }
 u16 world_override(u16 x, u16 y, u16 original,u8 opened) {
     const Round *r = &rounds[game.round];
     u8 mask = world_rows[y] & opened, i;
     u16 shift = r->width == 2048 ? 7 : 6;
+    if(mask & WORLD_BOSS_CLOSED) {
+        const BossTerrainPatch *p=boss_patch(((y>>1)<<shift)+(x>>1));
+        if(p)return p->words[((y&1)<<1)|(x&1)];
+    }
+    mask &= ~WORLD_BOSS_CLOSED;
     for (i = 0; mask; i++, mask >>= 1)
         if (mask & 1) {
             u16 cell = r->patches[i].cell, px = (cell & ((1 << shift) - 1)) * 2;
@@ -46,8 +65,12 @@ u16 world_override(u16 x, u16 y, u16 original,u8 opened) {
 u16 world_word(u16 x,u16 y,u16 original){original=bonus_word(x,y,original);return world_opened?world_override(x,y,original,world_opened):original;}
 u8 world_collision(u16 cell, u8 original) {
     const Round *r = &rounds[game.round];
-    u8 i, mask = world_opened;
+    u8 i, mask = world_opened & ~WORLD_BOSS_CLOSED;
     u16 width = r->width >> 4;
+    if((world_opened & WORLD_BOSS_CLOSED) && (world_rows[(cell>>(r->width==2048?7:6))*2] & WORLD_BOSS_CLOSED)) {
+        const BossTerrainPatch *p=boss_patch(cell);
+        if(p)return p->collision;
+    }
     for (i = 0; mask; i++, mask >>= 1)
         if (mask & 1) {
             u16 p = r->patches[i].cell;

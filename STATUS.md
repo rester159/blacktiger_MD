@@ -1,9 +1,9 @@
 # Source-only repository (v1.2)
 
-# v1.7 feedback fixes (package checks passed; full suite has one known pacing failure)
+# v1.7 feedback fixes (software and clean rebuild pass; hardware check pending)
 
 - Held the Round 5 rescue dialogue rows outside the half-speed parallax scroll while rescue text is visible.
-- Draw chest trap flames after actors so they appear in front of their chest.
+- Place chest trap flames before actors in the sprite list so they appear in front of their chest; verified by overlapping rendered pixels.
 - Changed the advertised SRAM range to a standard aligned 1 KiB window for flash-cart compatibility.
 - Added migration to independent Arcade, Home, and Boss Rush score tables, with a Left/Right table selector. Kept the previous SRAM score formats readable.
 - Added checksummed, alternating SRAM slots for Home Options and Arcade DIP settings.
@@ -13,7 +13,7 @@
 - Reset the Round 5 wave boss vulnerability mask when it drops a layer.
 - Updated the generated version mark and source documentation to v1.7.
 
-See [v1.7 fixes](reports/v1.7-fixes.md). The linked ROM and source-only checks pass, and `tools/package.py` passes its strict checks and creates `dist/blacktiger_MD_v1.bin`. Focused v1.7 runtime checks cover startup, SRAM score/settings recovery, Arcade credits, shop/debug purchases, dialogue, traps, zombies, wave boss damage, and Round 3/5 arena bounds. The broader `make test` run reaches gameplay tests but stops at the encounter pacing threshold: Level 2 shows 411/600 frames with a 22-frame worst second against 430/24; Level 3 shows 474/600 and 20 against 470/25. Both retain all gameplay ticks and report zero VBlank overruns and cache faults. ROM SHA-256: `b63091cca289a8c6115034ef43de315fdd8a1b5426b714c67cc7d317e7de0751`. Physical EverDrive/NTSC validation is outstanding.
+See [v1.7 fixes](reports/v1.7-fixes.md). Current candidate: `2679c16c51fe2df9e12397d7ac8220846d9a6311427e795f24e522022592bbfc`. Original stage 3/5 terrain changes are implemented. A fresh asset rebuild reproduces the tested experimental ROM exactly. Both encounter-pacing gates now pass: Level 2 443/600, worst second 24; Level 3 483/600, worst second 27. All 183 regression commands plus 48 regular and 16 large-boss sprite fixtures pass. Local packaging produced the matching `dist/blacktiger_MD_v1.7.bin`. The clean-source rebuild reproduced the tested BIN byte for byte. Physical EverDrive/NTSC validation remains outstanding; no release has been uploaded.
 
 The current tree requires the owner-supplied Black Tiger ROM and locally regenerates its assets and observation fixtures. Generated ROMs, media, extracted tables and raw traces are no longer tracked and have been removed from the published branch history. Source-only startup omits borrowed Sonic/Shinobi/Street Fighter boot data; Black Tiger’s own intro remains. See [build instructions](README.md) and [migration boundary](docs/source-only.md). The notes below describe prior local gameplay builds; their generated reports and media are available only after local generation or in the private local backup.
 

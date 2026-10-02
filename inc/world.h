@@ -1,7 +1,12 @@
 #ifndef WORLD_H
 #define WORLD_H
 #include "animation.h"
+#define WORLD_BOSS_CLOSED 128
+typedef struct { u16 cell, words[4]; u8 collision, pad; } BossTerrainPatch;
+typedef struct { const BossTerrainPatch *patches; u16 count; } BossTerrain;
+extern const BossTerrain boss_terrain[8];
 extern u8 world_opened, world_rows[256];
+void world_close_boss(void);
 void world_reset(void);
 void world_restart(void);
 void world_tick(void);

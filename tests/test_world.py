@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
 from arcade_source import Source
+from extract_boss_terrain import extract as boss_writes
 open_collision=Source().read(4,0xb63a,1)[0]
 contract=json.loads((ROOT/'reference/hidden.json').read_text())
 oracle=json.loads((ROOT/'reports/hidden-oracle.json').read_text())
@@ -16,7 +17,8 @@ with tempfile.TemporaryDirectory() as tmp:
  decl=(ROOT/'inc/assets.h').read_text();stubs=['#include "assets.h"','#include "world.h"','Game game;','u16 bonus_word(u16 x,u16 y,u16 original){return original;}']
  for name in resources:
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
- stubs.append('''void convert(u8 level,u8 mask,const u16 *map,const u8 *col,u16 *out,u8 *collision) {
+ stubs.append('''u8 restart_closed(u8 level) {game.round=level;world_reset();world_opened=1;world_close_boss();world_restart();return world_opened;}
+void convert(u8 level,u8 mask,const u16 *map,const u8 *col,u16 *out,u8 *collision) {
  game.round=level;world_reset();world_opened=mask;
  u16 w=rounds[level].width>>3,h=rounds[level].height>>3;
  for(u16 y=0;y<h;y++) for(u16 x=0;x<w;x++) out[y*w+x]=world_word(x,y,map[y*w+x]);
@@ -31,15 +33,35 @@ with tempfile.TemporaryDirectory() as tmp:
   col=(ROOT/f'res/generated/collision{level}.bin').read_bytes()
   source=(C.c_uint16*len(values))(*values);collision=(C.c_uint8*8192).from_buffer_copy(col);out=(C.c_uint16*len(values))();cout=(C.c_uint8*8192)()
   line=re.search(r'const u16 open_tile'+str(level)+r'\[\]=\{([^}]+)\}',(ROOT/'src/data.c').read_text())[1];opened=list(map(int,line.split(',')))
-  for mask in [0,*[1<<i for i in range(len(patches))],(1<<len(patches))-1]:
+  closure={}
+  if level in (2,4):
+   writes=boss_writes(Source(),level)
+   rows=re.findall(r'\{(\d+),\{([\d,]+)\},(\d+),0\}',re.search(r'const BossTerrainPatch boss_terrain_patches'+str(level)+r'\[\]=\{(.*?)\};',(ROOT/'src/data.c').read_text())[1])
+   compiled={int(cell):(list(map(int,words.split(','))),int(col)) for cell,words,col in rows}
+   for yy in range(h//2):
+    for xx in range(w//2):
+     layout=level!=2
+     idx=(xx&15)|((yy&15)<<4)|((xx&(0x70 if layout else 0x30))<<4)|((yy&(0x30 if layout else 0x70))<<(7 if layout else 6))
+     if idx*2 in writes:
+      cell=yy*(w//2)+xx;closure[cell]=compiled[cell]
+      assert compiled[cell][1]==Source().read(4,0xb63a+(writes[idx*2]&0x7ff),1)[0]
+   assert len(closure)==len(writes)==len(compiled)
+  for mask in [0,*[1<<i for i in range(len(patches))],(1<<len(patches))-1,128,128|((1<<len(patches))-1)]:
    lib.convert(level,mask,source,collision,out,cout);expected=values.copy();ecol=bytearray(col)
    for i,p in enumerate(patches):
     if mask&(1<<i):
      for dy in range(4):
       for dx in range(2):expected[(p['y']//8+dy)*w+p['x']//8+dx]=opened[(dy%2)*2+dx]
      ecol[p['cell']]=open_collision;ecol[p['cell']+w//2]=open_collision
+   if mask&128:
+    for cell,(tile,solid) in closure.items():
+     yy,xx=divmod(cell,w//2)
+     for dy in range(2):
+      for dx in range(2):expected[(yy*2+dy)*w+xx*2+dx]=tile[dy*2+dx]
+     ecol[cell]=solid
    assert list(out)==expected,(level,mask,'map mutation outside patch')
    assert bytes(cout)==ecol,(level,mask,'collision mutation outside patch')
    cases+=1
+  assert lib.restart_closed(level)==1,('boss closure survived restart',level)
 report={'passed':True,'map_and_collision_states':cases,'source_patch_cases':oracle['patch_cases'],'source_reward_cases':oracle['reward_cases'],'scope':'Production C sparse terrain: exact changed cells and all unchanged cells, each patch separately and combined.'}
 (ROOT/'reports/world-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

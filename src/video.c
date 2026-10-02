@@ -217,6 +217,13 @@ static void terrain_updates(void) {
  last=WORLD_WRAP_Y?b->count:bonus_lower_bound(((old_y+30)>>1)<<shift);
  /* Every affected cell is visited once; unpin all old patterns before allocation. */
  for(pass=0;pass<2;pass++){
+  if((last_opened^world_opened)&WORLD_BOSS_CLOSED){
+   const BossTerrain *boss=&boss_terrain[game.round];
+   for(i=0;i<boss->count;i++){
+    u16 cell=boss->patches[i].cell,y=(cell>>shift)*2,x=(cell&(width-1))*2;
+    for(dy=0;dy<2;dy++)for(dx=0;dx<2;dx++)terrain_cell(x+dx,y+dy,pass);
+   }
+  }
   for(i=0;i<r->patch_count;i++){
    u16 cell=r->patches[i].cell,y=(cell>>shift)*2;
    s16 x=terrain_view_x((cell&(width-1))*2),vy=terrain_view_y(y);
@@ -303,27 +310,28 @@ void video_attract_piece(u16 key,u16 slot){
  VDP_loadTileData(p,slot,2,DMA_QUEUE);VDP_loadTileData(p+32,slot+2,2,DMA_QUEUE);
 }
 /* Counts are 16-pixel units in [0,16]. OR-ing biased counts tests all
-   covered bands at once; no per-band branch in the common sprite path. */
+   covered bands without a separate capacity branch for each band. */
 static inline u8 sprite_lines_fit(u16 start,u16 end,u8 units){
- const u8 *p=line_count+start;u16 full=0;u8 bias=units-1;
- switch(end-start){
- case 5:full|=p[4]+bias;
- case 4:full|=p[3]+bias;
- case 3:full|=p[2]+bias;
- case 2:full|=p[1]+bias;
- case 1:full|=p[0]+bias;
- }
+ const u8 *p=line_count+start;u8 full=0,bias=units-1;u16 n=end-start;
+ if(n>0)full=p[0]+bias;
+ if(n>1)full|=p[1]+bias;
+ if(n>2)full|=p[2]+bias;
+ if(n>3)full|=p[3]+bias;
+ if(n>4)full|=p[4]+bias;
  return !(full&16);
 }
 static inline void sprite_lines_add(u16 start,u16 end,u8 units){
- u8 *p=line_count+start;
- switch(end-start){
- case 5:p[4]+=units;
- case 4:p[3]+=units;
- case 3:p[2]+=units;
- case 2:p[1]+=units;
- case 1:p[0]+=units;
- }
+ u8 *p=line_count+start;u16 n=end-start;
+ if(n>0)p[0]+=units;
+ if(n>1)p[1]+=units;
+ if(n>2)p[2]+=units;
+ if(n>3)p[3]+=units;
+ if(n>4)p[4]+=units;
+}
+static inline void sprite_entry(u16 index,s16 x,s16 y,u8 size,u16 attribute,u8 link){
+ VDPSprite *sprite=&vdpSpriteCache[index];
+ sprite->y=y+0x80;sprite->size=size;sprite->link=link;
+ sprite->attribut=attribute;sprite->x=x+0x80;
 }
 /* A resident piece must not save the cache-miss/DMA working registers. */
 __attribute__((noinline)) static u16 piece_upload(u16 key) {
@@ -373,9 +381,9 @@ static void piece(u16 code, u8 palette, s16 x, s16 y, u8 flip) {
     if(slot>=SPR_SLOTS){slot=piece_upload(key);if(slot==65535)return;}
     sprite_stamp[slot] = epoch;
     sprite_lines_add(start,end,1);
-    VDP_setSpriteFull(sprite_count, x, y, SPRITE_SIZE(2, 2),
-                      TILE_ATTR_FULL(sprite_palette(code,palette), TRUE, FALSE, flip, SPR_BASE + slot * 4),
-                      sprite_count + 1);
+    sprite_entry(sprite_count, x, y, SPRITE_SIZE(2, 2),
+                 TILE_ATTR_FULL(sprite_palette(code,palette), TRUE, FALSE, flip, SPR_BASE + slot * 4),
+                 sprite_count + 1);
     sprite_count++;
 }
 /* Assemble non-contiguous body columns directly in the queued DMA buffer.
@@ -456,9 +464,9 @@ static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
     sprite_slot_for_key[key]=SPR_SLOTS+block;
     body_stamp[block] = epoch;
     sprite_lines_add(start,end,2);
-    VDP_setSpriteFull(sprite_count, x, y, SPRITE_SIZE(4, 4),
-                      TILE_ATTR_FULL(sprite_palette(code,pal), TRUE, FALSE, flip, SPR_BASE + block * 16),
-                      sprite_count + 1);
+    sprite_entry(sprite_count, x, y, SPRITE_SIZE(4, 4),
+                 TILE_ATTR_FULL(sprite_palette(code,pal), TRUE, FALSE, flip, SPR_BASE + block * 16),
+                 sprite_count + 1);
     sprite_count++;
 }
 static void sprites(void) {
@@ -518,6 +526,8 @@ static void sprites(void) {
                   s->enemy ? 5 : 0, PX(s->x) - game.cam_x - 8, PX(s->y) - game.cam_y - 8,
                   s->vx < 0);
     }
+    /* Earlier SAT entries win sprite overlap, so flames precede their chest. */
+    if(container_traps_occupied || game.mode!=PLAY)for(i=0;i<(container_traps_occupied?container_traps_occupied:MAX_CONTAINER_TRAPS);i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     for (i = 0; i < MAX_ACTORS; i++) {
         Actor *a = &game.actors[i];
         const ActorDef *d;
@@ -557,8 +567,6 @@ static void sprites(void) {
         else
             piece(code, d->palette, x, y, 0);
     }
-    /* Trap flames sit in front of the chest in the arcade. */
-    if(container_traps_occupied || game.mode!=PLAY)for(i=0;i<(container_traps_occupied?container_traps_occupied:MAX_CONTAINER_TRAPS);i++){const AnimFrame *f;if(!container_traps[i].active)continue;f=container_trap_frame(i);if(f)piece(f->code,f->palette,container_traps[i].x-game.cam_x,container_traps[i].y-game.cam_y,f->flip);}
     if(skeleton_weapons_occupied || game.mode!=PLAY)for (i = 0; i < MAX_ACTORS; i++) {
         s16 wx, wy;
         const AnimFrame *f = skeleton_weapon_frame(i, &wx, &wy);

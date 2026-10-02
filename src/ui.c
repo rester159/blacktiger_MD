@@ -2,6 +2,7 @@
 #include "frontend.h"
 #include "boss_rush.h"
 #include "boss.h"
+#include "actor_dispatch.h"
 #include "assets.h"
 #include "container.h"
 #include "shop.h"
@@ -81,9 +82,10 @@ static u8 boss_health(u8 *remaining) {
  if(game.mode!=PLAY && game.mode!=PAUSED && game.mode!=DEAD)return 0;
  for(i=0;i<MAX_ACTORS;i++) {
   Actor *a=&game.actors[i];
+  u8 boss;
   if(!a->active)continue;
-  if(layered_boss_kinds[a->def]){if(!boss_primary(i))continue;}
-  else if(!dragon_kinds[a->def] && !waveboss_kinds[a->def] && hunter_kinds[a->def]!=2)continue;
+  if(!(boss=actor_boss_class[a->def]))continue;
+  if(boss==2 && !boss_primary(i))continue;
   *remaining=a->life;return 1;
  }
  return 0;

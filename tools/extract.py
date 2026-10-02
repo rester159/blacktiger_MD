@@ -1,5 +1,6 @@
 from extract_actor_dispatch import emit as emit_actor_dispatch
 from extract_bonus import extract as extract_bonus
+from extract_boss_terrain import extract as extract_boss_terrain
 #!/usr/bin/env python3
 """Offline arcade-data to native Genesis conversion. No arcade code is shipped.
 Requires supplied ROM set; all input files are checked against its SHA256 lock.
@@ -440,6 +441,7 @@ def main():
     actor_contract=load_actor_contract(Source(args.source))
     bonus=extract_bonus(combat_source)
     bonus_definitions=[]
+    boss_terrain_definitions=[]
     defs={};spawns=[]
     for r in range(8):
         root=u16(read(0,0x1e07+2*r,2));ptrs=struct.unpack('<33H',read(5,root,66));rows={}
@@ -639,6 +641,30 @@ def main():
         body.append(f'const BonusPatch bonus_patches{r}[]={{'+','.join(patches or ['{0}'])+'};')
         br=bonus['rounds'][r];triggers=br['triggers']
         bonus_definitions.append('{bonus_patches'+str(r)+','+','.join(map(str,[len(patches),*br['camera'],br['return_x_low_add'],len(triggers)]))+',{'+','.join('{'+str(t['x'])+','+str(t['y'])+'}' for t in triggers or [dict(x=0,y=0)])+'}}')
+        # Original stage 3/5 boss-entry scroll RAM writes, using the same
+        # palette mapping and pattern deduplication as the ordinary map.
+        boss_writes=extract_boss_terrain(source,r) if r in (2,4) else {}
+        boss_patches=[]
+        for y in range(h):
+            for x in range(w):
+                idx=(x&15)|((y&15)<<4)|((x&(0x70 if layout else 0x30))<<4)|((y&(0x30 if layout else 0x70))<<(7 if layout else 6))
+                if idx*2 not in boss_writes:continue
+                tile=boss_writes[idx*2];code=tile&0x7ff;p=tile>>11&15
+                pix=np.array(pm[p],dtype=np.uint8)[tiles[code]]
+                if r==4:pix[tiles[code]==15]=0
+                if r==4 and 0x380<=code<=0x3df:pix[:]=0
+                if tile&0x8000:pix=pix[:,::-1]
+                patch_words=[]
+                for oy,ox in ((0,0),(0,8),(8,0),(8,8)):
+                    cell=pix[oy:oy+8,ox:ox+8]
+                    b,flags=min((pack(cell),0),(pack(cell[:,::-1]),0x800),(pack(cell[::-1,:]),0x1000),(pack(cell[::-1,::-1]),0x1800))
+                    if b not in unique:unique[b]=len(unique);pats.extend(b)
+                    patch_words.append((unique[b]+16)|(int(groups[p])<<13)|flags)
+                boss_patches.append('{'+str(y*w+x)+',{'+','.join(map(str,patch_words))+'},'+str(collision[code])+',0}')
+        assert len(boss_patches)==len(boss_writes)
+        assert len(patch_rows)<7, 'World bit 7 is reserved for boss terrain'
+        body.append(f'const BossTerrainPatch boss_terrain_patches{r}[]={{'+','.join(boss_patches or ['{0}'])+'};')
+        boss_terrain_definitions.append('{boss_terrain_patches'+str(r)+','+str(len(boss_patches))+'}')
         assert len(unique)<1700,(r,len(unique),'alternate-area patterns')
         if r==7:
             alternate=list(range(len(unique)))
@@ -658,6 +684,7 @@ def main():
         spawn=spawns[r];body.append(f'const Spawn spawn{r}[]={{'+','.join('{'+','.join(map(str,s))+'}' for s in spawn)+'};')
         preview.resize((w*8,h*8)).save(ROOT/f'reports/round{r+1}.png')
         report['rounds'].append({'round':r+1,'width':w*16,'height':h*16,'camera':[cx,cy],'layout':layout,'patterns':len(unique),'spawns':len(spawn),'collision_codes':dict(Counter(coll))})
+    body.append('const BossTerrain boss_terrain[8]={'+','.join(boss_terrain_definitions)+'};')
     body.append('const BonusRound bonus_rounds[8]={'+','.join(bonus_definitions)+'};')
     body.append('const Round rounds[8]={'+',\n'.join('{%s,map%d,pal%d,collision%d,spawn%d,%d,%d,%d,%d,%d,%d,patches%d,open_tile%d,%d,%d}'%(f'bg{r}',r,r,r,r,d['patterns'],d['spawns'],d['width'],d['height'],*d['camera'],r,r,len(hidden['rounds'][r]),collision[0]) for r,d in enumerate(report['rounds']))+'};')
     from extract_clear_screen import generate as generate_clear_screen
@@ -670,7 +697,7 @@ def main():
     report['ending']=generate_ending(Source(args.source),emit,decode,pack,words,colors,groups,pm,raw)
     (ROOT/'res/assets.res').write_text('\n'.join(resources)+'\n')
     (ROOT/'inc/assets.h').write_text('#ifndef ASSETS_H\n#define ASSETS_H\n#include "game.h"\n#include "pots.h"\n#include "animation.h"\n#include "boss.h"\n#include "boulder.h"\n#include "pair.h"\n#include "container.h"\nextern const ContainerSegment container_segments[];\nextern const u16 container_roots[],container_trap_roots[],container_wave_roots[];\n#include "flailer.h"\nextern const AnimSegment flailer_segments[];\nextern const u16 flailer_roots[2][21],flailer_scores[];\nextern const u8 flailer_kinds[],flailer_health[];\n#include "large_contact.h"\nextern const LargeContactShape waveboss_shapes[];\n#include "waveboss.h"\nextern const WaveBossSegment waveboss_segments[];\nextern const u16 waveboss_roots[],waveboss_scores[];\nextern const u8 waveboss_kinds[],waveboss_health[],waveboss_layers[],waveboss_choices[2][16];\n#include "eruption.h"\nextern const AnimClip *const eruption_clips[];\nextern const u8 eruption_kinds[];\n#include "teleporter.h"\nextern const AnimSegment teleporter_segments[];\nextern const u16 teleporter_roots[],teleporter_score;\nextern const u8 teleporter_kinds[],teleporter_health[],teleporter_positions[8][2];\n#include "hunter.h"\nextern const HunterSegment hunter_segments[];\nextern const u16 hunter_roots[],hunter_score;\nextern const u8 hunter_kinds[],hunter_choices[],hunter_health[],hunter_layers[],hunter_reset_health[];\n#include "edge_actor.h"\n#include "reinforcement_body.h"\n#include "dragon.h"\n#include "dragon_shot.h"\n#include "crawler.h"\nextern const CrawlerSegment crawler_segments[];\nextern const u16 crawler_roots[],crawler_scores[],crawler_jump_roots[];\nextern const u8 edge_spawn_kinds[],reinforcement_kinds[];\nextern const u8 crawler_kinds[],crawler_health[],crawler_choices[];\n#include "statue.h"\nextern const StatueSegment statue_segments[];\nextern const u16 statue_roots[],statue_score;\nextern const u8 statue_kinds[],statue_choices[],statue_health,statue_layers,statue_reset_health;\nextern const u16 checkpoint_grid[8][32][2],checkpoint_player_x,checkpoint_player_y;\nextern const u8 checkpoint_wide[8];\nextern const u32 progress_thresholds[4];\nextern const u16 progress_initial_coins;\nextern const u8 progress_initial_health,progress_initial_armor,progress_initial_lives;\nextern const u16 shop_prices[2][8][4],shop_key_price,shop_antidote_price;\nextern const u8 shop_grid[12],shop_default_difficulty;\nextern const u8 container_left[],container_initial[8][8];\nextern const u16 container_coin_values[4];\nextern const PairSegment pair_segments[];\nextern const u16 pair_roots[],pair_score;\nextern const u8 pair_kinds[],pair_choices[];\nextern const BoulderSegment boulder_segments[];\nextern const u16 boulder_roots[],boulder_weapon_score;\nextern const u8 boulder_kinds[],boulder_initial_damage,boulder_bounce_damage;\nextern const u8 boss_component_counts[],boss_upper_health[],boss_upper_layers,boss_upper_damage,boss_upper_reset_health,boss_upper_score;\nextern const BossSegment boss_segments[],boss_upper_segments[];\nextern const u16 boss_roots[],boss_upper_roots[];\nextern const u8 boss_choices[],boss_upper_choices[];\n#include "skeleton.h"\n#include "emerge.h"\n#include "wisp.h"\nextern const SkeletonSegment spitter_segments[];\nextern const u16 spitter_roots[],spitter_score;\nextern const u8 spitter_spawn_x[],spitter_health,spitter_lifetime,spitter_shot_damage,spitter_shot_width,spitter_shot_height,spitter_shot_health;\nextern const SkeletonSegment thrower_segments[];\nextern const u16 thrower_roots[],thrower_score;\nextern const u8 thrower_spawn_x[],thrower_health,thrower_lifetime,thrower_shot_damage,thrower_shot_width,thrower_shot_height,thrower_shot_health;\nextern const SkeletonSegment zombie_segments[];\nextern const u16 zombie_roots[],zombie_score;\nextern const u8 zombie_kinds[],zombie_lifetime,zombie_spawn_x[];\nextern const WispSegment wisp_segments[];\nextern const u16 wisp_roots[7];\nextern const u8 wisp_kinds[];\nextern const EmergeProfile emerge_profiles[2];\nextern const u8 emerge_kinds[];\nextern const AnimClip npc_idle, npc_released, npc_rescue;\nextern const AnimClip *const hidden_clips[12];\nextern const AnimClip hidden_life_collected, hidden_explosion;\nextern const u8 hidden_kinds[];\nextern const u8 skeleton_kinds[];\nextern const AnimClip *const sentry_clips[7];\nextern const u8 pickup_kinds[],screen_attack_targets[],pickup_width,pickup_height,pickup_seconds;\nextern const u8 stone_kinds[],layered_boss_kinds[],layered_boss_layers[],layered_boss_reset_health;\nextern const u16 layered_boss_score;\nextern const u8 actor_damage[],player_weapon_damage[5],dagger_width,dagger_height;\nextern const u8 actor_dagger_effect[];\nextern const u8 actor_contact_pool[],actor_contact_half_width[],actor_contact_half_height[];\nextern const u8 hazard_kinds[],hazard_width,hazard_height,contact_player_width,contact_player_height;\nextern const u8 sentry_kinds[], aim_table[64], sentry_health;\nextern const u16 sentry_score;\nextern const AnimClip *const loot_clips[7];\nextern const u16 loot_values[7];\nextern const u8 drop_table[28][32], drop_categories[];\nextern const SkeletonSegment skeleton_segments[];\nextern const SkeletonProfile skeleton_profiles[3];\n'+'\n'.join(decl)+'\nextern const HeroFrame hero_frames[2][10][48];\nextern const ActorDef actor_defs[];\nextern const Round rounds[8];\n#endif\n')
-    (ROOT/'src/data.c').write_text('/* Generated by tools/extract.py. */\n#include <genesis.h>\n#include "assets.h"\n#include "bonus.h"\n'+'\n'.join(body)+'\n')
+    (ROOT/'src/data.c').write_text('/* Generated by tools/extract.py. */\n#include <genesis.h>\n#include "assets.h"\n#include "bonus.h"\n#include "world.h"\n'+'\n'.join(body)+'\n')
     report['outputs']={p.name:{'bytes':p.stat().st_size,'sha256':sha(p.read_bytes())} for p in OUT.glob('*.bin') if p.name in emitted}
     (ROOT/'reports/assets.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report['rounds'],indent=2));print('native asset bytes',sum(p.stat().st_size for p in OUT.glob('*.bin')))
