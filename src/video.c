@@ -36,18 +36,22 @@
 #include "sprite_atlas_index.inc"
 #define BG_SLOTS 996
 #define MAX_SCROLL_STRIPS 4
+/* Keep terrain batches scoped to submission. 24 tiles leave 256 more bytes
+ * for nested DMA calls and interrupts than the former 32-tile stack buffer. */
+#define TERRAIN_UPLOAD_TILES 24
 #define SPR_BASE 1088
 #define SPR_SLOTS 80
-static u16 logical_to_slot[1800], slot_to_logical[BG_SLOTS], sprite_keys[SPR_SLOTS],
-    sprite_stamp[SPR_SLOTS];
+static u16 logical_to_slot[1800], slot_to_logical[BG_SLOTS], sprite_keys[SPR_SLOTS];
+/* Epoch tags need equality only; wrap explicitly clears both arrays below. */
+static u8 sprite_stamp[SPR_SLOTS],body_stamp[SPR_SLOTS / 4],epoch;
 static u16 visible[1800];
 /* Logical words already resolved for the ring-buffer viewport. Reuse them
    when unpinning and submitting rows instead of re-querying dynamic terrain. */
 static u16 visible_words[2048];
 /* A body occupies four existing 16x16 cache slots; both formats share the same VRAM. */
-static u16 body_keys[SPR_SLOTS / 4], body_stamp[SPR_SLOTS / 4], body_eviction;
+static u16 body_keys[SPR_SLOTS / 4], body_eviction;
 static u8 line_count[28], sprite_slot_for_key[16384] __attribute__((aligned(2)));
-static u16 eviction, sprite_eviction, sprite_count, sprite_uploads, epoch;
+static u16 eviction, sprite_eviction, sprite_count, sprite_uploads;
 static s16 old_x, old_y;
 static u8 terrain_wrapped;
 static const u16 *const *terrain_map;
@@ -78,7 +82,7 @@ static void terrain_upload_flush(void){
 }
 static void terrain_upload_tile(u16 slot,const u32 *s){
  u32 *d;
- if(terrain_upload_count && (slot!=terrain_upload_start+terrain_upload_count || terrain_upload_count==32))terrain_upload_flush();
+ if(terrain_upload_count && (slot!=terrain_upload_start+terrain_upload_count || terrain_upload_count==TERRAIN_UPLOAD_TILES))terrain_upload_flush();
  if(!terrain_upload_count)terrain_upload_start=slot;
  d=terrain_upload+(terrain_upload_count++*8);
  d[0]=s[0];d[1]=s[1];d[2]=s[2];d[3]=s[3];
@@ -502,8 +506,17 @@ static void sprites(void) {
         const PlayerDeathFrame *d=player_death_frame();
         for(i=0;i<2;i++)body(d->code[i],d->palette[i],player_death.x[i],player_death.y[i],d->flip[i]);
     } else if (game.mode==CLEAR || p->exploration || !p->invincible || (game.frame & 4)) {
+        u16 held;
+        /* Allocate the contiguous body before small pieces to avoid fragmenting
+           its cache blocks, then move the held weapon ahead in SAT priority. */
         body(h->code[0] - (h->flip ? 1 : 0), 0, x, y, h->flip);
+        held=sprite_count;
         if(game.mode!=DEAD)piece(h->code[4]+p->weapon-1, 0, x + h->dx, y + h->dy, h->weapon_flip);
+        if(held && sprite_count>held) {
+            VDPSprite weapon=vdpSpriteCache[held];
+            for(i=held;i;i--){vdpSpriteCache[i]=vdpSpriteCache[i-1];vdpSpriteCache[i].link=i+1;}
+            vdpSpriteCache[0]=weapon;vdpSpriteCache[0].link=1;
+        }
     }
     for(i=0;i<player_attack.count;i++) {
         u8 left=((player_attack.selector+1)&4)!=0;
@@ -635,7 +648,10 @@ static void digits(char *p, u16 v, u16 count) {
     }
 }
 static void overlay(void) {
-    u8 m = game.mode, changed = m != last_mode || (m==CLEAR && last_clear_phase!=round_clear.phase);
+    static u8 last_ready;
+    u8 m = game.mode, ready = m==PLAY && round_ready,
+       changed = m != last_mode || (m==CLEAR && last_clear_phase!=round_clear.phase) || ready!=last_ready;
+    last_ready=ready;
     if(m==GAMEOVER && last_credits!=frontend.credits)changed=1;
     last_credits=frontend.credits;
     if(m==GAMEOVER && (last_game_over_phase!=game_over.phase || last_continue_digit!=game_over.digit))changed=1;
@@ -651,6 +667,7 @@ static void overlay(void) {
         last_mode = m;
     }
     if(!clear_screen_active && !ending_screen_active)ui_hud();
+    if(ready && changed)ui_ready(game.round,game.p.lives);
     VDP_setTextPlane(BG_A);
     if(m==RESCUE && (changed || last_npc_page!=npc_sequence.page)) {
         u16 i,tiles[128];const u16 *page=npc_dialogue();
@@ -709,9 +726,7 @@ void video_init(void) {
     DMA_setMaxTransferSize(7200);
     VDP_setBackgroundColor(0);
 }
-void video_round(void) {
-    u32 upload_buffer[32*8];
-    u32 *previous_upload=terrain_upload;terrain_upload=upload_buffer;
+__attribute__((noinline)) static void reload_round(void) {
     video_reload_count++;
     terrain_backdrop=backdrop_for_round(game.round);
     terrain_width=rounds[game.round].width>>3;
@@ -746,12 +761,16 @@ void video_round(void) {
     if(boss_rush.active || terrain_backdrop){arena_video_init();if(!boss_rush.active)scene(1);old_x=(s16)game.cam_x>>3;old_y=(s16)game.cam_y>>3;}
     else {arena_video_reset();scene(1);}
     terrain_upload_flush();DMA_flushQueue();
-    terrain_upload=previous_upload;
     last_round = game.round;
     last_mode = 255;
     ui_game_init();
     VDP_setEnable(TRUE);
     SYS_enableInts();
+}
+__attribute__((noinline)) void video_round(void) {
+    u32 upload_buffer[TERRAIN_UPLOAD_TILES*8];
+    terrain_upload=upload_buffer;
+    reload_round();
 }
 static void bonus_screen(void) {
     /* This replaces the terrain cache only after the victory animation ends. */
@@ -819,8 +838,13 @@ static void ending_screen(void) {
 }
 extern u8 profile_frame;
 volatile u16 video_cost[3];
+__attribute__((noinline)) static void submit_terrain(void) {
+    u32 upload_buffer[TERRAIN_UPLOAD_TILES*8];terrain_upload=upload_buffer;
+    if(boss_rush.active){arena_video_frame();old_x=(s16)game.cam_x>>3;old_y=(s16)game.cam_y>>3;}
+    else {palace_torches();terrain_updates();scene(0);if(arena_video_active)arena_video_frame();}
+    terrain_upload_flush();
+}
 void video_frame(void) {
-    u32 upload_buffer[32*8];terrain_upload=upload_buffer;
     u32 t = profile_frame?getSubTick():0;
     video_dma_bytes = 0;
     if(arena_video_active && (game.mode==TITLE || game.mode==INTRO))arena_video_reset();
@@ -851,9 +875,7 @@ void video_frame(void) {
         old_x - ((s16)game.cam_x >> 3) > MAX_SCROLL_STRIPS || ((s16)game.cam_y >> 3) - old_y > MAX_SCROLL_STRIPS ||
         old_y - ((s16)game.cam_y >> 3) > MAX_SCROLL_STRIPS)
         video_round();
-    if(boss_rush.active){arena_video_frame();old_x=(s16)game.cam_x>>3;old_y=(s16)game.cam_y>>3;}
-    else {palace_torches();terrain_updates();scene(0);if(arena_video_active)arena_video_frame();}
-    terrain_upload_flush();
+    submit_terrain();
     if(profile_frame){u32 now=getSubTick();video_cost[0]=now-t;t=now;}
     if(!arena_video_active){VDP_setHorizontalScrollVSync(BG_B, -game.cam_x);
     VDP_setVerticalScrollVSync(BG_B, game.cam_y);}

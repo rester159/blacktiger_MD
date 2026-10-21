@@ -56,6 +56,7 @@ static void zero(void *p, u16 n) {
     while (n--)
         *b++ = 0;
 }
+u8 round_ready;
 u8 terrain(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
     if(boss_rush.active)return x<RUSH_X || x>=RUSH_X+RUSH_WIDTH || y<0 || y>=RUSH_FLOOR?3:0;
@@ -90,7 +91,7 @@ static u8 support(s16 x, s16 y) {
 }
 static u8 restart_pending,loaded_round=255;
 static u8 boss_room_locked;
-static u16 boss_room_camera;
+static u16 boss_room_left,boss_room_right;
 void game_round(u8 round) {
     round_clear_reset();game_over_reset();
     music_request=0x21+(round&7);
@@ -137,6 +138,8 @@ void game_round(u8 round) {
     motion_reset();game.player_low=0;player_death_reset();armor_break_reset();
     player_attack=(PlayerAttack){0};player_daggers_reset();
     if(boss_rush.active){boss_rush_prepare();motion_reset();}
+    /* Source 22FE runs the notice for every round entry and life; Boss Rush is native-only. */
+    round_ready=boss_rush.active?0:ROUND_READY_UPDATES;
     game.mode = PLAY;
 }
 void game_bonus_transition(void) {
@@ -298,6 +301,9 @@ static void spawn_actors(u8 bosses) {
         if (!npc_spawn_ready(i))
             continue;
         if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def] || dragon_kinds[s->def]) {
+            /* Do not seal Round 5's doorway while the hero is still inside
+               the four-column wall that the source terrain patch installs. */
+            if(game.round==4 && !boss_rush.active && PX(game.p.x)<1160)continue;
             world_close_boss();
             music_request=music_boss_commands[game.round];
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
@@ -992,23 +998,30 @@ static void game_tick_step(u16 input) {
         if(ending_step()){game.p.lives=0;game.mode=GAMEOVER;game_over_start();}
         return;
     }
+    /* The source starts the round clock (task 2B20) and play only after the notice. */
+    if(round_ready){--round_ready;return;}
     if (pressed & IN_START) {
         game.mode = PAUSED;
         return;
     }
     world_tick();
     u8 bosses=boss_flags();
-    /* Round 3 and 5 boss rooms are fixed-screen encounters. Keep the camera
-       on the room and stop the player leaving through either open edge. */
-    if((game.round==2 || game.round==4) && (bosses&1)) {
-        if(!boss_room_locked){boss_room_camera=game.cam_x;boss_room_locked=1;}
-        if(p->x<(s32)(boss_room_camera+8)*FX){p->x=(s32)(boss_room_camera+8)*FX;if(p->vx<0)p->vx=0;}
-        if(p->x>(s32)(boss_room_camera+216)*FX){p->x=(s32)(boss_room_camera+216)*FX;if(p->vx>0)p->vx=0;}
-    } else boss_room_locked=0;
+    /* These arenas are wider than one viewport. Bound the room, not the
+       camera position on the frame that happened to activate its boss. */
+    boss_room_locked=!boss_rush.active && (game.round==2 || game.round==4) && (bosses&1);
+    if(boss_room_locked) {
+        boss_room_left=game.round==2?576:1152;
+        boss_room_right=game.round==2?960:1536;
+    }
     if (bosses&2) input=pressed=0;
     player_step(input, pressed);
     if (game.mode != PLAY)
         return;
+    if(boss_room_locked) {
+        s16 left=boss_room_left+8,right=boss_room_right-32;
+        if(p->x<(s32)left*FX){p->x=(s32)left*FX;if(p->vx<0)p->vx=0;}
+        if(p->x>(s32)right*FX){p->x=(s32)right*FX;if(p->vx>0)p->vx=0;}
+    }
     pots_tick(bosses);
     if(loot_active_end)loot_tick();
     {
@@ -1080,7 +1093,7 @@ static void game_tick_step(u16 input) {
             player_hurt(1);
         }
     }
-    game.cam_x = boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):boss_room_locked?boss_room_camera:(u16)(PX(p->x)-112);
+    game.cam_x = boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):boss_room_locked?bound_axis(PX(p->x)-112,boss_room_left,boss_room_right-256):(u16)(PX(p->x)-112);
     game.cam_y = boss_rush.active?RUSH_Y:camera_y(PX(p->y)-144);
 }
 

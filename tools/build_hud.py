@@ -11,13 +11,16 @@ patterns=[];lookup={};glyphs={}
 # Skin pens are animated by poison; inventory and currency must remain stable.
 available=[[i for i in range(1,16) if i not in (7,8,9,10)],list(range(1,16))]
 slots=list(range(1012,1072))+list(range(1499,1536))+list(range(7,16))
-def glyph(code,attr):
- key=(code,attr)
- if key in glyphs:return glyphs[key]
+def pens_for(attr):
  colors=[color(pal,768+(attr&31)*4+i) for i in range(3)]
  costs=[sum(min(np.sum((rgb(c)-rgb(v))**2) for v in [palette[b][i] for i in available[b]]) for c in colors) for b in range(2)]
  bank=int(np.argmin(costs))
  pens=[available[bank][int(np.argmin([np.sum((rgb(c)-rgb(palette[bank][i]))**2) for i in available[bank]]))] for c in colors]+[0]
+ return bank,pens
+def glyph(code,attr):
+ key=(code,attr)
+ if key in glyphs:return glyphs[key]
+ bank,pens=pens_for(attr)
  # Preserve actor color fidelity; HUD glyphs use nearest available colors.
  raw=pack(np.array(pens,dtype=np.uint8)[chars[code+((attr&224)<<3)]])
  if raw not in lookup:lookup[raw]=len(patterns);patterns.append(raw)
@@ -38,6 +41,28 @@ s.expect(None,0x5d6d,'3aa1f3875f160021b65d1956235edd7e15a7472006')
 boss_table=list(s.read(None,0x5db6,16))
 boss_styles=sorted(set(boss_table[1::2]))
 boss_glyphs=[glyph(code,style) for style in boss_styles for code in (0x80,0x81,0x82,0x83)]
+# Original round-start notice, fixed 237C..23C5: queue ROUND (16h), READY PLAYER n (17h+player) and
+# SAVE LIFE (12h), overwritten by SAVE LIVES (13h) when F3A0>=2; wait 2 updates; poke round+1 at D153 and
+# F3A0 at D230 (raw numeral codes); wait 120 updates (0324); erase the same messages. All attribute 0.
+s.expect(None,0x237c,'16001e16cdd0031e173a00e9835fcdd0031e12cdd0033aa0f3fe021cd4d003cd04032153d13aa1f33c77cbd436002130d23aa0f377cd240316011e16cdd0031e17cdd0031e12cdd003cd0403')
+s.expect(None,0x1429,'21ad163a44e1875f160019')  # message table 16AD, raw char/attribute copy
+ready_patterns=[];ready_lookup={};READY_BASE=1408  # dialogue-font tiles: loaded only for dialogue/ending
+def ready_glyph(code,attr):
+ bank,pens=pens_for(attr)  # same source colors and nearest pens as the HUD
+ raw=pack(np.array(pens,dtype=np.uint8)[chars[code+((attr&224)<<3)]])
+ if raw not in ready_lookup:ready_lookup[raw]=len(ready_patterns);ready_patterns.append(raw)
+ assert len(ready_patterns)<=32
+ return READY_BASE+ready_lookup[raw]+((bank+2)<<13)+0x8000
+def message(n):
+ ptr=s.word(None,0x16ad+n*2);head=s.read(None,ptr,3);addr=head[0]|head[1]<<8;text=[]
+ p=ptr+3
+ while (c:=s.read(None,p,1)[0])!=0x40:text.append(c);p+=1
+ return addr-0xd000,head[2],text
+ready_rows=[]
+for n in (0x16,0x17,0x12,0x13):
+ off,attr,text=message(n);assert attr==0
+ ready_rows.append((off%32,off//32-2,text))
+ready_digit_cells=[(0x153%32,0x153//32-2),(0x230%32,0x230//32-2)]
 def arr(name,typ,values):return 'static const '+typ+' '+name+'[]={'+','.join(map(str,values))+'};\n'
 out='/* Original source character HUD, source positions; RGB333 palette adaptation. */\n'
 out+=arr('arcade_hud_patterns','u32',[f'0x{int.from_bytes(b[i:i+4],"big"):08x}' for b in patterns for i in range(0,32,4)])
@@ -47,6 +72,14 @@ out+=arr('arcade_boss_glyphs','u16',boss_glyphs)
 out+=arr('arcade_boss_counts','u8',boss_table[::2])
 out+=arr('arcade_boss_styles','u8',[boss_styles.index(a) for a in boss_table[1::2]])
 out+='#define ARCADE_HUD_TILES '+str(len(patterns))+'\n'
+ready_digits=[ready_glyph(n,0) for n in range(10)]
+for i,(x,y,text) in enumerate(ready_rows):
+ out+=arr(f'ready_text{i}','u16',[0 if c==32 else ready_glyph(c,0) for c in text])
+out+=arr('ready_rows','u8',[v for x,y,text in ready_rows for v in (x,y,len(text))])
+out+=arr('ready_digits','u16',ready_digits)+arr('ready_digit_cells','u8',[v for cell in ready_digit_cells for v in cell])
+out+=arr('ready_patterns','u32',[f'0x{int.from_bytes(b[i:i+4],"big"):08x}' for b in ready_patterns for i in range(0,32,4)])
+out+='#define READY_BASE '+str(READY_BASE)+'\n#define READY_TILES '+str(len(ready_patterns))+'\n'
+
 (ROOT/'src/hud_data.inc').write_text(out)
-report=dict(source_set=s.lock['aggregate_sha256'],trace_sha256=hashlib.sha256((ROOT/'reference/hud_oracle_events.txt').read_bytes()).hexdigest(),glyph_tiles=len(patterns),palette=palette,scope='Original HUD glyph shapes and placement for all tiers. HUD colors use nearest existing actor-palette colors. Original hero palette and 15-color enemy palette are preserved; backgrounds unchanged.')
+report=dict(source_set=s.lock['aggregate_sha256'],trace_sha256=hashlib.sha256((ROOT/'reference/hud_oracle_events.txt').read_bytes()).hexdigest(),glyph_tiles=len(patterns),ready_tiles=len(ready_patterns),palette=palette,scope='Original HUD glyph shapes and placement for all tiers. HUD colors use nearest existing actor-palette colors. Original hero palette and 15-color enemy palette are preserved; backgrounds unchanged.')
 (ROOT/'reference/hud_graphics.json').write_text(json.dumps(report,indent=2)+'\n');print(report)

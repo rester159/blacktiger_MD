@@ -14,6 +14,8 @@ void frontend_return(void);
 void frontend_spend(void);
 void ui_game_init(void);
 void ui_hud(void);
+/* Source round-start notice on the fixed text plane: ROUND n, READY PLAYER 1, SAVE n LIFE/LIVES. */
+void ui_ready(u8 round,u8 lives);
 void ui_hud_invalidate(void);
 void ui_title(void);
 void ui_shop_cursor_init(void);

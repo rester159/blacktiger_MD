@@ -34,7 +34,10 @@ for armor in (0,2):
    motion=Motion();motion.pose=pose;motion.selector=selector;motion.frame=3
    r.write('player_motion',0,bytes(motion));r.run(8)
    sat=r.read('vdpSpriteCache',16)
-   y,size,link,attr,x=struct.unpack_from('>HBBHH',sat)
+   # Weapon has foreground SAT priority; body geometry remains 32x32.
+   bodies=[entry for entry in struct.iter_unpack('>HBBHH',sat) if entry[1]==15]
+   assert len(bodies)==1,(armor,selector,pose,sat.hex())
+   y,size,link,attr,x=bodies[0]
    assert (x-128,y-128,size)==(128,96,15),(armor,selector,pose,sat.hex())
    key=struct.unpack('>20H',r.read('body_keys',40))[((attr&2047)-1088)//16]
    raw=frames[((bool(armor)*10+pose//2)*48+selector*8+3)]

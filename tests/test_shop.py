@@ -9,6 +9,8 @@ class Inventory(C.Structure):
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('')
  (tmp/'stub.c').write_text('#include "assets.h"\n#include "frontend.h"\nFrontend frontend;Game game;u8 container_keys;\nconst u8 shop_default_difficulty=4;\nconst u16 shop_prices[2][8][4]='+str(data['prices']).replace('[','{').replace(']','}')+';\nconst u16 shop_key_price=30,shop_antidote_price=150;\n'+'''#include "shop.h"
+const u8 shop_grid[12]={1,2,3,4,9,0,5,6,7,8,10,11};
+int navigate(int weapon,int cell,int input){game.p.weapon=weapon;game.shop_item=cell;shop_move(input);return game.shop_item;}
 void buy(int item,int difficulty,int coins,int weapon,int armor,int keys,int antidotes,int poison) {
  game=(Game){0};game.coins=coins;game.p.weapon=weapon+1;game.p.armor=armor;game.p.invincible=1;
  container_keys=keys;shop_antidotes=antidotes;shop_poison=poison;shop_difficulty=difficulty;shop_buy(item);
@@ -30,5 +32,9 @@ int sound_count(void){return game.sound_count;} int sound_at(int i){return game.
   ok=lib.shop_purchase(c['item'],c['difficulty'],C.byref(s))
   assert [ok,s.coins,s.weapon,s.armor,s.keys,s.antidotes,s.poison,s.invincible]==expected,(c,expected)
   count+=1
+ assert lib.navigate(5,0,0)==4
+ assert lib.navigate(3,2,1)==2
+ assert lib.navigate(3,0,2)==2
+ assert lib.navigate(5,6,4)==4
  report={'passed':True,'source_purchase_cases':count,'default_difficulty':ref['default_difficulty'],'scope':'All ten goods and eight difficulty price schedules; funds threshold, owned equipment refusal, caps, antidote storage/cure. Successful purchase and refusal sound output match the original command queue. Source presentation/tasks are bypassed. Native poison onset and countdown remain unported.'}
  (ROOT/'reports/shop-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

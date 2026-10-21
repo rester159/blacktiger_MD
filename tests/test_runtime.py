@@ -11,7 +11,10 @@ class Actor(BE):_fields_=[('x',S32),('y',S32),('vx',S16),('vy',S16),('definition
 class Shot(BE):_fields_=[('x',S32),('y',S32),('vx',S16),('vy',S16),*[(k,U8) for k in ('active','enemy','life','damage','kind')]]
 class Game(BE):_fields_=[('p',Player),('actors',Actor*24),('shots',Shot*18),('spawned',U8*160),('score',U32),*[(k,U16) for k in ('coins','time','clock','frame','cam_x','cam_y','previous_input','mode_timer')],*[(k,U8) for k in ('round','mode','sound','shop_item','rescued','boss_dead')],('kills',U16),('rescue_actor',U8),('rescue_kind',U8),('player_low',U8),('sound_count',U8),('sound_commands',U8*16)]
 def state(r):return Game.from_buffer_copy(r.read('game',C.sizeof(Game)))
-def put(r,s):r.write('game',0,bytes(s))
+def put(r,s):
+ r.write('game',0,bytes(s))
+ # An injected PLAY state is a fixture in active play, not a fresh round entry.
+ if s.mode==1 and 'round_ready' in r.symbols:r.write('round_ready',0,b'\x00')
 def finish_clear(r,s):
  """Inject the end-of-clear hold when testing unrelated round-entry behavior."""
  r.write("round_clear",0,bytes([2,1,0,0,0,0,0,0]));put(r,s)

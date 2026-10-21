@@ -9,9 +9,17 @@ def pause(r):
 def centered(r,row,start,end):
  mask=r.frame[row*8:(row+1)*8,start:end].any(2);xs=np.nonzero(mask)[1]+start
  assert len(xs) and abs((xs.min()+xs.max()+1)/2-128)<=1,(row,xs.min(),xs.max())
+def hero_sprite(r):
+ # The held weapon now precedes the body in SAT priority. Find the body
+ # by its geometry and palette, so poison checks still inspect hero pixels.
+ sat=r.read('vdpSpriteCache',5*8)
+ for at in range(0,len(sat),8):
+  y,size,link,attr,x=struct.unpack_from('>HBBHH',sat,at)
+  if size==15 and (attr>>13)&3==2:return attr
+  if not link:break
+ raise AssertionError(('hero body missing',sat.hex()))
 def body(r):
- sat=r.read('vdpSpriteCache',8);y,size,link,attr,x=struct.unpack('>HBBHH',sat)
- assert size==15 and (attr>>13)&3==2,(size,hex(attr))
+ attr=hero_sprite(r)
  vram=(C.c_uint8*65536).in_dll(r.lib,'vram');tile=attr&2047
  raw=bytes(vram[(tile*32+i)^1] for i in range(512));a=np.frombuffer(raw,np.uint8);pens=np.stack((a>>4,a&15),1).reshape(-1)
  cram=(C.c_uint16*64).in_dll(r.lib,'cram');colors=np.array([cram[32+i] for i in range(16)],np.uint16)[pens]
@@ -74,7 +82,7 @@ for armor in (2,0):
  for mask,ticks in ((128,45),(129,24),(0,35),(34,20),(64,35),(16,20)):
   for _ in range(ticks//3):
    r.run(3,mask);pens,colors=body(r)
-   attr=struct.unpack_from('>H',r.read('vdpSpriteCache',8),4)[0]
+   attr=hero_sprite(r)
    key=struct.unpack('>20H',r.read('body_keys',40))[((attr&2047)-1088)//16]
    assert key//2048==0,('poison left the hero palette atlas',key)
    poses.add(key%2048)

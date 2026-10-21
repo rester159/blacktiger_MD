@@ -54,12 +54,12 @@ def run():
  pause(r);r.write('pots',slot*20+8,struct.pack('>h',-64));resume(r,8)
  assert pot(r,slot)['phase']==2 and pot(r,slot)['active'] and pot(r,slot)['x']==initial['x'],pot(r,slot)
  contents=r.read('pot_contents',32)
- pause(r);s=state(r);s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(120)
+ pause(r);s=state(r);s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(120-r.skip_notice())
  assert r.read('pot_contents',32)==contents
  assert pot(r,slot)['active'] and pot(r,slot)['phase']==2,pot(r,slot)
  pause(r);p=pot(r,slot);s=state(r);s.p.x=(p['x']-8)*256;s.p.y=(p['y']-8)*256;s.p.vx=s.p.vy=0;put(r,s);resume(r,4)
  assert not pot(r,slot)['active']
- pause(r);s=state(r);s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(120)
+ pause(r);s=state(r);s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(120-r.skip_notice())
  assert not pot(r,slot)['active'],'collected pot respawned after death'
  checks.append('uncollected contents survive retirement/death; collected pot stays gone');r.close()
  # Real button input, without injecting a pot-hit flag.

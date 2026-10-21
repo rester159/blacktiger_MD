@@ -47,6 +47,15 @@ for level,row,camera_x,camera_y in [(2,79,576,1472),(4,65,1184,0)]:
     s.p.x=(camera_x+112)*256;s.p.y=(camera_y+96)*256;s.p.vx=s.p.vy=0
     s.p.invincible=10000;put(r,s);r.run(30)
     assert not r.read('world_opened',1)[0]&128
+    if level==4:
+        # Approach while still occupying the future doorway: proximity alone
+        # must not install solid wall pixels through the hero.
+        s=state(r);s.mode=1;s.p.x=1136*256;s.p.y=96*256;s.p.vx=s.p.vy=0
+        r.write('round_ready',0,b'\0');put(r,s);r.run(20)
+        assert not r.read('world_opened',1)[0]&128,'door closed through entering player'
+        s=state(r);s.mode=2;put(r,s);r.run(20)
+        s=state(r);s.p.x=(camera_x+112)*256;s.p.y=(camera_y+96)*256
+        s.cam_x=camera_x;s.cam_y=camera_y;s.p.vx=s.p.vy=0;put(r,s)
     s=state(r);s.mode=1;s.previous_input=0;put(r,s)
     for _ in range(30):
         r.run(1)

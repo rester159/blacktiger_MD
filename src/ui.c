@@ -8,6 +8,7 @@
 #include "shop.h"
 #include "progress.h"
 #include "high_score.h"
+#include "arena_video.h"
 #include <genesis.h>
 #include "ui_data.inc"
 static u8 title_ready,title_page=255,title_revision=255,title_message=255,title_coin_phase=255;
@@ -63,6 +64,21 @@ static void center(u16 y,const char *text){
 }
 
 void ui_hud_invalidate(void){hud_invalid=1;}
+static void ready_row(u8 index,const u16 *text){
+ const u8 *r=ready_rows+index*3;u8 i;
+ /* Spaces leave the plane untouched, as on the source text layer under the notice. */
+ for(i=0;i<r[2];i++)if(text[i])VDP_setTileMapXY(BG_A,text[i],arena_video_text_x(r[0]+i,r[1]),r[1]);
+}
+static void ready_digit(u8 index,u8 value){
+ const u8 *c=ready_digit_cells+index*2;
+ VDP_setTileMapXY(BG_A,ready_digits[value>9?9:value],arena_video_text_x(c[0],c[1]),c[1]);
+}
+void ui_ready(u8 round,u8 lives){
+ VDP_loadTileData(ready_patterns,READY_BASE,READY_TILES,DMA);
+ ready_row(0,ready_text0);ready_row(1,ready_text1);
+ ready_row(lives>=2?3:2,lives>=2?ready_text3:ready_text2);
+ ready_digit(0,round+1);ready_digit(1,lives);
+}
 void ui_game_init(void){
  u16 i;title_ready=0;hud_invalid=1;
  fps_refresh=vtimer;fps_presentations=pacing_presentations;debug_fps=0;

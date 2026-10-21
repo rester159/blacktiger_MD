@@ -3,6 +3,7 @@ from pathlib import Path
 import json,hashlib
 from arcade_source import Source
 ROOT=Path(__file__).resolve().parents[1]
+CARRIER_ATTENUATION=20 # 15 dB total; 6 dB quieter than v1.7, PSG unchanged.
 COMMANDS=tuple(c for c in range(0x20,0x3a) if c!=0x38)
 def convert(command):
  folder=ROOT/'reference/music';raw=(folder/f'{command:02x}.txt').read_bytes();meta=json.loads((folder/f'{command:02x}.json').read_text())
@@ -26,12 +27,12 @@ def convert(command):
   elif r==0x28:emit(t,0,r,(v&0xf3)|(p<<2),True)
   elif 0x40<=r<=0x4e:
    ch=r&3;slot=(r>>2)&3;levels[p,r]=v
-   emit(t,p,r,min(127,v+(12 if carriers[algorithms.get((p,ch),0)]&(1<<slot) else 0)))
+   emit(t,p,r,min(127,v+(CARRIER_ATTENUATION if carriers[algorithms.get((p,ch),0)]&(1<<slot) else 0)))
   elif 0xb0<=r<=0xb2:
    ch=r-0xb0;algorithms[p,ch]=v&7;emit(t,p,r,v)
    for slot in range(4):
     reg=0x40+4*slot+ch;level=levels.get((p,reg),127)
-    emit(t,p,reg,min(127,level+(12 if carriers[v&7]&(1<<slot) else 0)))
+    emit(t,p,reg,min(127,level+(CARRIER_ATTENUATION if carriers[v&7]&(1<<slot) else 0)))
   else:
    assert 0x30<=r<=0x9f or 0xb0<=r<=0xb2,(p,r,v)
    emit(t,p,r,v)
@@ -51,6 +52,6 @@ def generate():
   rows.append('static const u8 music_%02x[]={%s};'%(command,','.join(map(str,data))))
  rows.append('static const MusicTrack music_tracks[26]={'+','.join('[%d]={music_%02x,%d,%d,%d,%d}'%(m['command']-0x20,m['command'],m['bytes'],m['loop_offset'],m['loop_tick'],m['end_tick']) for m in tracks)+'};')
  (ROOT/'src/music_data.inc').write_text('\n'.join(rows)+'\n')
- report=dict(tracks=tracks,bytes=sum(t['bytes'] for t in tracks),carrier_attenuation_steps=12,pitch_ratio='14/15 NTSC FM clock correction',timer_clock=3579545,timer_divisor=14328)
+ report=dict(tracks=tracks,bytes=sum(t['bytes'] for t in tracks),carrier_attenuation_steps=CARRIER_ATTENUATION,pitch_ratio='14/15 NTSC FM clock correction',timer_clock=3579545,timer_divisor=14328)
  (ROOT/'reference/music_conversion.json').write_text(json.dumps(report,indent=2)+'\n');print(report['bytes'])
 if __name__=='__main__':generate()

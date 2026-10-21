@@ -103,6 +103,10 @@ extern Game game;
 static inline void game_sound(u8 command) {
     if(game.sound_count<16)game.sound_commands[game.sound_count++]=command;
 }
+/* Source 237C..23C5 round-start notice: updates left before play resumes
+ * (ROUND n / READY PLAYER 1 / SAVE n LIVES), after every round entry and life. */
+#define ROUND_READY_UPDATES 122
+extern u8 round_ready;
 void game_new(void);
 void game_round(u8 round);
 void game_tick(u16 input);

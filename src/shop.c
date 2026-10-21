@@ -38,6 +38,11 @@ u8 shop_buy(u8 item) {
  game.coins=debug_funds?65535:s.coins;game.p.invincible=s.invincible;game.p.weapon=s.weapon+1;game.p.armor=s.armor;
  container_keys=s.keys;shop_antidotes=s.antidotes;if(item==10 && !s.poison){shop_poison=0;status_reverse=0;}game_sound(0x12);return 1;
 }
+/* Owned weapons are not cursor destinations; keys/exit always remain reachable. */
+static u8 selectable(u8 cell) {
+ u8 item=shop_grid[cell];
+ return item && !(item<=4 && game.p.weapon>item);
+}
 void shop_move(u16 pressed) {
  u8 row=game.shop_item/6,column=game.shop_item%6,old=game.shop_item;
  if(pressed&IN_UP)row=0;
@@ -46,5 +51,13 @@ void shop_move(u16 pressed) {
  if((pressed&IN_RIGHT) && column<5)column++;
  if(!row && column>4)column=4;
  game.shop_item=row*6+column;
- if(old!=game.shop_item)shop_result=0;
+ if(!selectable(game.shop_item)) {
+  s8 step=(pressed&IN_LEFT)?-1:1;
+  s16 candidate=game.shop_item;
+  while(candidate>=row*6 && candidate<row*6+6 && !selectable(candidate))candidate+=step;
+  if(candidate>=row*6 && candidate<row*6+6 && selectable(candidate))game.shop_item=candidate;
+  else if(selectable(old))game.shop_item=old;
+  else game.shop_item=4; /* Key: available even with all four weapon upgrades. */
+ }
+ if(old!=game.shop_item && pressed)shop_result=0;
 }

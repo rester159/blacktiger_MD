@@ -28,7 +28,7 @@ for flags in range(8):
  assert list(r.read('frontend',13)[10:13])==[bool(flags&1),bool(flags&2),bool(flags&4)]
  tap(64);tap(32);tap(32);assert r.read('frontend',14)[13]==4
  if flags==7:r.capture('debug-level-select-v18.png')
- tap(8);r.run(20);s=state(r)
+ tap(8);r.run(20);r.skip_notice();s=state(r)
  assert s.mode==1 and r.read('frontend',15)[14]==1 and s.p.exploration==bool(flags&1)
  start=s.time*60-s.clock;r.run(120);s=state(r);elapsed=start-(s.time*60-s.clock)
  assert elapsed==(0 if flags&4 else 120),(flags,'timer',elapsed)
@@ -68,7 +68,7 @@ for flags in range(8):
   assert (s.mode,s.p.hp,s.p.armor)==(1,1,2),'timeout bypassed invincibility'
  # Even with Debug switches ON, ordinary Play clears the active debug session.
  s=state(r);s.mode=0;s.previous_input=0;put(r,s)
- r.write('frontend',0,bytes([1,1,0]));r.run(20);tap(8);r.skip_intro();r.run(20);s=state(r)
+ r.write('frontend',0,bytes([1,1,0]));r.run(20);tap(8);r.skip_intro();r.run(20-r.skip_notice());s=state(r)
  assert s.mode==1 and not s.p.exploration and not r.read('frontend',15)[14]
  start=s.time*60-s.clock;r.run(120);s=state(r)
  assert start-(s.time*60-s.clock)==120

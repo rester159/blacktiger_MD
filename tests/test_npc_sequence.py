@@ -16,6 +16,8 @@ with tempfile.TemporaryDirectory() as folder:
  void step(void){game.sound_count=0;npc_rescue_tick();}
  void snapshot(int *out){int v[]={npc_sequence.code,game.coins,game.time,game.p.hp,game.p.invincible,game.mode,npc_sequence.complete,game.sound_count};for(int i=0;i<8;i++)out[i]=v[i];}
  int sound_at(int i){return game.sound_commands[i];}
+ void add_bats(void){game.actors[1]=(Actor){.def=10,.active=1,.source=1};game.actors[2]=(Actor){.def=10,.active=1,.source=1};game.actors[3]=(Actor){.def=23,.active=1,.source=2};}
+ int bat_cleanup(void){return !game.actors[1].active && !game.actors[2].active && game.spawned[1]==2 && game.actors[3].active;}
  ''');(tmp/'stub.c').write_text('\n'.join(stubs))
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/s) for s in ('npc.c','animation.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'npc.dylib')],check=True)
  lib=C.CDLL(str(tmp/'npc.dylib'));lib.npc_dialogue.restype=C.POINTER(C.c_ushort);count=0;sounds=0;used=set()
@@ -42,6 +44,9 @@ with tempfile.TemporaryDirectory() as folder:
    assert list(lib.npc_dialogue()[:128])==cells,(kind,tick,'text')
    assert [lib.sound_at(i) for i in range(out[7])]==commands,(kind,tick,'sounds')
    used.update(cells);count+=1;sounds+=len(commands)
+ lib.setup(defs[8]);lib.add_bats()
+ for _ in range(600):lib.step()
+ assert lib.bat_cleanup(),'shop entry must clear bats while preserving boulders'
  sys.path.insert(0,str(ROOT/'tools'))
  from arcade_source import Source
  from extract import decode

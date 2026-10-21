@@ -1,3 +1,29 @@
+# v1.9 release
+
+Released v1.9 with the title stamp updated, ROM uploaded to itch.io, and the new devlog published with the binary attached. All 189 test recipes and strict packaging passed for the v1.9 binary. The physical PAL/60 Hz and Model 3 reports remain unconfirmed. See [v1.9 release notes](reports/v1.9-release.md).
+
+# Post-v1.8 hardware-test candidate (not a compatibility-confirmed release)
+
+- Reduce terrain upload batches from 32 to 24 tiles, adding 256 bytes of stack headroom. Sampled minimum stack/heap separation improves from 118 to 374 bytes during boot, repeated fire and all-round transitions.
+- Add instruction-level stack regression for NTSC and a PAL hardware ID with 60 Hz VDP timing. Physical PAL-mod and Model 3 reports remain unresolved; the user has no hardware access.
+- Verify five normal-input hits open Round 8’s lower healing wall while holding the adjacent pole; no map or hitbox edit. Full natural traversal and reward pickup remain outside that fixture.
+- Correct the live itch copyright paragraph’s game name. No comment or ROM upload.
+- All 189 test recipes passed using existing source captures; strict packaging and separate GPGX/PicoDrive boot/fire smoke checks passed. Candidate SHA-256: `87f8d0b41b23819646ee49483e0fa39deab7e44d21d1990327e2404d2cc39006`.
+- Preserve the published v1.8 ROM; the hardware-test candidate retains its v1.8 title stamp. See [follow-up evidence and limitations](reports/hardware-followup.md).
+
+# v1.8 itch.io feedback fixes (packaged locally; hardware check pending)
+
+- Keep chest trap flames at the chest height when the player jumps away.
+- Give held weapons foreground sprite priority while retaining contiguous body tile allocation.
+- Bound Round 3/5 cameras to the full boss room; delay Round 5 wall closure until the player clears it.
+- Skip owned shop weapons and clear paired bats when rescue enters the shop.
+- Reduce FM music carriers by another 6 dB relative to unchanged PSG effects.
+- Include the existing round-start/restart notice and remaining-lives display.
+- Recover startup heap headroom with compact sprite epoch tags, and scope terrain stack buffers so they do not overlap sprite/UI work or round reloads.
+- Leave Round 2 rock placements unchanged per user instruction: all five source rows are present. Round 8 secret accessibility and physical hardware compatibility remain open.
+- All 187 test recipes passed against ROM SHA-256 `14dfadf2284b5395176e946f779709f35c59464c093a16ee8db5b26991780217` using existing source traces; strict packaging passed. See `reports/v18-validation.json` for the execution scope and reruns.
+- Release scope and validation details: [v1.8 feedback notes](reports/v1.8-fixes.md).
+
 # Source-only repository (v1.2)
 
 # v1.7 feedback fixes (software and clean rebuild pass; hardware check pending)

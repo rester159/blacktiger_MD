@@ -17,14 +17,15 @@ for index,item in enumerate(data['grid']):
  elif item<=8:assert s.p.armor==(item-4)*2
  elif item==9:assert r.read('container_keys',1)==b'\x01'
  else:assert r.read('shop_antidotes',1)==b'\x01'
- if item<=8:
-  tap(1<<1);assert state(r).coins==s.coins,'owned equipment charged again'
-  assert r.read('shop_result',1)==bytes([2 if s.coins<price else 3])
+ if item<=4:
+  assert state(r).shop_item!=index,'owned weapon remains selected'
+ # Reset equipment to exercise unaffordable selectable goods independently.
+ s=state(r);s.p.weapon=1;s.p.armor=0;s.shop_item=index;put(r,s)
  s=state(r);s.coins=price-1;put(r,s);tap(1<<1);assert state(r).coins==price-1
  assert r.read('shop_result',1)==b'\x02'
  checks.append(dict(item=item,price=price,purchase_and_refusal=True))
 # The visible arcade layout has two horizontal rows, with no blank top-right cell.
-s=state(r);s.mode=3;s.shop_item=0;put(r,s)
+s=state(r);s.mode=3;s.shop_item=0;s.p.weapon=1;put(r,s)
 tap(32);assert state(r).shop_item==6
 tap(128);assert state(r).shop_item==7
 tap(16);assert state(r).shop_item==1

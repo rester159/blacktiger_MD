@@ -53,7 +53,7 @@ def setup(case,rom,symbols):
         if r.read('boot_done',1)==b'\x01':break
     r.run(100);r.start_game(exploration=True);r.run(30)
     r.run(3,8);r.run(20)
-    s=state(r);s.round=case['level'];s.mode=4;s.mode_timer=0;put(r,s);r.run(80)
+    s=state(r);s.round=case['level'];s.mode=4;s.mode_timer=0;put(r,s);r.run(80-r.skip_notice())
     r.run(3,8);r.run(20);s=state(r)
     assert s.mode==2
     s.p.x=case['x']*256;s.p.y=case['y']*256;s.p.vx=s.p.vy=0

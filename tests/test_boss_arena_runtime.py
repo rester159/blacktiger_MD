@@ -8,7 +8,11 @@ for target in (2,4):
  while state(r).round<target:
   s=state(r);s.mode=5;s.mode_timer=1;finish_clear(r,s);r.run(8)
  s=state(r);assert s.round==target and s.mode==1
- camera=s.cam_x
+ s.mode=2;put(r,s);r.run(30);s=state(r);s.mode=1
+ r.write("round_ready",0,b"\0")
+ camera=576 if target==2 else 1152
+ s.cam_x=camera;s.cam_y=1472 if target==2 else 0
+ s.p.y=(s.cam_y+96)*256
  s.p.x=(camera+4)*256;s.p.vx=-2000;s.p.vy=0;s.previous_input=0
  for actor in s.actors:actor.active=0
  boss=s.actors[0];boss.active=1;boss.definition=39;boss.hp=80;boss.life=1;boss.state=2
@@ -17,10 +21,10 @@ for target in (2,4):
  assert s.cam_x==camera and s.p.x>=(camera+8)*256,(target,'left edge',camera,s.cam_x,s.p.x//256)
  assert s.actors[0].active,'boss left the active fight'
  checks.append(dict(round=target+1,edge='left',camera=s.cam_x,player_x=s.p.x//256))
- s.p.x=(camera+220)*256;s.p.vx=2000;s.previous_input=0;put(r,s);r.run(12);s=state(r)
- assert s.cam_x==camera and s.p.x<=(camera+216)*256,(target,'right edge',camera,s.cam_x,s.p.x//256)
+ s.p.x=(camera+360)*256;s.p.vx=2000;s.previous_input=0;put(r,s);r.run(12);s=state(r)
+ assert s.cam_x==camera+128 and s.p.x<=(camera+352)*256,(target,'right edge',camera,s.cam_x,s.p.x//256)
  assert s.actors[0].active,'boss left the active fight'
  checks.append(dict(round=target+1,edge='right',camera=s.cam_x,player_x=s.p.x//256))
 r.close()
-report=dict(passed=True,checks=checks,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Actual CLEAR-to-round transitions followed by an active boss fixture. Normal game ticks verify both horizontal player bounds and a fixed boss-room camera in rounds 3 and 5. This does not validate the physical cartridge or a complete natural boss fight.')
+report=dict(passed=True,checks=checks,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Actual CLEAR-to-round transitions followed by an active boss fixture. Normal game ticks verify both horizontal player bounds and a scrolling boss-room camera in rounds 3 and 5. This does not validate the physical cartridge or a complete natural boss fight.')
 (ROOT/'reports/boss-arena-runtime-tests.json').write_text(__import__('json').dumps(report,indent=2)+'\n');print(__import__('json').dumps(report))

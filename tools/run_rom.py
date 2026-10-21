@@ -41,7 +41,16 @@ class Runner:
   l.retro_init();raw=path.read_bytes();self.buffer=C.create_string_buffer(raw);info=Info(str(path).encode(),C.cast(self.buffer,C.c_void_p),len(raw),None);l.retro_load_game.argtypes=[C.POINTER(Info)];l.retro_load_game.restype=C.c_bool;assert l.retro_load_game(C.byref(info))
   l.retro_set_controller_port_device(0,513) # Six-button pad: libretro Select is Genesis Mode.
   av=AVInfo();l.retro_get_system_av_info.argtypes=[C.POINTER(AVInfo)];l.retro_get_system_av_info(C.byref(av));self.sample_rate=av.timing.sample_rate
-  self.ram=(C.c_uint8*65536).in_dll(l,'work_ram');self.symbols={}
+  try:self.ram=(C.c_uint8*65536).in_dll(l,'work_ram')
+  except ValueError:
+   # PicoDrive exports RAM through libretro, not GPGX's private work_ram symbol.
+   # Both tested macOS cores expose word-swapped 68000 RAM to these fixtures.
+   l.retro_get_memory_data.argtypes=[C.c_uint];l.retro_get_memory_data.restype=C.c_void_p
+   l.retro_get_memory_size.argtypes=[C.c_uint];l.retro_get_memory_size.restype=C.c_size_t
+   address=l.retro_get_memory_data(2)
+   if not address or l.retro_get_memory_size(2)<65536:raise RuntimeError('Core does not expose 64 KiB system RAM')
+   self.ram=(C.c_uint8*65536).from_address(address)
+  self.symbols={}
   for line in (ROOT/'out/release/symbol.txt').read_text().splitlines():
    v=line.split()
    if len(v)>=3:
@@ -69,7 +78,7 @@ class Runner:
  def run(self,n,mask=0):
   self.mask=mask
   for _ in range(n):self.lib.retro_run();self.frames+=1
- def start_game(self,frames=3,exploration=False):
+ def start_game(self,frames=3,exploration=False,notice=False):
   if "frontend" in self.symbols:
    self.run(3,32);self.run(2);self.run(3,8);self.run(2)
    if exploration:
@@ -77,6 +86,7 @@ class Runner:
     for mask in (16,16,32,32,64,128,64,128,8,32,32):self.run(3,mask);self.run(3)
    self.run(frames,8)
    if not exploration:self.skip_intro()
+   if not notice:self.skip_notice()
    return
   self.run(frames,8)
   if "intro_tick" in self.symbols:
@@ -85,6 +95,15 @@ class Runner:
     self.run(1)
    else:raise AssertionError("Intro did not finish")
    self.run(max(0,frames-1))
+ def skip_notice(self):
+  # Subsystem fixtures start in active play. The source round-start notice
+  # (ROUND / READY PLAYER 1 / SAVE n LIVES) has its own runtime test.
+  # Returns the refreshes spent waiting, so callers keep their original timing.
+  if "round_ready" not in self.symbols:return 0
+  for n in range(240):
+   if self.read("round_ready",1)!=b'\x00':self.write("round_ready",0,b'\x00');return n
+   self.run(1)
+  raise AssertionError("round-start notice did not begin")
  def skip_intro(self):
   # The story belongs to both public Play modes; gameplay fixtures skip it
   # with a fresh Start press after the original half-second input guard.

@@ -139,6 +139,11 @@ test: all
 	.venv/bin/python tests/test_emerge_runtime.py
 	.venv/bin/python tests/test_checkpoint.py
 	.venv/bin/python tests/test_checkpoint_runtime.py
+	.venv/bin/python tests/test_round_ready_runtime.py
+	.venv/bin/python tests/test_feedback_runtime.py
+	.venv/bin/python tests/test_boot_memory_runtime.py
+	.venv/bin/python tests/test_stack_margin_runtime.py
+	.venv/bin/python tests/test_round8_hidden_input_runtime.py
 	.venv/bin/python tests/test_progress.py
 	.venv/bin/python tests/test_progress_runtime.py
 	.venv/bin/python tests/test_restart_runtime.py

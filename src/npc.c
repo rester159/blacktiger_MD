@@ -87,7 +87,15 @@ static void sequence_step(void) {
             npc_sequence.complete=1;
             game.actors[game.rescue_actor].state=2;
             animation_reset(&npc_animation[game.rescue_actor]);
-            game.mode=e->value?SHOP:PLAY;game.shop_item=0;break;
+            game.mode=e->value?SHOP:PLAY;game.shop_item=0;
+            if(e->value) {
+                u16 i;
+                for(i=0;i<MAX_ACTORS;i++)if(game.actors[i].active && pair_kinds[game.actors[i].def]) {
+                    game.spawned[game.actors[i].source]=2;
+                    game.actors[i].active=0;
+                }
+            }
+            break;
         }
     }
     ++npc_sequence.tick;
