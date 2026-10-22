@@ -1021,6 +1021,10 @@ static void game_tick_step(u16 input) {
         s16 left=boss_room_left+8,right=boss_room_right-32;
         if(p->x<(s32)left*FX){p->x=(s32)left*FX;if(p->vx<0)p->vx=0;}
         if(p->x>(s32)right*FX){p->x=(s32)right*FX;if(p->vx>0)p->vx=0;}
+        /* Clipping is a horizontal correction, not a teleport. Keep the
+           controller origin aligned so the next tick retains jump/gravity
+           and button history instead of launching another jump. */
+        player_motion.scroll_x=PX(p->x)-player_motion.screen_x;
     }
     pots_tick(bosses);
     if(loot_active_end)loot_tick();

@@ -71,7 +71,7 @@ for kind in (0,1):
    keys[kind][key]=qlookup[q]
   else:keys[kind][key]=tile(pix,mask,1)|0x8000
 print('patterns',len(patterns),'quads',len(quads),flush=True)
-assert len(patterns)+16<=1280,('attract exceeds terrain VRAM',len(patterns))
+assert len(patterns)+16<=1277,('attract exceeds terrain VRAM',len(patterns))
 # State: scroll x/y, rank flag, sprite enable, 512 background metatiles,
 # 896 text words, 512 sprite bytes. Display pixels retain arcade positions.
 SIZE=6+1024+1792+512

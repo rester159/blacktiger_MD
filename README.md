@@ -1,4 +1,4 @@
-# Black Tiger MD — source-only v1.9
+# Black Tiger MD — source-only v1.9.1
 
 Arcade now opens into the original ranking/title/demo sequence. Its Top 5 and title header display SRAM-backed records; demo playback cannot earn scores, overwrite initials, or spend credits. Press Start to insert a coin, A to start, Up/Down for DIP switches, and B to return to the mode selector. Arcade returns to attract after game over (and after confirming qualifying initials).
 
@@ -6,7 +6,7 @@ The attract presentation replays an observed original arcade cycle with native t
 
 The title displays the live SRAM high score. Select HIGH SCORES below Arcade/Home to view five saved records; Left/Right switches between independent Arcade, Home, and Boss Rush tables. Qualifying runs offer three-letter initials (Up/Down changes a letter, A advances or confirms, B returns to the previous letter). Existing v1.4–v1.6 high scores migrate automatically; interrupted saves can recover the previous record.
 
-Enable battery/save RAM in your emulator. When moving to the v1.9 ROM filename, copy the previous battery save to the new filename so the emulator loads it. Options and DIP switches save to SRAM. Debug sessions do not enter the score tables.
+Enable battery/save RAM in your emulator. When moving to the v1.9.1 ROM filename, copy the previous battery save to the new filename so the emulator loads it. Options and DIP switches save to SRAM. Debug sessions do not enter the score tables.
 
 US shop prices are weapons 100/1000/2400/9600, armor 80/300/800/1600, key 30, and antidote 150; combat difficulty does not change this catalog. Dialogue draws over overlapping world sprites. Chest trap flames draw in front of their chest.
 
@@ -53,7 +53,7 @@ Open the locally built `out/release/rom.bin` in a Genesis emulator. The original
 
 ## Release version and optional private boot logos
 
-`VERSION` is the release version (currently `1.9`). The asset generator draws the
+`VERSION` is the release version (currently `1.9.1`). The asset generator draws the
 small title stamp from this file, and `tools/package.py` uses it for the default
 `blacktiger_MD_v<version>.bin` filename. Changing it invalidates the asset cache.
 The stamp accepts numeric `major.minor` versions that fit its 16-pixel slot;

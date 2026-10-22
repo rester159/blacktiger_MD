@@ -122,7 +122,7 @@ void attract_video(void){
  for(y=0;y<28;y++)if(text_dirty&(1UL<<y)){
   u16 row[32];for(x=0;x<32;x++)row[x]=word(FG+(y*32+x)*2);
   saved_row(row,y);
-  if(y==27){row[0]=0x6000|1278;row[1]=0x6000|1279;}
+  if(y==27){row[0]=0x6000|1277;row[1]=0x6000|1278;row[2]=0x6000|1279;}
   VDP_setTileMapDataRow(BG_A,row,y,0,32,initial?CPU:DMA_QUEUE_COPY);
  }
  text_dirty=0;

@@ -114,21 +114,21 @@ out+=binary('home_md_tiles',b''.join(md_tiles))+array('home_md_map','u16',map(st
 Image.fromarray(md_preview).save(ROOT/'res/generated/home_md_logo.png')
 # Tiny version stamp (e.g. v1.7) drawn from VERSION, independent of the arcade's 8x8 menu font.
 VERSION_TEXT=(ROOT/'VERSION').read_text().strip()
-assert re.fullmatch(r'\d+\.\d+',VERSION_TEXT),f'VERSION must look like 1.7, got {VERSION_TEXT!r}'
+assert re.fullmatch(r'\d+\.\d+(?:\.\d+)?',VERSION_TEXT),f'VERSION must look like 1.9 or 1.9.1, got {VERSION_TEXT!r}'
 STAMP_GLYPHS={'v':(4,['101','101','010']),'.':(6,['1']),
  '0':(2,['111','101','101','101','111']),'1':(2,['010','110','010','010','111']),'2':(2,['111','001','111','100','111']),
  '3':(2,['111','001','011','001','111']),'4':(2,['101','101','111','001','001']),'5':(2,['111','100','111','001','111']),
  '6':(2,['111','100','111','101','111']),'7':(2,['111','001','010','010','010']),'8':(2,['111','101','111','101','111']),
  '9':(2,['111','101','111','001','111'])}
-version=np.zeros((8,16),np.uint8);x=0
+version=np.zeros((8,24),np.uint8);x=0
 for ch in 'v'+VERSION_TEXT:
  y,rows=STAMP_GLYPHS[ch];w=len(rows[0])
- assert x+w<=16,f'version stamp v{VERSION_TEXT} is wider than its 16-pixel slot'
+ assert x+w<=24,f'version stamp v{VERSION_TEXT} is wider than its 24-pixel slot'
  for dy,row in enumerate(rows):
   for dx,bit in enumerate(row):version[y+dy,x+dx]=15 if bit=='1' else 0
  x+=w+1
-out+=binary('title_version_tiles',pack(version[:,:8])+pack(version[:,8:]))
-out+=array('title_version_map','u16',[0xe000|16+len(tiles)+len(md_tiles),0xe000|17+len(tiles)+len(md_tiles)])
+out+=binary('title_version_tiles',b''.join(pack(version[:,i:i+8]) for i in range(0,24,8)))
+out+=array('title_version_map','u16',[0xe000|16+len(tiles)+len(md_tiles)+i for i in range(3)])
 
 # User-supplied pixel art: sample the original 16x16 grid, keeping hard edges.
 yashichi_path=ROOT/'art/yashichi.png'
@@ -149,7 +149,7 @@ report=dict(source_set=source.lock['aggregate_sha256'],source_png_sha256=hashlib
 report['home_md']={'source_sha256':hashlib.sha256(concept_path.read_bytes()).hexdigest(),'rectangle':[96,104,64,32],'tiles':len(md_tiles),'original_palette_unchanged':True,'home_only':True}
 report['menu_font']={'glyph_pixels':[8,8],'advance_pixels':8,'scale':1.0,'requested_scale':1.0,'scope':'Original full-size arcade lettering in all menu options and Capcom/Rester footers; Home, settings, Debug and level selection use two columns.'}
 report['home_cursor']={'source_sha256':hashlib.sha256(yashichi_path.read_bytes()).hexdigest(),'pixels':[16,16],'source_grid_crop':[16,14,208,206],'home_only':False,'palette_unchanged':True,'warm_body_color':'red'}
-report['version_stamp']={'text':'v'+VERSION_TEXT,'rectangle':[232,216,16,8]}
+report['version_stamp']={'text':'v'+VERSION_TEXT,'rectangle':[0,216,24,8]}
 (ROOT/'reference/title_graphics.json').write_text(json.dumps(report,indent=2)+'\n')
 print(report)
 

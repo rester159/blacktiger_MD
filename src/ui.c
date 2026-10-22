@@ -26,7 +26,7 @@ static u8 hud_boss_present,hud_boss_fill,hud_boss_stage,hud_credit=255,hud_arcad
 static u8 hud_hp,hud_weapon,hud_armor,hud_keys,hud_antidotes;
 #include "hud_data.inc"
 static void draw(const char *s,u16 x,u16 y){VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),x,y,DMA_QUEUE);}
-#define HOME_CURSOR_TILE (18+TITLE_TILE_COUNT+HOME_MD_TILE_COUNT)
+#define HOME_CURSOR_TILE (19+TITLE_TILE_COUNT+HOME_MD_TILE_COUNT)
 static void cursor(u8 selected,u16 x,u16 y){
  if(selected)VDP_setSpriteFull(0,x*8-2,y*8-4,SPRITE_SIZE(2,2),TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,HOME_CURSOR_TILE),0);
 }
@@ -173,13 +173,13 @@ static void title_load(void){
  PAL_setColors(0,title_palette,64,CPU);
  VDP_loadTileData(title_tiles,16,TITLE_TILE_COUNT,DMA);
  VDP_loadTileData(home_md_tiles,16+TITLE_TILE_COUNT,HOME_MD_TILE_COUNT,DMA);
- VDP_loadTileData(title_version_tiles,16+TITLE_TILE_COUNT+HOME_MD_TILE_COUNT,2,DMA);
+ VDP_loadTileData(title_version_tiles,16+TITLE_TILE_COUNT+HOME_MD_TILE_COUNT,3,DMA);
  VDP_loadTileData(home_cursor_tiles,HOME_CURSOR_TILE,4,DMA);
  VDP_loadTileData(title_font,TILE_FONT_INDEX,96,DMA);
  VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);VDP_updateSprites(1,DMA);
  VDP_setEnable(TRUE);SYS_enableInts();title_ready=1;title_page=255;
 }
-void ui_attract_version(void){VDP_loadTileData(title_version_tiles,1278,2,DMA);}
+void ui_attract_version(void){VDP_loadTileData(title_version_tiles,1277,3,DMA);}
 void ui_title(void){
  if(attract_active()){title_ready=0;attract_video();return;}
  static const char *const coinage[]={"4 COINS:1 CR","3 COINS:1 CR","2 COINS:1 CR","1 COIN:1 CR","1 COIN:2 CR","1 COIN:3 CR","1 COIN:4 CR","1 COIN:5 CR"};
@@ -260,7 +260,7 @@ void ui_title(void){
   if(page==1 && !home && coin_phase)center(23,"INSERT COIN");
   score_number(13,1,high_score);
   center(25,"(C)CAPCOM 1987");center(26,"RESTER159 2026");
-  VDP_setTileMapDataRectEx(BG_A,title_version_map,0,0,27,2,1,2,CPU);
+  VDP_setTileMapDataRectEx(BG_A,title_version_map,0,0,27,3,1,3,CPU);
   {u8 credit=home && page==1?s->credits:frontend.credits;
    draw("CREDIT",23,27);number(credit>9?30:31,27,credit,credit>9?2:1);}
  }

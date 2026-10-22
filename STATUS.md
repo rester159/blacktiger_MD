@@ -1,3 +1,7 @@
+# v1.9.1 release
+
+Boss-arena jump reset fixed; patch-version title stamp supported. All 190 test recipes and strict packaging passed. The v1.9.1 BIN is available locally; itch.io upload is left to the user. See [v1.9.1 release notes](reports/v1.9.1-release.md).
+
 # v1.9 release
 
 Released v1.9 with the title stamp updated, ROM uploaded to itch.io, and the new devlog published with the binary attached. All 189 test recipes and strict packaging passed for the v1.9 binary. The physical PAL/60 Hz and Model 3 reports remain unconfirmed. See [v1.9 release notes](reports/v1.9-release.md).
