@@ -1,3 +1,7 @@
+# v1.9.2 release
+
+Fixed pre-activation invulnerability in Round 5/7 bosses and wrapped Round 3 arena arrivals. All 191 test recipes and strict packaging passed. BIN delivered locally with Git release tag; see [v1.9.2 release notes](reports/v1.9.2-release.md).
+
 # v1.9.1 release
 
 Boss-arena jump reset fixed; patch-version title stamp supported. All 190 test recipes and strict packaging passed. The v1.9.1 BIN is available locally; itch.io upload is left to the user. See [v1.9.1 release notes](reports/v1.9.1-release.md).

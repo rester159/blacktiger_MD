@@ -91,7 +91,7 @@ static u8 support(s16 x, s16 y) {
 }
 static u8 restart_pending,loaded_round=255;
 static u8 boss_room_locked;
-static u16 boss_room_left,boss_room_right;
+static s16 boss_room_left,boss_room_right;
 void game_round(u8 round) {
     round_clear_reset();game_over_reset();
     music_request=0x21+(round&7);
@@ -303,7 +303,7 @@ static void spawn_actors(u8 bosses) {
         if(layered_boss_kinds[s->def] || hunter_kinds[s->def]==2 || waveboss_kinds[s->def] || dragon_kinds[s->def]) {
             /* Do not seal Round 5's doorway while the hero is still inside
                the four-column wall that the source terrain patch installs. */
-            if(game.round==4 && !boss_rush.active && PX(game.p.x)<1160)continue;
+            if(game.round==4 && !boss_rush.active && ((u16)PX(game.p.x)&(r->width-1))<1160)continue;
             world_close_boss();
             music_request=music_boss_commands[game.round];
             zero(game.actors,sizeof game.actors);zero(game.shots,sizeof game.shots);
@@ -1010,8 +1010,11 @@ static void game_tick_step(u16 input) {
        camera position on the frame that happened to activate its boss. */
     boss_room_locked=!boss_rush.active && (game.round==2 || game.round==4) && (bosses&1);
     if(boss_room_locked) {
-        boss_room_left=game.round==2?576:1152;
-        boss_room_right=game.round==2?960:1536;
+        /* Project the room into the player's current horizontal map lap,
+           just like spawned actors. Absolute source coordinates would move
+           a wrapped arrival a whole map-width away from its boss. */
+        boss_room_left=world_near_x(game.round==2?576:1152);
+        boss_room_right=boss_room_left+384;
     }
     if (bosses&2) input=pressed=0;
     player_step(input, pressed);

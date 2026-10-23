@@ -24,7 +24,7 @@ u8 waveboss_hit(u16 slot,u8 damage){
  if(a->hp>damage)a->hp-=damage;else {s->pending=1;s->mode|=3;a->state=1;}return 1;
 }
 void waveboss_screen_attack(u16 slot){Actor *a=&game.actors[slot];if(!a->state){a->life=1;a->hp=1;wavebosses[slot].pending=1;wavebosses[slot].mode|=3;a->state=1;}}
-static u16 activate(Actor *a,WaveBossState *s){s->engaged=1;s->mode=24;a->hp=s->profile?40:16;return waveboss_roots[2];}
+static u16 activate(Actor *a,WaveBossState *s){s->engaged=1;s->mode=24;a->state=0;a->hp=s->profile?40:16;return waveboss_roots[2];}
 static u16 action(WaveBossState *s,u8 choice){return waveboss_roots[6+choice*2+s->left];}
 static u16 choose(Actor *a,WaveBossState *s){
  s16 x=PX(a->x)-game.cam_x,px=PX(game.p.x)-game.cam_x;u16 shifted=(u16)x+32;
