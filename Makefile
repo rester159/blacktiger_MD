@@ -94,6 +94,7 @@ test: all
 	.venv/bin/python tests/test_game_over.py
 	.venv/bin/python tests/test_game_over_runtime.py
 	.venv/bin/python tests/test_round_clear.py
+	.venv/bin/python tests/test_column_clear_runtime.py
 	.venv/bin/python tests/test_round_clear_runtime.py
 	.venv/bin/python tests/test_player_death.py
 	.venv/bin/python tests/test_player_death_runtime.py

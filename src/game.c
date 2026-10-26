@@ -964,7 +964,9 @@ static void game_tick_step(u16 input) {
         if(!round_clear.active) {
             if(player_motion.jumping || player_motion.falling || player_motion.ladder) {
                 player_step(player_motion.ladder?IN_DOWN:0,0);
-                game.cam_x=bound_axis(PX(p->x)-112,0,rounds[game.round].width-256);
+                /* Keep the current horizontal lap while descending to victory.
+                   Absolute map bounds jump the camera after a wrapped approach. */
+                game.cam_x=boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):boss_room_locked?bound_axis(PX(p->x)-112,boss_room_left,boss_room_right-256):(u16)(PX(p->x)-112);
                 game.cam_y=camera_y(PX(p->y)-144);
                 return;
             }

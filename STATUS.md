@@ -1,3 +1,7 @@
+# v1.9.3 release
+
+Fixed the Round 4 victory camera jump when defeating the red imp while hanging from a column after a wrapped approach. All 192 test recipes and strict packaging passed; both column tiers also pass on PicoDrive. See [release notes](reports/v1.9.3-release.md) and [reproduction evidence](reports/round4-column-clear.md).
+
 # v1.9.2 release
 
 Fixed pre-activation invulnerability in Round 5/7 bosses and wrapped Round 3 arena arrivals. All 191 test recipes and strict packaging passed. BIN delivered locally with Git release tag; see [v1.9.2 release notes](reports/v1.9.2-release.md).
