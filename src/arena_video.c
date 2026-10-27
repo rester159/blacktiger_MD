@@ -31,6 +31,9 @@ static void scroll(void){
 void arena_video_restore(u8 shop){
  u16 y,x,row[64];shop_rows=shop;scroll_x=scroll_y=65535;
  for(y=5;y<(shop?14:25);y++){
+  /* Dialogue owns these rows at zero scroll. Do not queue scenery over the
+     CPU-written text: the later DMA flush would expose displaced windows. */
+  if(game.mode==RESCUE && y>=6 && y<10)continue;
   for(x=0;x<64;x++)row[x]=backdrop?backdrop->map[(y-5)*64+x]:arena_far[(y-5)*16+(x&15)];
   VDP_setTileMapDataRow(BG_A,row,y,0,64,DMA_QUEUE_COPY);
  }

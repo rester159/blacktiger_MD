@@ -1,3 +1,7 @@
+# v1.9.4 release
+
+Fix old-man dialogue overwriting the parallax backdrop in Rounds 5 and 7. All 193 test recipes and strict packaging passed. See [release notes](reports/v1.9.4-release.md) and [investigation](reports/itch-dialogue-followup.md).
+
 # v1.9.3 release
 
 Fixed the Round 4 victory camera jump when defeating the red imp while hanging from a column after a wrapped approach. All 192 test recipes and strict packaging passed; both column tiers also pass on PicoDrive. See [release notes](reports/v1.9.3-release.md) and [reproduction evidence](reports/round4-column-clear.md).

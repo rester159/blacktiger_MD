@@ -210,5 +210,6 @@ test: all
 	.venv/bin/python tests/test_hidden_runtime.py
 	.venv/bin/python tests/test_npc_sequence.py
 	.venv/bin/python tests/test_npc_runtime.py
+	.venv/bin/python tests/test_dialogue_backdrop_runtime.py
 clean:
 	$(MAKE) -f $(GDK)/makefile.gen JAVA=$(JAVA) clean
