@@ -1,4 +1,4 @@
-"""Actual NPC contacts in parallax stages: dialogue rows survive queued scenery DMA."""
+"""Actual NPC contacts: intact parallax behind transparent dialogue, plus sprite glyphs."""
 import ctypes as C,hashlib,json,struct,sys
 from test_runtime import ROOT,Runner,state,put
 rom=(ROOT/'out/release/rom.bin').read_bytes()
@@ -33,14 +33,39 @@ def check(level,row):
    stable=stable+1 if page==previous else 0;previous=page
    if stable<6 or int.from_bytes(seq[:2],'big')<8:continue
    cells=struct.unpack_from('>128H',rom,r.symbols['npc_pages']+page*256)
-   expected=struct.pack('>128H',*[glyphs[c] for c in cells])
-   actual=b''.join(read(0xc000+(y+6)*128,64) for y in range(4))
-   assert actual==expected,('scenery overwrote dialogue',level+1,row,page,list(seq),actual[:24].hex(),expected[:24].hex())
+   # The scenery plane must remain byte-for-byte complete, including blank text pages.
+   map_at=struct.unpack_from('>I',rom,r.symbols[f'backdrop_{level}']+16)[0]
+   expected=rom[map_at:map_at+20*128]
+   actual=read(0xc000+5*128,20*128)
+   assert actual==expected,('dialogue erased parallax',level+1,row,page)
+   # Every reserved text tile matches the source glyph, including transparent pens.
+   for i,c in enumerate(cells):
+    tile=glyphs[c]&2047
+    slot=tile-1408 if tile>=1408 else tile-1072+32 if tile>=1072 else tile-1+48
+    expected=rom[r.symbols['npc_dialogue_font']+slot*32:r.symbols['npc_dialogue_font']+(slot+1)*32]
+    assert read((1088+i)*32,32)==expected,('dialogue pattern',level,row,page,i)
+   # Decode the real SAT: all nonblank cells must be covered, with Genesis limits.
+   covered=set();index=0;counts=[0]*224;pixels=[0]*224
+   for _ in range(64):
+    yy,size,link,attr,xx=struct.unpack('>HBBHH',read(0xf400+index*8,8))
+    x=(xx&511)-128;y=(yy&511)-128;w=((size>>2)&3)+1;h=(size&3)+1
+    for scan in range(max(0,y),min(224,y+h*8)):
+     counts[scan]+=1;pixels[scan]+=w*8
+    tile=attr&2047
+    if 1088<=tile<1216:
+     assert attr&0x8000 and (attr>>13)&3==3 and h==1
+     assert (x,y)==((tile-1088)%32*8,48+(tile-1088)//32*8)
+     covered.update(range(tile-1088,tile-1088+w))
+    index=link&127
+    if not index:break
+   assert max(counts)<=16 and max(pixels)<=256,('sprite scanline overflow',max(counts),max(pixels))
+   for i,c in enumerate(cells):
+    if any(read((1088+i)*32,32)):assert i in covered,('missing dialogue cell',level,row,page,i)
    for y in range(5,25):
     scroll=int.from_bytes(read(0xf000+y*32,2),'big')
-    assert scroll==(0 if 6<=y<10 else (-(s.cam_x//2))&65535)
+    assert scroll==(-(s.cam_x//2))&65535
    checked+=1
-   if checked==1:r.capture(f'dialogue-backdrop-{level+1}-{row}.png')
+   if checked==1 or page==1:r.capture(f'dialogue-backdrop-{level+1}-{row}.png')
   assert checked>10 and s.mode in (1,3),('dialogue completion',level,row,checked,s.mode)
   # Shop exit rebuilds scenery; other rewards restore it immediately.
   if s.mode==3:r.run(3,1);r.run(3)

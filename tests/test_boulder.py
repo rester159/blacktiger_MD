@@ -15,10 +15,11 @@ with tempfile.TemporaryDirectory() as folder:
  for(int i=0;i<66;i++)if(boulder_kinds[i])game.actors[0].def=i;
  boulder_spawn(0);boulders[0].segment=boulder_roots[root];}
  void tick(int damage,int *out) {
- if(damage)boulder_hit(0,damage);if(game.actors[0].active)boulder_step(0);
+ game.sound_count=0;if(damage)boulder_hit(0,damage);if(game.actors[0].active)boulder_step(0);
  Actor *a=&game.actors[0];BoulderState *s=&boulders[0];const AnimFrame *f=boulder_frame(0);
  int v[]={a->active,PX(a->x),PX(a->y),s->animation.vx,s->animation.vy,s->fraction,s->animation.remaining,s->bounced,s->damage,a->state,f?f->code:-1,f?f->palette:-1,f?f->flip:-1,a->hp,game.spawned[0],game.score};
  for(int i=0;i<16;i++)out[i]=v[i];}
+int sounds(int *out){for(int i=0;i<game.sound_count;i++)out[i]=game.sound_commands[i];return game.sound_count;}
 ''');(tmp/'stub.c').write_text('\n'.join(stubs))
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/data.c'),str(ROOT/'src/progress.c'),str(tmp/'stub.c'),'-o',str(tmp/'b.dylib')],check=True)
  lib=C.CDLL(str(tmp/'b.dylib'));out=(C.c_int*16)();current=-1;count=0;retired=[]
@@ -26,7 +27,11 @@ with tempfile.TemporaryDirectory() as folder:
   if line=='COMPLETE':break
   _,case,tick,a,display,clear,persist,task=line.split('|');case=int(case);tick=int(tick);a=bytes.fromhex(a);display=bytes.fromhex(display);c=ref['cases'][case]
   if current!=case:lib.setup(c['root_index'],c['px'],c['y']);current=case
+  before=list(out) if tick>1 else None
   lib.tick(c['damage'] if c['hit_tick']==tick else 0,out)
+  sounds=(C.c_int*16)();n=lib.sounds(sounds);commands=list(sounds)[:n]
+  if before and before[14]==1 and out[14]==2:assert commands==[0x3b],('falling cue',commands)
+  if before and not before[7] and out[7]:assert commands==[0x1f],('stop falling at impact',commands)
   assert task in ('0000','0558'),task
   assert out[15]==(300 if task=='0558' else 0),(c['name'],tick,'score',out[15],task)
   assert out[0]==bool(a[0]),(c['name'],tick,'active',out[0],a[0])

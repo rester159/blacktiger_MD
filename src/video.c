@@ -476,6 +476,41 @@ static void body(u16 code, u8 pal, s16 x, s16 y, u8 flip) {
                  sprite_count + 1);
     sprite_count++;
 }
+/* Parallax needs BG_A even in the transparent parts of the dialogue. Render
+   that dialogue as short horizontal sprites, reserving 128 tiles in the actor
+   cache only while rescue freezes gameplay. Text precedes actors in the SAT. */
+static u8 sprite_dialogue_active,sprite_dialogue_page=255;
+static const u32 *dialogue_pattern(u16 cell){
+    u16 tile=npc_dialogue_glyphs[cell]&2047;
+    u16 slot=tile>=1408?tile-1408:tile>=1072?tile-1072+32:tile-1+48;
+    return npc_dialogue_font+slot*8;
+}
+static u8 dialogue_blank(u16 cell){
+    const u32 *p=dialogue_pattern(cell);u16 i;
+    for(i=0;i<8;i++)if(p[i])return 0;
+    return 1;
+}
+static void dialogue_sprites(void){
+    const u16 *page=npc_dialogue();u16 y,x,i;
+    for(i=0;i<32;i++)sprite_stamp[i]=epoch;
+    if(sprite_dialogue_page!=npc_sequence.page){
+        u32 tiles[32];
+        for(i=0;i<128;i+=4){
+            for(x=0;x<4;x++)memcpy(tiles+x*8,dialogue_pattern(page[i+x]),32);
+            VDP_loadTileData(tiles,SPR_BASE+i,4,DMA_QUEUE_COPY);
+        }
+        video_dma_bytes+=4096;sprite_dialogue_page=npc_sequence.page;
+    }
+    for(y=0;y<4;y++)for(x=0;x<32;){
+        u16 start,width;
+        if(dialogue_blank(page[y*32+x])){x++;continue;}
+        start=x;while(x<32 && x<start+4 && !dialogue_blank(page[y*32+x]))x++;
+        width=x-start;
+        sprite_entry(sprite_count,start*8,48+y*8,SPRITE_SIZE(width,1),
+                     TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,SPR_BASE+y*32+start),sprite_count+1);
+        sprite_count++;line_count[y+6]+=(width+1)/2;
+    }
+}
 static void sprites(void) {
     Player *p = &game.p;
     u16 i;
@@ -495,6 +530,13 @@ static void sprites(void) {
         memset(body_stamp, 0, sizeof body_stamp);
     }
     memset(line_count, 0, sizeof line_count);
+    {u8 active=arena_video_sprite_dialogue();
+    if(active!=sprite_dialogue_active){
+        memset(sprite_keys,255,sizeof sprite_keys);memset(body_keys,255,sizeof body_keys);
+        memset(sprite_slot_for_key,255,sizeof sprite_slot_for_key);
+        sprite_dialogue_active=active;sprite_dialogue_page=255;
+    }
+    if(active)dialogue_sprites();}
     if(game.mode==CLEAR && round_clear.phase==2) {
         /* The hero has departed before the Zenny award. */
     } else if(clear && !clear->hold) {
@@ -630,7 +672,7 @@ static void sprites(void) {
     }
     /* High-priority sprites win over high-priority dialogue tiles. Lower only
        sprites crossing the message band, leaving normal gameplay untouched. */
-    if(game.mode==RESCUE)for(i=0;i<sprite_count;i++){
+    if(game.mode==RESCUE && !arena_video_sprite_dialogue())for(i=0;i<sprite_count;i++){
         VDPSprite *sprite=&vdpSpriteCache[i];s16 top=(sprite->y&511)-128;
         if(top<80 && top+((sprite->size&3)+1)*8>48)sprite->attribut&=0x7fff;
     }
@@ -669,7 +711,7 @@ static void overlay(void) {
     if(!clear_screen_active && !ending_screen_active)ui_hud();
     if(ready && changed)ui_ready(game.round,game.p.lives);
     VDP_setTextPlane(BG_A);
-    if(m==RESCUE && (changed || last_npc_page!=npc_sequence.page)) {
+    if(m==RESCUE && !arena_video_sprite_dialogue() && (changed || last_npc_page!=npc_sequence.page)) {
         u16 i,tiles[128];const u16 *page=npc_dialogue();
         if(changed){
             VDP_loadTileData(npc_dialogue_font,1408,NPC_FONT_TILES>32?32:NPC_FONT_TILES,DMA);
@@ -735,7 +777,7 @@ __attribute__((noinline)) static void reload_round(void) {
     terrain_map=boss_rush.active?arena_video_map():rounds[game.round].map;
     terrain_patterns=boss_rush.active?arena_video_pattern(0):rounds[game.round].patterns;
     terrain_slots=terrain_backdrop?(game.round==3?640:684):boss_rush.active?828:BG_SLOTS;
-    shop_screen_active=0;
+    shop_screen_active=0;sprite_dialogue_active=0;sprite_dialogue_page=255;
     clear_screen_active=ending_screen_active=0;
     terrain_state();
     u16 i;for(i=0;i<4;i++)torch_phase[i]=bonus_phases[i];

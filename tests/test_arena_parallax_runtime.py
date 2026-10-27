@@ -1,5 +1,5 @@
 """Hardware scroll ratios, fixed HUD, window masks and mode transitions."""
-import ctypes as C,json,hashlib,numpy as np
+import ctypes as C,json,hashlib,struct,numpy as np
 from test_runtime import ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100)
 for key in (32,8,32,8):r.run(12,key);r.run(12)
@@ -62,15 +62,26 @@ s=state(r);s.round=4;s.mode=4;s.mode_timer=0;put(r,s);r.run(80)
 s=state(r);s.mode=2;put(r,s);r.run(30)
 assert state(r).round==4 and r.read('arena_video_active',1)==b'\1'
 v=(C.c_uint8*65536).in_dll(r.lib,'vram')
-# Round 5 rescue text shares the parallax plane. Its four text rows must stay
-# fixed while surrounding scenery keeps the half-speed camera motion.
-s=state(r);s.mode=8;s.cam_x=832;put(r,s);r.run(30)
+# Round 5 rescue text uses sprites. The full scenery plane keeps half-speed
+# camera motion, while text sprite positions remain fixed on screen.
+s=state(r);s.mode=8;s.cam_x=832;put(r,s)
+r.write('npc_sequence',0,struct.pack('>HHHBB',100,0,0,1,1));r.run(30)
 assert state(r).mode==8 and state(r).round==4
 for row in range(28):
- expected=0 if 6<=row<10 else ((-832//2)&65535 if 5<=row<25 else 0)
+ expected=(-832//2)&65535 if 5<=row<25 else 0
  assert word(0xf000+row*32)==expected,('rescue text scroll',row,hex(word(0xf000+row*32)))
+def dialogue_sat():
+ entries=[];slot=0
+ for _ in range(64):
+  at=0xf400+slot*8;attr=word(at+4)
+  if 1088<=attr&2047<1216:entries.append((word(at+6),word(at),attr))
+  slot=word(at+2)&127
+  if not slot:break
+ return entries
+fixed=dialogue_sat();assert fixed,'missing dialogue sprites'
 s=state(r);s.cam_x=848;put(r,s);r.run(30)
-for row in range(6,10):assert word(0xf000+row*32)==0,('dialogue moved with camera',row)
+for row in range(6,10):assert word(0xf000+row*32)==(-848//2)&65535,('scenery stopped during dialogue',row)
+assert dialogue_sat()==fixed,'dialogue moved with camera'
 assert word(0xf000+5*32)==(-848//2)&65535 and word(0xf000+10*32)==(-848//2)&65535,'surrounding parallax stopped during rescue'
 s=state(r);s.mode=2;put(r,s);r.run(12)
 r.close()

@@ -31,13 +31,14 @@ __attribute__((noinline)) static void boulder_transition(u16 slot) {
   switch(seg->event) {
   case 0:
    if((u8)(PX(game.p.x)+64-PX(a->x))<128) {
-    s->animation.vy=0;s->fraction=0;game.spawned[a->source]=2;game.sound=SND_ATTACK;target=seg->next[1];
+    s->animation.vy=0;s->fraction=0;game.spawned[a->source]=2;game_sound(0x3b);target=seg->next[1];
    }
    break;
   case 1: {
    u8 tile=terrain(PX(a->x)+16,PX(a->y)+32);
    if(s->animation.vy>=0 && (tile==2 || tile==3)) {
     if(!s->bounced) {
+     game_sound(0x1f); /* End the sustained falling cue at first impact. */
      s->bounced=1;s->damage=boulder_bounce_damage;s->animation.vy=-3;
      s->animation.vx=(u8)PX(game.p.x)<(u8)PX(a->x)?-1:1;
     } else s->animation.vy=-2;

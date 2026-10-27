@@ -5,6 +5,7 @@
 #include "backdrop.h"
 #include "arena_parallax_data.inc"
 u8 arena_video_active;
+u8 arena_video_sprite_dialogue(void){return arena_video_active && game.mode==RESCUE && (game.round==4 || game.round==6);}
 static u8 shop_rows;
 static const Backdrop *backdrop;
 static s16 previous_x;
@@ -22,7 +23,7 @@ static void scroll(void){
   near[y]=-(s16)game.cam_x;
   /* Hold dialogue rows still during rescue; level 5 shares this plane with
      half-speed parallax, which otherwise displaces centered text. */
-  far[y]=y>=5 && y<(shop_rows?14:25) && !(game.mode==RESCUE && y>=6 && y<10)?-(s16)(game.cam_x/2):0;
+  far[y]=y>=5 && y<(shop_rows?14:25) && !(game.mode==RESCUE && !arena_video_sprite_dialogue() && y>=6 && y<10)?-(s16)(game.cam_x/2):0;
  }
  VDP_setHorizontalScrollTile(BG_B,0,near,28,DMA_QUEUE_COPY);
  VDP_setHorizontalScrollTile(BG_A,0,far,28,DMA_QUEUE_COPY);
@@ -33,7 +34,7 @@ void arena_video_restore(u8 shop){
  for(y=5;y<(shop?14:25);y++){
   /* Dialogue owns these rows at zero scroll. Do not queue scenery over the
      CPU-written text: the later DMA flush would expose displaced windows. */
-  if(game.mode==RESCUE && y>=6 && y<10)continue;
+  if(game.mode==RESCUE && !arena_video_sprite_dialogue() && y>=6 && y<10)continue;
   for(x=0;x<64;x++)row[x]=backdrop?backdrop->map[(y-5)*64+x]:arena_far[(y-5)*16+(x&15)];
   VDP_setTileMapDataRow(BG_A,row,y,0,64,DMA_QUEUE_COPY);
  }

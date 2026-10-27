@@ -18,7 +18,9 @@ void bonus_tick(void){
 void bonus_reset(u8 preserve) {
  const BonusRound *r=&bonus_rounds[game.round];u16 i,shift=rounds[game.round].width==2048?7:6;
  for(i=0;i<16;i++)patch_keys[i]=65535;
- bonus_animation_reset();bonus_entered=0;if(!preserve)bonus_consumed=0;
+ bonus_animation_reset();if(!preserve)bonus_consumed=0;
+ /* Used entrances stay sealed across life restarts, just like their contact latch. */
+ bonus_entered=preserve && bonus_consumed!=0;
  {u16 row,next=0;for(row=0;row<128;row++){bonus_row_start[row]=next;while(next<r->count && (r->patches[next].cell>>shift)==row)next++;bonus_rows[row]=next!=bonus_row_start[row];}bonus_row_start[128]=next;}
  (void)i;
 }

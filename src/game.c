@@ -551,7 +551,11 @@ __attribute__((noinline)) static void actor_step_fallback(u16 i) {
     close=actor_contact(i);
     if (sentry_kinds[a->def]) {
         sentry_step(i);
-        if (a->active && !a->state && close) player_hurt_from(actor_damage[a->def],PX(a->x));
+        if (a->active && !a->state && close) {
+            /* Source contact 0x26 poisons before the zero-damage hurt callback. */
+            status_poison_contact();
+            player_hurt_from(actor_damage[a->def],PX(a->x));
+        }
         return;
     }
     if (skeleton_kinds[a->def] != 255) {

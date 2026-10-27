@@ -1,3 +1,7 @@
+# v1.9.5 release
+
+Addresses ZeroVolt's [27 October follow-up](https://itch.io/post/17726092): intact Round 5/7 scenery during dialogue, restored snake poison, falling-rock sound and used bonus-door persistence after death. VERSION and the title screen are 1.9.5. All 194 test recipes and strict packaging passed. The BIN is `dist/blacktiger_MD_v1.9.5.bin`; SHA256 `1441cd39a1a3d04c19fc8cc3fcc1de83079af10dd17b2c607063ed05931e467e`. Physical hardware remains untested. No devlog. See [investigation](reports/itch-dialogue-followup.md).
+
 # v1.9.4 release
 
 Fix old-man dialogue overwriting the parallax backdrop in Rounds 5 and 7. All 193 test recipes and strict packaging passed. See [release notes](reports/v1.9.4-release.md) and [investigation](reports/itch-dialogue-followup.md).
