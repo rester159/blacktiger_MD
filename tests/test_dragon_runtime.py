@@ -23,10 +23,16 @@ for profile,constructor in enumerate((0x8000,0x991d,0x9b24)):
   # The AI phase reached by the live attack sample varies with cadence.
   # Put the controlled weak point in open terrain, so this checks boss damage
   # rather than a projectile discarded against a solid background tile.
-  collision=(ROOT/f'res/generated/collision{level}.bin').read_bytes()
+  collision=bytearray((ROOT/f'res/generated/collision{level}.bin').read_bytes())
+  linked=(ROOT/'out/release/rom.bin').read_bytes()
+  ptr,count=struct.unpack_from('>IH',linked,r.symbols['boss_terrain']+level*6)
+  for i in range(count):
+   cell=struct.unpack_from('>H',linked,ptr+i*12)[0]
+   collision[cell]=linked[ptr+i*12+10]
   width=json.loads((ROOT/'reports/assets.json').read_text())['rounds'][level]['width']//16
-  while collision[((a.y//256+24+weaky)//16)*width+(a.x//256+56+weakx)//16]==3:
-   a.y+=16*256
+  # Keep the final dragon above its palace floor constraint as well.
+  candidates=range(32,177,16) if profile==2 else range(a.y//256,a.y//256+256,16)
+  a.y=next(y for y in candidates if collision[((y+24+weaky)//16)*width+((a.x//256+56+weakx)//16)%width]!=3)*256
   s.p.y=a.y;s.cam_y=max(0,a.y//256-96)
   for q in s.shots:q.active=0
   q=s.shots[0];q.active=1;q.enemy=0;q.life=30;q.damage=8;q.kind=kind;q.vx=q.vy=0;q.x=a.x+(56+weakx)*256;q.y=a.y+(24+weaky)*256
@@ -36,6 +42,9 @@ for profile,constructor in enumerate((0x8000,0x991d,0x9b24)):
    if not state(r).shots[0].active:break
   assert state(r).actors[slot].hp==80-damage,(profile,kind,state(r).actors[slot].hp)
  s=state(r);s.mode=2;put(r,s);r.run(20);raw=bytearray(r.read('dragons',20*24));struct.pack_into('>H',raw,slot*20+2,1);r.write('dragons',0,raw)
+ # Keep all restored closure terrain active through every recovery/layer.
+ # Round 6 previously stalled at Y=63 when generic terrain clipping stopped
+ # the source downward recovery before its viewport Y>=112 callback.
  initial=s.actors[slot].life
  for layer in range(initial):
   for _ in range(2400):

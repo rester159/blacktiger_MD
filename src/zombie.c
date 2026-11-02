@@ -5,6 +5,7 @@
 #include "missile.h"
 #include "sentry.h"
 typedef struct {AnimState animation;u16 segment;u8 left,cycles,fraction,vulnerable,pending,thrown;} ZombieState;
+enum { ZOMBIE_CONTACT = 1, ZOMBIE_WEAPON = 2 };
 static ZombieState zombies[MAX_ACTORS];
 static u8 spawn_delay[160];
 void zombie_reset(void) {u16 i;for(i=0;i<160;i++)spawn_delay[i]=0;}
@@ -45,7 +46,8 @@ void zombie_spawn(u16 slot) {
  s->left=s->fraction=s->vulnerable=s->pending=s->thrown=0;s->cycles=variant(slot)==2?spitter_lifetime:variant(slot)?thrower_lifetime:zombie_lifetime;
  game.actors[slot].state=0;game.actors[slot].hp=variant(slot)==2?spitter_health:variant(slot)?thrower_health:1;
 }
-u8 zombie_vulnerable(u16 slot) {return zombies[slot].vulnerable && !game.actors[slot].state;}
+u8 zombie_vulnerable(u16 slot) {return (zombies[slot].vulnerable & ZOMBIE_WEAPON) && !game.actors[slot].state;}
+u8 zombie_contact_enabled(u16 slot) {return (zombies[slot].vulnerable & ZOMBIE_CONTACT) && !game.actors[slot].state;}
 u8 zombie_hit(u16 slot,u8 damage) {
  Actor *a=&game.actors[slot];
  if (!zombie_kinds[a->def]) return 0;
@@ -93,8 +95,9 @@ __attribute__((noinline)) static void zombie_transition(u16 slot) {
    a->vx=(s16)s->animation.vx*FX;a->vy=(s16)s->animation.vy*FX;a->x+=a->vx;a->y+=a->vy;return;
   }
   switch(seg->event) {
-  case 0:s->vulnerable=0;break;
-  case 1:s->vulnerable=1;break;
+  /* Source mode 0x0A permits weapons while body contact is disabled. */
+  case 0:s->vulnerable=ZOMBIE_WEAPON;break;
+  case 1:s->vulnerable=ZOMBIE_WEAPON|ZOMBIE_CONTACT;break;
   case 2:target=face(slot,1);break;
   case 3:
    if (!--s->cycles) {target=hide(slot);}

@@ -137,3 +137,13 @@ by3 and subsequently reads misaligned frame bytes. The native port deliberately
 discards that orb without damage instead; cartridge tests verify both available/full
 contact outcomes. This is distinct from the correctly traced full-pool terrain/weapon
 impact path at9E69, whose zero-duration frame is preserved.
+
+## v1.9.6 closure regression
+
+Restored Round 6 terrain exposed a port-only vertical boss clip: the dragon
+remained at Y=63 in downward segment 42 with recovery=2 and mode=27. The
+source fixed 4076–408B adds signed VY directly to Y; callback 8178 waits for
+viewport Y>=112. Generic terrain clipping now leaves dragon vertical movement
+to that controller. Horizontal room clipping and the existing final-palace
+floor constraint are unchanged. The linked dragon test retains active closure
+terrain while exercising every health layer.

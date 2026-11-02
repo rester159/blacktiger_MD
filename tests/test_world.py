@@ -34,7 +34,7 @@ void convert(u8 level,u8 mask,const u16 *map,const u8 *col,u16 *out,u8 *collisio
   source=(C.c_uint16*len(values))(*values);collision=(C.c_uint8*8192).from_buffer_copy(col);out=(C.c_uint16*len(values))();cout=(C.c_uint8*8192)()
   line=re.search(r'const u16 open_tile'+str(level)+r'\[\]=\{([^}]+)\}',(ROOT/'src/data.c').read_text())[1];opened=list(map(int,line.split(',')))
   closure={}
-  if level in (2,4):
+  if level in (2,3,4,5,6,7):
    writes=boss_writes(Source(),level)
    rows=re.findall(r'\{(\d+),\{([\d,]+)\},(\d+),0\}',re.search(r'const BossTerrainPatch boss_terrain_patches'+str(level)+r'\[\]=\{(.*?)\};',(ROOT/'src/data.c').read_text())[1])
    compiled={int(cell):(list(map(int,words.split(','))),int(col)) for cell,words,col in rows}

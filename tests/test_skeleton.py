@@ -7,8 +7,11 @@ sys.path.insert(0,str(ROOT/'tools'))
 from arcade_source import Source
 source=Source()
 profiles=json.loads((ROOT/'reference/skeleton.json').read_text())['profiles']
-reference=json.loads((ROOT/'reference/skeleton_oracle.json').read_text())
-assert hashlib.sha256((ROOT/'reference/skeleton_oracle_events.txt').read_bytes()).hexdigest()==reference['trace_sha256']
+# Optional fresh arcade capture for focused approach-distance investigations.
+reference_path=Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'reference/skeleton_oracle.json'
+events_path=reference_path.with_name(reference_path.stem+'_events.txt')
+reference=json.loads(reference_path.read_text())
+assert hashlib.sha256(events_path.read_bytes()).hexdigest()==reference['trace_sha256']
 assert hashlib.sha256((ROOT/'tools/skeleton_oracle.lua').read_bytes()).hexdigest()==reference['lua_sha256']
 with tempfile.TemporaryDirectory() as tmp:
  tmp=Path(tmp);(tmp/'genesis.h').write_text('/* Host-only types come from game.h. */\n')
@@ -46,7 +49,7 @@ void tick(int damage,int *out) {
  (tmp/'stubs.c').write_text('\n'.join(stubs))
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),str(ROOT/'src/animation.c'),str(ROOT/'src/loot.c'),str(ROOT/'src/data.c'),str(ROOT/'src/progress.c'),str(tmp/'stubs.c'),'-o',str(tmp/'sk.dylib')],check=True)
  lib=C.CDLL(str(tmp/'sk.dylib'));out=(C.c_int*23)();current=-1;comparisons=0;weapon_frames=0
- for line in (ROOT/'reference/skeleton_oracle_events.txt').read_text().splitlines():
+ for line in events_path.read_text().splitlines():
   if line=='COMPLETE':break
   _,case_id,tick,a,display,weapon,persistence=line.split('|');case_id=int(case_id);tick=int(tick);a=bytes.fromhex(a);display=bytes.fromhex(display);c=reference['cases'][case_id]
   if current!=case_id:
@@ -84,4 +87,4 @@ void tick(int damage,int *out) {
     contact_checks+=1
   assert lib.weapon_contact(0,0,0,1)==0 and lib.weapon_contact(0,0,1,0)==0
 report={'weapon_mask_boundary_check':True,'weapon_contact_checks':contact_checks,'passed':True,'cases':len(reference['cases']),'tick_comparisons':comparisons,'weapon_frame_comparisons':weapon_frames,'trace_sha256':reference['trace_sha256'],'scope':reference['scope']+' Excludes random loot and player hitbox geometry.'}
-(ROOT/'reports/skeleton-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+(Path(sys.argv[2]) if len(sys.argv)>2 else ROOT/'reports/skeleton-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

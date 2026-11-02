@@ -31,6 +31,9 @@ def run_case(kind,defs):
  else:raise AssertionError(('source spawn/contact not reached',kind))
  assert s.rescue_kind==kind and s.actors[s.rescue_actor].definition==d
  actor=s.rescue_actor;before_time=s.time;before_hp=s.p.hp
+ # Arcade fixed 5F02 marks every non-repeatable NPC consumed on contact,
+ # before dialogue/reward/departure. Bonus cleanup clears only the active bit.
+ assert bool(s.spawned[row]&2)==(kind!=8),('contact persistence',kind,s.spawned[row])
  vram=(C.c_ubyte*65536).in_dll(r.lib,'vram')
  def read(at,n):return bytes(vram[(at+i)^1] for i in range(n))
  glyphs=struct.unpack('>2048H',(ROOT/'res/generated/npc_dialogue_glyphs.bin').read_bytes())

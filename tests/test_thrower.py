@@ -6,6 +6,8 @@ from arcade_source import Source
 source=Source()
 ref=json.loads((ROOT/'reference/thrower_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/thrower_oracle_events.txt'),('lua_sha256','tools/thrower_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
+def not_mode_bit0(a):return not (a[12]&1)
+
 with tempfile.TemporaryDirectory() as folder:
  tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text()
  stubs=['#include "assets.h"','Game game;','static int wall;','u8 terrain(s16 x,s16 y){return y>=160 || (wall && x>=160 && x<176 && y>=wall)?3:0;}','#include "'+str(ROOT/'src/zombie.c')+'"']
@@ -29,7 +31,7 @@ with tempfile.TemporaryDirectory() as folder:
  void tick(int damage,int shot_hit,int *out) {
  if(damage)zombie_hit(0,damage);if(shot_hit)missile_hit(0,1);missile_tick();if(game.actors[0].active)zombie_step(0);
  Actor *a=&game.actors[0];ZombieState *s=&zombies[0];const AnimFrame *f=zombie_frame(0);
- int v[]={a->active,PX(a->x),PX(a->y),s->animation.vx,s->animation.vy,s->fraction,s->animation.remaining,s->left,s->cycles,s->vulnerable,f?f->code:-1,f?f->palette:-1,f?f->flip:-1,game.spawned[0],s->thrown,a->hp};
+ int v[]={a->active,PX(a->x),PX(a->y),s->animation.vx,s->animation.vy,s->fraction,s->animation.remaining,s->left,s->cycles,zombie_contact_enabled(0),f?f->code:-1,f?f->palette:-1,f?f->flip:-1,game.spawned[0],s->thrown,a->hp};
  for(int i=0;i<16;i++)out[i]=v[i];}
 ''')
  (tmp/'stub.c').write_text('\n'.join(stubs))
@@ -45,6 +47,7 @@ with tempfile.TemporaryDirectory() as folder:
    flip=(a[5]>>3)&1;code=(display[0]-flip)|((a[5]&224)<<3)
    expected=[1,int.from_bytes(a[1:3],'big',signed=True),int.from_bytes(a[3:5],'big',signed=True),signed(a[6]),signed(a[7]),a[18],a[10],a[20],a[32],int(not(a[12]&2)),code,a[5]&7,flip]
    assert list(out)[:13]==expected,(c['name'],tick,list(out),expected)
+   assert bool(lib.zombie_vulnerable(0))==not_mode_bit0(a), (c['name'],tick,'weapon gate',a[12])
   else:assert not out[0],(c['name'],tick,'retirement')
   assert out[13]!=2 and not(int(persist,16)&2),(c['name'],tick,'recurring persistence',out[13],persist)
   assert out[14]==a[33] and out[15]==a[14],(c['name'],tick,'throw/health',out[14],out[15],a[33],a[14])

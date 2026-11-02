@@ -8,5 +8,6 @@ void zombie_spawn(u16 slot);
 u8 zombie_hit(u16 slot,u8 damage);
 void zombie_step(u16 slot);
 u8 zombie_vulnerable(u16 slot);
+u8 zombie_contact_enabled(u16 slot);
 const AnimFrame *zombie_frame(u16 slot);
 #endif

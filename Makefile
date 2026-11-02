@@ -118,6 +118,7 @@ test: all
 	.venv/bin/python tests/test_weapon_runtime.py
 	.venv/bin/python tests/test_zombie.py
 	.venv/bin/python tests/test_zombie_runtime.py
+	.venv/bin/python tests/test_undead_emergence_runtime.py
 	.venv/bin/python tests/test_thrower.py
 	.venv/bin/python tests/test_thrower_runtime.py
 	.venv/bin/python tests/test_spitter.py
@@ -210,6 +211,7 @@ test: all
 	.venv/bin/python tests/test_hidden_runtime.py
 	.venv/bin/python tests/test_npc_sequence.py
 	.venv/bin/python tests/test_npc_runtime.py
+	.venv/bin/python tests/test_npc_bonus_persistence_runtime.py
 	.venv/bin/python tests/test_dialogue_backdrop_runtime.py
 	.venv/bin/python tests/test_itch_followup_runtime.py
 clean:

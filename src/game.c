@@ -654,7 +654,7 @@ __attribute__((noinline)) static void actor_common_step(u16 i) {
             game.spawned[a->source]&=254;a->active=0;return;
         }
         zombie_step(i);
-        if((game.frame&1) && zombie_vulnerable(i) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
+        if((game.frame&1) && zombie_contact_enabled(i) && actor_contact(i))player_hurt_from(actor_damage[a->def],PX(a->x));
     }
 }
 /* Dispatch before entering the register-heavy native family routines. In
@@ -697,6 +697,10 @@ static void boss_wall_clip(Actor *a,s32 old_x,s32 old_y) {
     width=is_dragon?128:is_wave?64:32;height=is_dragon||is_wave?64:32;
     x=PX(a->x);y=PX(a->y);
     if(x!=PX(old_x) && (terrain(x+8,y+height/2)==3 || terrain(x+width-8,y+height/2)==3))a->x=old_x;
+    /* Dragon vertical motion follows the source viewport steering (fixed
+       4076-408B), not terrain. Clipping it can stall recovery forever above
+       the restored Round 6 closure before its Y>=112 callback is reached. */
+    if(is_dragon)return;
     x=PX(a->x);
     if(y>PX(old_y) && terrain(x+width/2,y+height)==3)a->y=old_y;
     else if(y<PX(old_y) && terrain(x+width/2,y+8)==3)a->y=old_y;

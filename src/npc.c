@@ -49,6 +49,10 @@ void npc_step(u16 slot, u8 contact) {
     AnimState *anim = &npc_animation[slot];
     if (a->state == 0 && contact && game.mode == PLAY) {
         a->state = 1;
+        /* Fixed 5F02 consumes one-shot rescues before dialogue/departure.
+           Bonus transitions may retire the actor before its last frame. */
+        if (d->npc_kind != 8)
+            game.spawned[a->source] |= 2;
         animation_reset(anim);
         game.rescue_actor = slot;
         game.rescue_kind = d->npc_kind;

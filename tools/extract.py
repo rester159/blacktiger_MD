@@ -641,9 +641,9 @@ def main():
         body.append(f'const BonusPatch bonus_patches{r}[]={{'+','.join(patches or ['{0}'])+'};')
         br=bonus['rounds'][r];triggers=br['triggers']
         bonus_definitions.append('{bonus_patches'+str(r)+','+','.join(map(str,[len(patches),*br['camera'],br['return_x_low_add'],len(triggers)]))+',{'+','.join('{'+str(t['x'])+','+str(t['y'])+'}' for t in triggers or [dict(x=0,y=0)])+'}}')
-        # Original stage 3/5 boss-entry scroll RAM writes, using the same
+        # Original boss-entry scroll RAM writes for every round, using the same
         # palette mapping and pattern deduplication as the ordinary map.
-        boss_writes=extract_boss_terrain(source,r) if r in (2,4) else {}
+        boss_writes=extract_boss_terrain(source,r)
         boss_patches=[]
         for y in range(h):
             for x in range(w):
