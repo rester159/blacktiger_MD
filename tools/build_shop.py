@@ -40,6 +40,19 @@ cursor_pens=np.array([1+int(np.argmin([np.sum((rgb(c)-rgb(v))**2) for v in pals[
 cursor=b''.join(pack(cursor_pens[sprite_art[code]][y:y+8,x:x+8]) for code in (0x148,0x149,0x14a,0x150,0x151,0x152) for x,y in ((0,0),(0,8),(8,0),(8,8)))
 out+=arr('shop_cursor_tiles','u32',[hex(int.from_bytes(cursor[i:i+4],'big')) for i in range(0,len(cursor),4)])
 out+=arr('shop_cursor_positions','u8',s.read(None,0x6e45,48))
+# Fixed 645A/6461 and the purchase path mark owned goods: 68E2/68F9 call 6910 for weapon
+# cells 1..F3AC (6CAF) and armor cells 1..F3AD/2 (6CB7), writing characters 6CAB
+# (87 88 / 97 98) with attribute 20h over the item. Transparent pens keep the icon visible.
+s.expect(None,0x645a,'3aacf3a7c4e2683aadf3cb3fc4f968')
+s.expect(None,0x6910,'11ab6c0602c51a77cbd43620cb9423131a77cbd43620cb9401');mark=s.read(None,0x6cab,4)
+mark_colors=[color(p,768+i) for i in range(3)]
+mark_bank=int(np.argmin([sum(min(np.sum((rgb(c)-rgb(v))**2) for v in pal[1:]) for c in mark_colors) for pal in pals]))
+mark_pens=np.array([1+int(np.argmin([np.sum((rgb(c)-rgb(v))**2) for v in pals[mark_bank][1:]])) for c in mark_colors]+[0],np.uint8)
+mark_tiles=b''.join(pack(mark_pens[chars[mark[i]+0x100]]) for i in (0,2,1,3))
+out+=arr('shop_mark_tiles','u32',[hex(int.from_bytes(mark_tiles[i:i+4],'big')) for i in range(0,len(mark_tiles),4)])
+cells=[s.word(None,0x6caf+i*2)-0xd000 for i in range(4)]+[s.word(None,0x6cb7+i*2)-0xd000 for i in range(4)]
+out+=arr('shop_mark_cells','u8',[v for c in cells for v in (c%32,c//32-2)])
+out+='#define SHOP_MARK_PALETTE %d\n'%(mark_bank+2)
 out+='#define SHOP_TILES '+str(len(patterns))+'\n';assert len(patterns)+40<=320
 (ROOT/'src/shop_visual_data.inc').write_text(out)
 (ROOT/'reference/shop_graphics.json').write_text(json.dumps(dict(tiles=len(patterns),source_set=s.lock['aggregate_sha256'],trace_sha256=hashlib.sha256((ROOT/'reference/shop_screen_oracle_events.txt').read_bytes()).hexdigest(),scope='Original panel character cells and item sprite codes; nearest existing actor palette colors.'),indent=2)+'\n')

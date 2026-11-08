@@ -1,5 +1,6 @@
 #include "attract.h"
 #include "frontend.h"
+#include "credits.h"
 #include "boss_rush.h"
 #include "boss.h"
 #include "actor_dispatch.h"
@@ -23,7 +24,7 @@ static u16 hud_fps;
 static u32 hud_score;
 static u16 hud_coins,hud_time;
 static u8 hud_boss_present,hud_boss_fill,hud_boss_stage,hud_credit=255,hud_arcade=255;
-static u8 hud_hp,hud_weapon,hud_armor,hud_keys,hud_antidotes;
+static u8 hud_hp,hud_max_hp,hud_weapon,hud_armor,hud_keys,hud_antidotes;
 #include "hud_data.inc"
 static void draw(const char *s,u16 x,u16 y){VDP_drawTextEx(BG_A,s,TILE_ATTR(PAL3,TRUE,FALSE,FALSE),x,y,DMA_QUEUE);}
 #define HOME_CURSOR_TILE (19+TITLE_TILE_COUNT+HOME_MD_TILE_COUNT)
@@ -32,7 +33,7 @@ static void cursor(u8 selected,u16 x,u16 y){
 }
 static void number(u16 x,u16 y,u32 value,u8 count){char b[9];u8 n=count;b[count]=0;while(n){b[--n]='0'+value%10;value/=10;}draw(b,x,y);}
 static void score_number(u16 x,u16 y,u32 value){
- char b[9];u8 n=8;b[8]=0;
+ char b[10];u8 n=9;b[9]=0;value=progress_display_score(value);
  do{b[--n]='0'+value%10;value/=10;}while(value && n);
  while(n)b[--n]=' ';
  draw(b,x,y);
@@ -73,6 +74,24 @@ static void ready_digit(u8 index,u8 value){
  const u8 *c=ready_digit_cells+index*2;
  VDP_setTileMapXY(BG_A,ready_digits[value>9?9:value],arena_video_text_x(c[0],c[1]),c[1]);
 }
+#define BLANK_TILE (READY_BASE+31)
+void ui_bonus_blank(u8 welcome){
+ static const u16 black[32];
+ /* Source 6FE1/0365 turns the scroll and object layers off; only the text layer (HUD and
+    the entry message) stays. Black out both background palettes and cover the playfield. */
+ VDP_loadTileData(ready_patterns,READY_BASE,READY_TILES,DMA);
+ VDP_fillTileData(0x11,BLANK_TILE,1,TRUE);
+ PAL_setColors(0,black,32,DMA_QUEUE);
+ VDP_fillTileMapRect(BG_A,TILE_ATTR_FULL(PAL2,TRUE,FALSE,FALSE,BLANK_TILE),0,5,64,20);
+ if(welcome)ready_row(4,ready_text4);
+}
+/* Parallax rounds stream backdrop columns into BG_A after the camera jump; keep the text on top. */
+void ui_bonus_text(u8 welcome){if(welcome)ready_row(4,ready_text4);else ready_row(5,ready_text5);}
+void ui_bonus_ready(void){
+ PAL_setColors(0,rounds[game.round].palette,32,DMA_QUEUE);
+ VDP_loadTileData(ready_patterns,READY_BASE,READY_TILES,DMA);
+ ready_row(5,ready_text5);
+}
 void ui_ready(u8 round,u8 lives){
  VDP_loadTileData(ready_patterns,READY_BASE,READY_TILES,DMA);
  ready_row(0,ready_text0);ready_row(1,ready_text1);
@@ -108,7 +127,8 @@ static u8 boss_health(u8 *remaining) {
 }
 
 void ui_hud(void){
- u16 map[256],i,row;u8 hp=game.p.hp>5?5:game.p.hp;
+ u16 map[256],i,row;u8 hp=game.p.hp>5?5:game.p.hp,max_hp=progress_max_hp>5?5:progress_max_hp;
+ if(max_hp<hp)max_hp=hp;
  u8 boss_fill,boss_stage=boss_rush.active?boss_rush.stage:game.round;
  u8 boss_visible=boss_health(&boss_fill);
  if(boss_stage>7)boss_stage=7;
@@ -124,19 +144,20 @@ void ui_hud(void){
   }
  }
  if(!hud_invalid && hud_credit==frontend.credits && hud_arcade==frontend.mode && hud_boss_present==boss_visible && hud_boss_fill==boss_fill && hud_boss_stage==boss_stage && hud_fps_visible==fps_visible && (!fps_visible || hud_fps==debug_fps) && hud_score==game.score && hud_coins==game.coins && hud_time==game.time &&
-    hud_hp==hp && hud_weapon==game.p.weapon && hud_armor==game.p.armor &&
+    hud_hp==hp && hud_max_hp==max_hp && hud_weapon==game.p.weapon && hud_armor==game.p.armor &&
     hud_keys==container_keys && hud_antidotes==shop_antidotes)return;
  hud_credit=frontend.credits;hud_arcade=frontend.mode;
  hud_boss_present=boss_visible;hud_boss_fill=boss_fill;hud_boss_stage=boss_stage;
  hud_fps_visible=fps_visible;hud_fps=debug_fps;
- hud_score=game.score;hud_coins=game.coins;hud_time=game.time;hud_hp=hp;
+ hud_score=game.score;hud_coins=game.coins;hud_time=game.time;hud_hp=hp;hud_max_hp=max_hp;
  hud_weapon=game.p.weapon;hud_armor=game.p.armor;hud_keys=container_keys;hud_antidotes=shop_antidotes;
  if(game.score>high_score)high_score=game.score;
  memcpy(map,arcade_hud_map,5*64);memcpy(map+160,arcade_hud_map+25*32,3*64);
- hud_number(map+32+2,game.score,7,1,1);hud_number(map+32+13,high_score,7,1,1);
+ hud_number(map+32,progress_display_score(game.score),9,1,1);hud_number(map+32+11,progress_display_score(high_score),9,1,1);
  hud_number(map+3*32+1,game.time/60,1,0,0);hud_number(map+3*32+3,game.time%60,2,0,0);
  for(i=0;i<10;i++)map[3*32+7+i]=0;
- for(i=0;i<hp;i++){u8 color=i>1?2:i;map[3*32+7+i*2]=arcade_hud_vital[color*2];map[3*32+8+i*2]=arcade_hud_vital[color*2+1];}
+ /* Source F3B6 slots stay visible; slots above F40E use the empty 82/83 glyphs in their slot color. */
+ for(i=0;i<max_hp;i++){const u16 *v=arcade_hud_vital+(i>1?2:i)*4+(i<hp?0:2);map[3*32+7+i*2]=v[0];map[3*32+8+i*2]=v[1];}
  hud_number(map+4*32+26,game.coins,5,0,0);
  hud_icon(map+160+11,arcade_hud_weapons+(game.p.weapon?game.p.weapon-1:0)*4);
  hud_icon(map+160+15,arcade_hud_armors+(game.p.armor>8?8:game.p.armor)*4);
@@ -192,14 +213,21 @@ void ui_title(void){
  if(page_changed){
   DMA_flushQueue();SYS_disableInts();VDP_setEnable(FALSE);
   VDP_clearPlane(BG_A,TRUE);VDP_clearPlane(BG_B,TRUE);
-  if(page!=2 && page!=4 && page!=5 && page!=6)VDP_setTileMapDataRectEx(BG_B,title_map,0,0,0,32,28,32,CPU);
+  if(page!=2 && page!=4 && page!=5 && page!=6 && page!=CREDITS_PAGE)VDP_setTileMapDataRectEx(BG_B,title_map,0,0,0,32,28,32,CPU);
   if(page==1 && home)VDP_setTileMapDataRectEx(BG_B,home_md_map,0,12,13,8,4,8,CPU);
  }
  VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);
  title_page=page;title_revision=frontend.revision;title_message=message;
  title_coin_phase=coin_phase;title_high_score=high_score;
  VDP_setTextPlane(BG_A);VDP_setTextPalette(PAL3);VDP_setTextPriority(TRUE);
- if(page==5 || page==6){
+ if(page==CREDITS_PAGE){
+  u8 i,first=frontend.option*CREDITS_PER_PAGE;
+  VDP_clearTextArea(0,0,32,28);
+  center(2,"THANK YOU");center(4,"PLAYTESTING AND COMMENTS");
+  for(i=0;i<CREDITS_PER_PAGE && first+i<community_credit_count;i++)center(7+i*2,community_credits[first+i]);
+  draw("PAGE",12,23);number(17,23,frontend.option+1,1);draw("/",18,23);number(19,23,community_credit_pages,1);
+  center(25,"LEFT / RIGHT PAGE");center(27,"A / B / START BACK");
+ }else if(page==5 || page==6){
   u8 i;center(3,page==6?"ENTER INITIALS":"HIGH SCORES");
   if(page==5)center(5,high_score_mode==0?"ARCADE":high_score_mode==1?"HOME":"BOSS RUSH");
   draw("RANK NAME    SCORE   MODE",2,6);
@@ -208,7 +236,7 @@ void ui_title(void){
    name[0]=entry->initials[0];name[1]=entry->initials[1];name[2]=entry->initials[2];name[3]=0;
    number(3,y,i+1,1);draw(name,7,y);
    if(entry->score){score_number(11,y,entry->score);draw(entry->mode==2?"RUSH":entry->mode?"HOME":"ARCD",23,y);}
-   else{draw("       -",11,y);draw("----",23,y);}
+   else{draw("        -",11,y);draw("----",23,y);}
    draw("   ",7,y+1);
    if(page==6 && high_score_pending==i)draw("-",7+high_score_cursor,y+1);
   }
@@ -254,7 +282,7 @@ void ui_title(void){
   u8 i,count=page==0?3:home?(frontend.debug_unlocked?4:3):2;
   VDP_clearTextArea(0,16,32,9);
   for(i=0;i<count;i++){
-   const char *label=page==0?(i==2?"HIGH SCORES":i?"HOME":"ARCADE"):i==0?"PLAY":home?(i==1?"BOSS RUSH":i==2?"OPTIONS":"DEBUG"):"DIP SWITCHES";
+   const char *label=page==0?(i==2?"CREDITS":i?"ARCADE":"HOME"):i==0?"PLAY":home?(i==1?"BOSS RUSH":i==2?"OPTIONS":"DEBUG"):"DIP SWITCHES";
    {u8 y=18+i*2;center(y,label);cursor(i==frontend.selected,(32-strlen(label))/2-3,y);}
   }
   if(page==1 && !home && coin_phase)center(23,"INSERT COIN");

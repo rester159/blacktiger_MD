@@ -5,14 +5,17 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 ref=json.loads((ROOT/'reference/npc_sequence_oracle.json').read_text())
 for key,path in [('trace_sha256','reference/npc_sequence_oracle_events.txt'),('lua_sha256','tools/npc_sequence_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==ref[key]
+gate=json.loads((ROOT/'reference/score_npc_oracle.json').read_text())
+for key,path in [('trace_sha256','reference/score_npc_oracle_events.txt'),('lua_sha256','tools/score_npc_oracle.lua')]:assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==gate[key]
 meta=json.loads((ROOT/'reports/assets.json').read_text());defs={d['npc_kind']:d['id'] for d in meta['actor_definitions'] if d['npc_kind']}
 rows=[l.split('|') for l in (ROOT/'reference/npc_sequence_oracle_events.txt').read_text().splitlines() if l!='COMPLETE']
 with tempfile.TemporaryDirectory() as folder:
- tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text();stubs=['#include "assets.h"','#include "npc.h"','Game game;u8 progress_max_hp=5;']
+ tmp=Path(folder);(tmp/'genesis.h').write_text('');decl=(ROOT/'inc/assets.h').read_text();stubs=['#include "assets.h"','#include "npc.h"','#include "player_motion.h"','Game game;PlayerMotion player_motion;u8 progress_max_hp=5;']
  for name in re.findall(r'^BIN (\w+)',(ROOT/'res/assets.res').read_text(),re.M):
   typ=re.search(r'extern const (\w+) '+name+r'\[\]',decl)[1];stubs.append('const '+typ+' '+name+'[1]={0};')
  stubs.append('''u8 terrain(s16 x,s16 y){return 0;}
- void setup(int def){game=(Game){0};game.mode=PLAY;game.coins=123;game.time=80;game.p.hp=1;game.p.invincible=2;game.actors[0]=(Actor){.def=def,.active=1};npc_reset();npc_spawn(0);npc_step(0,1);}
+ void setup(int def){player_motion=(PlayerMotion){0};game=(Game){0};game.mode=PLAY;game.coins=123;game.time=80;game.p.hp=1;game.p.invincible=2;game.actors[0]=(Actor){.def=def,.active=1};npc_reset();npc_spawn(0);npc_step(0,1);}
+ int contact_case(int def,int mask){game=(Game){0};game.mode=PLAY;game.actors[0]=(Actor){.def=def,.active=1};npc_reset();npc_spawn(0);player_motion=(PlayerMotion){.jumping=mask&1,.camera_return=(mask>>1)&1,.falling=(mask>>2)&1};npc_step(0,1);return game.mode==RESCUE;}
  void step(void){game.sound_count=0;npc_rescue_tick();}
  void snapshot(int *out){int v[]={npc_sequence.code,game.coins,game.time,game.p.hp,game.p.invincible,game.mode,npc_sequence.complete,game.sound_count};for(int i=0;i<8;i++)out[i]=v[i];}
  int sound_at(int i){return game.sound_commands[i];}
@@ -21,6 +24,10 @@ with tempfile.TemporaryDirectory() as folder:
  ''');(tmp/'stub.c').write_text('\n'.join(stubs))
  subprocess.run(['cc','-shared','-fPIC','-O2','-DHOST_TEST','-I'+str(tmp),'-I'+str(ROOT/'inc'),*[str(ROOT/'src'/s) for s in ('npc.c','animation.c','data.c')],str(tmp/'stub.c'),'-o',str(tmp/'npc.dylib')],check=True)
  lib=C.CDLL(str(tmp/'npc.dylib'));lib.npc_dialogue.restype=C.POINTER(C.c_ushort);count=0;sounds=0;used=set()
+ for line in (ROOT/'reference/score_npc_oracle_events.txt').read_text().splitlines():
+  if line.startswith('CONTACT|'):
+   _,mask,expected=line.split('|')
+   for kind in range(1,9):assert lib.contact_case(defs[kind],int(mask))==int(expected),(kind,mask,'airborne rescue gate')
  for kind in range(1,9):
   events={}
   for tag,k,t,a,b in rows:
@@ -57,5 +64,5 @@ with tempfile.TemporaryDirectory() as folder:
   tile=glyphs[code]&2047;slot=tile-1408 if tile>=1408 else tile-1072+32 if tile>=1072 else tile-1+48
   raw=np.frombuffer(font[slot*32:(slot+1)*32],dtype=np.uint8);pixels=np.column_stack((raw>>4,raw&15)).reshape(8,8)
   assert np.array_equal(pixels,np.array([1,15,6,0],dtype=np.uint8)[chars[code]]),('source glyph pixels',code)
- report=dict(passed=True,source_glyphs=len(used),variants=8,source_updates=count,sound_commands=sounds,scope='Every task-relative sprite code, text cell, reward, sound and terminal transition in all eight rescues. Source scheduler/task-list and HUD refresh bypasses remain explicit; glyph colors use native adaptation.')
+ report=dict(passed=True,source_glyphs=len(used),contact_gate_cases=64,variants=8,source_updates=count,sound_commands=sounds,scope='Every task-relative sprite code, text cell, reward, sound and terminal transition in all eight rescues. Source scheduler/task-list and HUD refresh bypasses remain explicit; glyph colors use native adaptation.')
  (ROOT/'reports/npc-sequence-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

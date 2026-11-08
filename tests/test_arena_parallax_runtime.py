@@ -2,7 +2,7 @@
 import ctypes as C,json,hashlib,struct,numpy as np
 from test_runtime import ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100)
-for key in (32,8,32,8):r.run(12,key);r.run(12)
+for key in (8,32,8):r.run(12,key);r.run(12)
 s=state(r);s.mode=2;s.p.invincible=0;put(r,s);r.run(8)
 v=(C.c_uint8*65536).in_dll(r.lib,'vram')
 def word(a):return (v[a^1]<<8)|v[(a+1)^1]
@@ -38,7 +38,7 @@ column_checks=[]
 for rush in (False,True):
  r=Runner(ROOT/'out/release/rom.bin');r.run(100)
  if rush:
-  for key in (32,8,32,8):r.run(12,key);r.run(12)
+  for key in (8,32,8):r.run(12,key);r.run(12)
  else:
   r.start_game();s=state(r);s.round=7;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(30)
  s=state(r);s.mode=2;s.p.x=s.p.y=-1024*256;s.cam_y=64;s.cam_x=928

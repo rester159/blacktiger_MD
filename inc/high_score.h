@@ -4,6 +4,9 @@
 #define HIGH_SCORE_COUNT 5
 typedef struct {u32 score;char initials[3];u8 mode;} HighScoreEntry;
 extern u32 high_score;
+extern const HighScoreEntry high_score_defaults[HIGH_SCORE_COUNT];
+u8 high_score_defaults_intact(void);
+const HighScoreEntry *high_score_table(u8 mode);
 extern HighScoreEntry high_scores[HIGH_SCORE_COUNT];
 extern u8 high_score_pending,high_score_cursor;
 extern u8 high_score_mode;

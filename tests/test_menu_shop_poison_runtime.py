@@ -25,9 +25,9 @@ def body(r):
  cram=(C.c_uint16*64).in_dll(r.lib,'cram');colors=np.array([cram[32+i] for i in range(16)],np.uint16)[pens]
  return pens,colors
 r=Runner(rom);r.run(100)
-centered(r,18,96,168);centered(r,20,104,152)
+centered(r,18,104,152);centered(r,20,96,168);centered(r,22,96,168)
 assert not r.frame[184:192].any(),'main select hint still present'
-logo=r.frame[:128].copy();r.run(8,2);r.run(25)
+logo=r.frame[:128].copy();r.run(8,32);r.run(8);r.run(8,2);r.run(25)
 assert r.read('attract_running',1)==b'\1'
 # Arcade presentation now has its own source-timed ranking/demo renderer.
 for _ in range(2):r.run(8,8);r.run(8)

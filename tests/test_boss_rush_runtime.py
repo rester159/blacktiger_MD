@@ -23,7 +23,7 @@ def walk(mask,travel=512):
     assert a.y==192*256 and a.vy==0,('walking boss above floor',a.definition,a.y//256)
  assert scrolled==travel,('incomplete scroll',scrolled,travel)
  assert int.from_bytes(r.read('vblank_flush_overruns'),'big')==0,'arena DMA exceeded VBlank'
-tap(32);tap(8);tap(32);tap(8)
+tap(8);tap(32);tap(8)
 for stage in range(8):
  s=state(r);assert s.mode==1 and r.read('boss_rush',4)==bytes([1,stage,0,0]),(stage,s.mode,list(r.read('boss_rush',6)))
  assert (s.round,s.cam_x,s.cam_y)==(7,832,64)

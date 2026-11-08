@@ -6,7 +6,7 @@ def tap(r,key):r.run(8,key);r.run(8)
 def boot():
  r=Runner(ROOT/'out/release/rom.bin');r.run(100);return r
 r=boot();assert r.read('frontend',18)[17]==0
-tap(r,32);tap(r,8);tap(r,128);tap(r,8)
+tap(r,8);tap(r,128);tap(r,8)
 assert r.read('frontend',2)==bytes([1,2])
 for _ in range(7):tap(r,32)
 tap(r,128);assert r.read('frontend',18)[17]==1

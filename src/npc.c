@@ -1,5 +1,6 @@
 #include "progress.h"
 #include "npc.h"
+#include "player_motion.h"
 #include "assets.h"
 #include "npc_sequence_data.inc"
 NpcSequence npc_sequence;
@@ -17,15 +18,8 @@ void npc_reset(void) {
         respawn_delay[i] = 0;
 }
 void npc_spawn(u16 slot) {
-    Actor *a=&game.actors[slot];
-    if(actor_defs[a->def].kind==CAPTIVE) {
-        s16 x=PX(a->x)+16,y=PX(a->y);
-        /* One source placement (round 2's lower shopkeeper) puts the body
-           origin on the platform face. Place the full 32px body above that
-           floor, keeping both its rescue contact and artwork aligned. */
-        if(terrain(x,y)>=2 && terrain(x,y-16)<2 && terrain(x,y-32)<2)
-            a->y-=32*FX;
-    }
+    /* Source placements are used as-is. Round 2's buried (640,928) shopkeeper is
+       unreachable by the original spawner and is omitted at extraction. */
     animation_reset(&npc_animation[slot]);
 }
 u8 npc_spawn_ready(u16 source) {
@@ -47,7 +41,10 @@ void npc_step(u16 slot, u8 contact) {
     Actor *a = &game.actors[slot];
     const ActorDef *d = &actor_defs[a->def];
     AnimState *anim = &npc_animation[slot];
-    if (a->state == 0 && contact && game.mode == PLAY) {
+    /* Fixed 4995 rejects contact while F412/F416/F418 are nonzero:
+       jumping, camera return, or falling. Contact is checked again after landing. */
+    if (a->state == 0 && contact && game.mode == PLAY &&
+        !player_motion.jumping && !player_motion.camera_return && !player_motion.falling) {
         a->state = 1;
         /* Fixed 5F02 consumes one-shot rescues before dialogue/departure.
            Bonus transitions may retire the actor before its last frame. */

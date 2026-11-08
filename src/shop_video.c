@@ -58,9 +58,20 @@ void shop_video_frame(void){
 }
 
 /* Original six-sprite blue frame, fixed 6828 and position table 6E45. */
-void ui_shop_cursor_init(void){VDP_loadTileData(shop_cursor_tiles,(1088+SHOP_TILES+40),24,DMA);}
+#define SHOP_MARK_TILE (1088+SHOP_TILES+64)
+void ui_shop_cursor_init(void){VDP_loadTileData(shop_cursor_tiles,(1088+SHOP_TILES+40),24,DMA);VDP_loadTileData(shop_mark_tiles,SHOP_MARK_TILE,4,DMA);}
 void ui_shop_cursor(u16 selected){
  const u8 *box=shop_cursor_positions+selected*4;u16 i;
- for(i=0;i<6;i++)VDP_setSpriteFull(i,box[0]+(i%3)*box[1],box[2]-16+(i/3)*box[3],SPRITE_SIZE(2,2),TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,(1088+SHOP_TILES+40)+i*4),i==5?0:i+1);
- VDP_updateSprites(6,DMA_QUEUE);
+ /* Owned weapon upgrades (F3AC) and armor tiers (F3AD/2) carry the source red X. */
+ u8 weapons=game.p.weapon>1?game.p.weapon-1:0,armors=game.p.armor>>1,marks=0,cells[8];
+ if(weapons>4)weapons=4;
+ if(armors>4)armors=4;
+ for(i=0;i<weapons;i++)cells[marks++]=i;
+ for(i=0;i<armors;i++)cells[marks++]=4+i;
+ for(i=0;i<6;i++)VDP_setSpriteFull(i,box[0]+(i%3)*box[1],box[2]-16+(i/3)*box[3],SPRITE_SIZE(2,2),TILE_ATTR_FULL(PAL3,TRUE,FALSE,FALSE,(1088+SHOP_TILES+40)+i*4),i==5?(marks?6:0):i+1);
+ for(i=0;i<marks;i++){
+  const u8 *c=shop_mark_cells+cells[i]*2;
+  VDP_setSpriteFull(6+i,c[0]*8,c[1]*8,SPRITE_SIZE(2,2),TILE_ATTR_FULL(SHOP_MARK_PALETTE,TRUE,FALSE,FALSE,SHOP_MARK_TILE),i+1==marks?0:7+i);
+ }
+ VDP_updateSprites(6+marks,DMA_QUEUE);
 }

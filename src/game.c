@@ -56,7 +56,7 @@ static void zero(void *p, u16 n) {
     while (n--)
         *b++ = 0;
 }
-u8 round_ready;
+u8 round_ready,bonus_notice,bonus_notice_welcome;
 u8 terrain(s16 x, s16 y) {
     const Round *r = &rounds[game.round];
     if(boss_rush.active)return x<RUSH_X || x>=RUSH_X+RUSH_WIDTH || y<0 || y>=RUSH_FLOOR?3:0;
@@ -140,6 +140,7 @@ void game_round(u8 round) {
     if(boss_rush.active){boss_rush_prepare();motion_reset();}
     /* Source 22FE runs the notice for every round entry and life; Boss Rush is native-only. */
     round_ready=boss_rush.active?0:ROUND_READY_UPDATES;
+    bonus_notice=0;
     game.mode = PLAY;
 }
 void game_bonus_transition(void) {
@@ -174,8 +175,9 @@ void game_new(void) {
     game.coins=progress_initial_coins;
     game.p.lives = frontend_lives();
     combat_difficulty=settings[frontend.mode].difficulty;
-    /* US catalog requested for the port; combat DIP changes do not reprice it. */
-    shop_difficulty=0;
+    /* Fixed 12E8 derives the shop table index (E022) from the same DIP difficulty bits:
+       Easiest=0 .. Normal=4 .. Hardest=7. Home Options use the same scale. */
+    shop_difficulty=settings[frontend.mode].difficulty;
     game.p.armor = progress_initial_armor;
     game.p.weapon = 1;
     game_round(0);
@@ -536,8 +538,7 @@ __attribute__((noinline)) static void actor_step_fallback(u16 i) {
     x=PX(a->x);y=PX(a->y);
     if (d->kind == HIDDEN_WALL) {
         if(!a->state)return;
-        dx=PX(p->x)-x;dy=PX(p->y)-y;
-        if (hidden_step(i, absolute(dx) < 24 && absolute(dy) < 30))
+        if (hidden_step(i))
             screen_attack();
         return;
     }
@@ -680,7 +681,7 @@ __attribute__((noinline)) static void actor_world_step(u16 i) {
         game.spawned[a->source]&=254;a->active=0;return;
     }
     if(kind==HIDDEN_WALL) {
-        if(a->state && hidden_step(i,absolute(PX(game.p.x)-x)<24 && absolute(PX(game.p.y)-y)<30))screen_attack();
+        if(a->state && hidden_step(i))screen_attack();
     } else if(kind==CAPTIVE)npc_step(i,actor_contact(i));
     else container_step(i,actor_contact(i));
 }
@@ -1010,6 +1011,8 @@ static void game_tick_step(u16 input) {
     }
     /* The source starts the round clock (task 2B20) and play only after the notice. */
     if(round_ready){--round_ready;return;}
+    /* Play stays stopped through the whole dungeon transition; the move happens as the screen blanks. */
+    if(bonus_notice){if(--bonus_notice==BONUS_NOTICE_BLANK)game_bonus_transition();return;}
     if (pressed & IN_START) {
         game.mode = PAUSED;
         return;
@@ -1079,7 +1082,7 @@ static void game_tick_step(u16 input) {
     }
     if (game.mode != PLAY)
         return;
-    if(!boss_rush.active && bonus_contact()){game_bonus_transition();return;}
+    if(!boss_rush.active && bonus_contact()){bonus_notice=BONUS_NOTICE_UPDATES;bonus_notice_welcome=!bonus_entered;return;}
     spawn_actors(bosses);
     {
         u16 i;

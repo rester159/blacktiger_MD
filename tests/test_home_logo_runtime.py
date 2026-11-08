@@ -9,8 +9,8 @@ def shot(name):Image.fromarray(r.frame).save(ROOT/'screenshots'/name)
 original=r.frame.copy();shot('00_main_title.png')
 stamp=original[216:224,0:24].copy();assert np.count_nonzero(stamp)>30,'Version missing on main menu'
 assert np.count_nonzero(stamp[:,16:24])>0,'Patch version suffix missing'
-tap(8);arcade=r.frame.copy();tap(1)
-tap(32);tap(8)
+tap(32);tap(8);arcade=r.frame.copy();tap(1)
+tap(16);tap(8)
 assert list(r.read('frontend',3))==[1,1,0]
 home=r.frame.copy();shot('home_title.png')
 assert np.array_equal(home[216:224,0:24],stamp),'Version missing on Home'
@@ -23,7 +23,7 @@ tap(1);assert r.read('frontend',2)==bytes([1,1])
 assert np.array_equal(home[24:136],r.frame[24:136]),'Home options return lost MD'
 tap(1);assert r.read('frontend',2)==bytes([1,0])
 assert np.array_equal(original[24:136],r.frame[24:136]),'MD leaked into mode picker'
-tap(16);tap(8);assert r.read('frontend',2)==bytes([0,1])
+tap(32);tap(8);assert r.read('frontend',2)==bytes([0,1])
 assert np.array_equal(arcade[24:136],r.frame[24:136]),'MD leaked into Arcade'
 assert np.array_equal(r.frame[216:224,0:24],stamp),'Version missing on Arcade'
 shot('arcade_title.png')

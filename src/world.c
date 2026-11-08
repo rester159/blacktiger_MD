@@ -1,6 +1,7 @@
 #include "bonus.h"
 #include "progress.h"
 #include "world.h"
+#include "hazard.h"
 #include "assets.h"
 u8 world_opened, world_rows[256];
 static u8 taken, effect_active[6];
@@ -109,7 +110,7 @@ void hidden_break(u16 slot) {
     animation_reset(&animations[slot]);
     animation_reset(&effects[p]);
     effect_active[p] = 1;
-    game.sound = SND_KILL;
+    game_sound(0x13); /* Bank-2 B9BC queues the wall-break puff. */
 }
 const AnimFrame *hidden_frame(u16 slot) {
     Actor *a = &game.actors[slot];
@@ -118,7 +119,7 @@ const AnimFrame *hidden_frame(u16 slot) {
     return animation_current(&animations[slot], a->state == 2 ? &hidden_life_collected
                                                               : hidden_clips[hidden_kinds[a->def]]);
 }
-u8 hidden_step(u16 slot, u8 contact) {
+u8 hidden_step(u16 slot) {
     Actor *a = &game.actors[slot];
     AnimState *anim = &animations[slot];
     u8 kind, p;
@@ -131,14 +132,20 @@ u8 hidden_step(u16 slot, u8 contact) {
     }
     a->x += (s16)anim->vx * FX;
     a->y += (s16)anim->vy * FX;
-    if (a->state != 1 || !contact)
+    /* Bank-2 template B9DD gives the reward a 4x4 box; fixed 3188 tests it after the
+       clip moves it (the first invisible frame drops it 8px). Standing beside the wall
+       no longer collects it on the reveal frame; the item appears and is walked into. */
+    if (a->state != 1 || !player_contact(PX(a->x), PX(a->y), 4, 4))
         return 0;
     p=patch_for(a->source);
     if (p != 255)
         taken |= 1 << p;
     game.spawned[a->source] = 2;
     a->active = 0;
-    game.sound = SND_COIN;
+    /* Contact handlers (fixed table 4751) queue sound 5; the empty kind is silent.
+       The queued command is not dropped while the attack sound is still playing. */
+    if (kind)
+        game_sound(5);
     switch (kind) {
     case 1:
         game.p.lives++;

@@ -107,6 +107,13 @@ static inline void game_sound(u8 command) {
  * (ROUND n / READY PLAYER 1 / SAVE n LIVES), after every round entry and life. */
 #define ROUND_READY_UPDATES 122
 extern u8 round_ready;
+/* Source 6FD7..710D dungeon IN/EXIT transition, in updates: 60 frozen (0320), 2+60 blank
+ * with only the text layer shown (WELCOME TO DUNGEON! on entry), then 60 with READY. */
+#define BONUS_NOTICE_UPDATES 182
+#define BONUS_NOTICE_BLANK 122
+#define BONUS_NOTICE_READY 60
+extern u8 bonus_notice,bonus_notice_welcome;
+static inline u8 bonus_notice_phase(void){return !bonus_notice?0:bonus_notice>BONUS_NOTICE_BLANK?1:bonus_notice>BONUS_NOTICE_READY?2:3;}
 void game_new(void);
 void game_round(u8 round);
 void game_tick(u16 input);

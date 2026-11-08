@@ -5,7 +5,7 @@ CODE=(16,16,32,32,64,128,64,128)
 def tap(r,key):r.run(8,key);r.run(8)
 def boot(home=True):
  r=Runner(ROOT/'out/release/rom.bin');r.run(100)
- if home:tap(r,32)
+ if not home:tap(r,32)
  tap(r,8);return r
 def front(r):return r.read('frontend',20)
 r=boot();assert not front(r)[18];r.capture('v36-home-debug-hidden.png')

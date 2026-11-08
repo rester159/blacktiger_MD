@@ -12,7 +12,7 @@ def check(name,ok):assert ok,name;checks.append(name)
 def tap(mask):r.run(8,mask);r.run(8)
 def credits():return r.read('frontend',9)[4]
 r=Runner(ROOT/'out/release/rom.bin');r.run(100)
-tap(2);check('A selects Arcade menu',r.read('frontend',2)==bytes([0,1]))
+tap(32);tap(2);check('A selects Arcade menu',r.read('frontend',2)==bytes([0,1]))
 tap(2);check('A cannot start with no credit',state(r).mode==0 and credits()==0)
 r.audio_capture=[];r.run(30,8)
 check('held Start inserts exactly one coin and stays in menu',credits()==1 and state(r).mode==0)

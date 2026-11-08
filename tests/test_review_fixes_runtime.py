@@ -18,7 +18,9 @@ check('opening left walls reveal through normal attack input',r.read('world_open
 s=state(r);check('opening wall rewards remain visible and collectible',any(a.active and a.state==1 and a.definition==19 for a in s.actors))
 r.capture('review-opening-walls.png')
 r.run(25,64);r.run(20)
-check('opening wall rewards collect through movement',state(r).time>180)
+# MAME with the same inputs: the hero stops against the left edge touching the x=0 reward and
+# the arcade timer does not gain 30s; fixed 3188's 4x4 reward box is out of reach there.
+s=state(r);check('opening x=0 wall reward stays out of reach as in the arcade',s.time<=180 and any(a.active and a.state==1 and a.definition==19 for a in s.actors))
 r.close()
 # Real Level 2 boss location; the checkpoint must wrap into map space.
 r=boot();s=pause(r);s.round=1;s.mode=4;s.mode_timer=0;s.p.lives=3;put(r,s);r.run(50)

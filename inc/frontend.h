@@ -19,5 +19,8 @@ void ui_ready(u8 round,u8 lives);
 void ui_hud_invalidate(void);
 void ui_title(void);
 void ui_shop_cursor_init(void);
+void ui_bonus_blank(u8 welcome);
+void ui_bonus_ready(void);
+void ui_bonus_text(u8 welcome);
 void ui_shop_cursor(u16 selection);
 #endif

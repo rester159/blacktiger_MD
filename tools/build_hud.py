@@ -8,8 +8,8 @@ s=Source();board=json.loads((ROOT/'assets/board.json').read_text());tx,pal,_=obs
 chars=decode(b''.join(s.files[f['path']] for f in board['regions']['chars']['files']),board['layouts']['characters'])
 palette=np.frombuffer((ROOT/'res/generated/object_palette.bin').read_bytes(),'>u2').reshape(2,16).tolist()
 patterns=[];lookup={};glyphs={}
-# Skin pens are animated by poison; inventory and currency must remain stable.
-available=[[i for i in range(1,16) if i not in (7,8,9,10)],list(range(1,16))]
+# Skin pens are animated by poison and armor pens by F3AD; inventory and currency must remain stable.
+available=[[i for i in range(1,16) if i not in (2,3,4,5,7,8,9,10)],list(range(1,16))]
 slots=list(range(1012,1072))+list(range(1499,1536))+list(range(7,16))
 def pens_for(attr):
  colors=[color(pal,768+(attr&31)*4+i) for i in range(3)]
@@ -31,7 +31,8 @@ for y in [0,1,2,3,4,25,26,27]:
  for x in range(32):
   at=(y+2)*32+x;mapping[y*32+x]=glyph(tx[at],tx[at+1024])
 digits=[[glyph(n,bank) for n in range(10)]+[glyph(32,bank)] for bank in (0,7)]
-vital=[glyph(c,0x20+b) for b in (9,10,11) for c in (0x80,0x81)]
+# Fixed 2620 draws F3B6 slots as 80/81 with B878 colors; depleted slots become 82/83 in the same color.
+vital=[glyph(c,0x20+b) for b in (9,10,11) for c in (0x80,0x81,0x82,0x83)]
 def icon(ptr):
  b=s.read(6,ptr,8);return [glyph(b[i],b[i+1]) for i in range(0,8,2)]
 weapons=[icon(s.word(6,0xb22c+i*2)) for i in range(5)]
@@ -59,7 +60,10 @@ def message(n):
  while (c:=s.read(None,p,1)[0])!=0x40:text.append(c);p+=1
  return addr-0xd000,head[2],text
 ready_rows=[]
-for n in (0x16,0x17,0x12,0x13):
+# 1C WELCOME TO DUNGEON! and 10 READY: dungeon transition 6FD7..710D (entry text 7071, READY 70F6/7100).
+s.expect(None,0x706f,'16001e1ccdd003cdfd033e2dcde203')
+s.expect(None,0x70f4,'16001e10cdd003cd200316011e10cdd003')
+for n in (0x16,0x17,0x12,0x13,0x1c,0x10):
  off,attr,text=message(n);assert attr==0
  ready_rows.append((off%32,off//32-2,text))
 ready_digit_cells=[(0x153%32,0x153//32-2),(0x230%32,0x230//32-2)]
@@ -73,6 +77,7 @@ out+=arr('arcade_boss_counts','u8',boss_table[::2])
 out+=arr('arcade_boss_styles','u8',[boss_styles.index(a) for a in boss_table[1::2]])
 out+='#define ARCADE_HUD_TILES '+str(len(patterns))+'\n'
 ready_digits=[ready_glyph(n,0) for n in range(10)]
+assert len(ready_patterns)<=31 # READY_BASE+31 is the runtime blank-screen tile
 for i,(x,y,text) in enumerate(ready_rows):
  out+=arr(f'ready_text{i}','u16',[0 if c==32 else ready_glyph(c,0) for c in text])
 out+=arr('ready_rows','u8',[v for x,y,text in ready_rows for v in (x,y,len(text))])

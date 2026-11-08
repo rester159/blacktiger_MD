@@ -1,6 +1,7 @@
 #include "attract.h"
 #include "frontend.h"
 #include "high_score.h"
+#include "progress.h"
 #include "assets.h"
 #include "attract_data.inc"
 /* Source display replay has no access to game logic, credits or SRAM writes.
@@ -83,15 +84,15 @@ static void number(u16 *row,u8 x,u8 n,u32 value,const u16 *chars){
  while(n){row[x+--n]=chars['0'-32+value%10];value/=10;if(!value){while(n)row[x+--n]=chars[0];break;}}
 }
 static void saved_row(u16 *row,u8 y){
- if(y==1)number(row,12,8,high_score,attract_chars7);
+ if(y==1)number(row,12,9,progress_display_score(high_score),attract_chars7);
  if(y==27)row[31]=attract_chars0['0'-32+frontend.credits];
  if(attract_state[4] && y>=16 && y<=24 && !(y&1)){
-  u8 i=(y-16)/2,j;const HighScoreEntry *e=&high_scores[i];
-  /* Keep original default records until a named score has been recorded. */
-  u8 defaults=high_scores[0].score==20000 && high_scores[0].initials[0]=='-' && !high_scores[1].score;
-  if(!defaults){
-   number(row,13,e->score>9999999?8:7,e->score,attract_chars7);
-   if(e->score<=9999999)row[20]=attract_chars0[0];
+  u8 i=(y-16)/2,j;const HighScoreEntry *e=high_score_table(0)+i;
+  /* The replayed source rows already show the arcade defaults; draw only a changed Arcade table.
+     Source layout: score ends at column 19 with its appended zero, column 20 blank, initials 21-23. */
+  if(!high_score_defaults_intact()){
+   u32 shown=progress_display_score(e->score);u8 n=shown>99999999UL?9:8;
+   number(row,20-n,n,shown,attract_chars7);row[20]=attract_chars0[0];
    for(j=0;j<3;j++)row[21+j]=attract_chars0[e->initials[j]-32];
   }
  }

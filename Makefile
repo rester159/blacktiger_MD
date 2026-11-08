@@ -65,6 +65,7 @@ test: all
 	.venv/bin/python tests/test_hud_runtime.py
 	.venv/bin/python tests/test_settings_runtime.py
 	.venv/bin/python tests/test_frontend_runtime.py
+	.venv/bin/python tests/test_credits_runtime.py
 	.venv/bin/python tests/test_high_score_runtime.py
 	.venv/bin/python tests/test_high_score_table_runtime.py
 	.venv/bin/python tests/test_v15_shop_dialogue_runtime.py
@@ -210,6 +211,8 @@ test: all
 	.venv/bin/python tests/test_world.py
 	.venv/bin/python tests/test_hidden_runtime.py
 	.venv/bin/python tests/test_npc_sequence.py
+	.venv/bin/python tests/test_npc_landing_runtime.py
+	.venv/bin/python tests/test_v198_feedback_runtime.py
 	.venv/bin/python tests/test_npc_runtime.py
 	.venv/bin/python tests/test_npc_bonus_persistence_runtime.py
 	.venv/bin/python tests/test_dialogue_backdrop_runtime.py

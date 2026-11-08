@@ -24,7 +24,8 @@ def score(r):return int.from_bytes(r.read('high_score',4),'big')
 def award(r,n):
  r.write('high_score',0,n.to_bytes(4,'big'));r.run(10)
  assert score(r)==n
-r=boot();assert score(r)==20000
+# Arcade default ranking top is 20000 on screen: 2000 in the source tens units.
+r=boot();assert score(r)==2000
 award(r,54321);first=bytes(memory(r));assert b'BTS1' in first[1::2]
 award(r,98765);second=bytes(memory(r));assert first!=second
 r.run(100);assert bytes(memory(r))==second,'Unchanged score rewrote SRAM'

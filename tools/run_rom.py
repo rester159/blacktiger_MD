@@ -80,7 +80,7 @@ class Runner:
   for _ in range(n):self.lib.retro_run();self.frames+=1
  def start_game(self,frames=3,exploration=False,notice=False):
   if "frontend" in self.symbols:
-   self.run(3,32);self.run(2);self.run(3,8);self.run(2)
+   self.run(3,8);self.run(2)
    if exploration:
     # Unlock Home Debug through controller input, then select its first level.
     for mask in (16,16,32,32,64,128,64,128,8,32,32):self.run(3,mask);self.run(3)

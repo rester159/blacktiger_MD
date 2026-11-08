@@ -2,7 +2,13 @@
 #include "high_score.h"
 #include "frontend.h"
 #include "boss_rush.h"
-u32 high_score=20000;
+/* Arcade ROM ranking defaults (MAME boot capture): 20000 IMO, 18000 MKP, 16000 M.H,
+   14000 Y.K, 12000 Y.F. Scores are stored in the source's tens, so these are 2000..1200. */
+#define DEFAULT_HIGH_SCORE 2000UL
+/* v1.5-v1.9.7 seeded one Arcade record in display units with blank initials. */
+#define OLD_DEFAULT_SCORE 20000UL
+const HighScoreEntry high_score_defaults[HIGH_SCORE_COUNT]={{2000,{'I','M','O'},0},{1800,{'M','K','P'},0},{1600,{'M','.','H'},0},{1400,{'Y','.','K'},0},{1200,{'Y','.','F'},0}};
+u32 high_score=DEFAULT_HIGH_SCORE;
 HighScoreEntry high_scores[HIGH_SCORE_COUNT];
 u8 high_score_pending=255,high_score_cursor,high_score_mode;
 static HighScoreEntry tables[3][HIGH_SCORE_COUNT];
@@ -30,7 +36,7 @@ static void end_access(bool taken) {SRAM_disable();if(!taken)Z80_releaseBus();SY
 static u32 get32(const u8 *p){return ((u32)p[0]<<24)|((u32)p[1]<<16)|((u32)p[2]<<8)|p[3];}
 static void put32(u8 *p,u32 value){p[0]=value>>24;p[1]=value>>16;p[2]=value>>8;p[3]=value;}
 static u32 checksum(const u8 *p,u16 first,u16 last){u16 i;u32 h=2166136261UL;for(i=first;i<last;i++)h=(h^p[i])*16777619UL;return h;}
-static u8 entry_valid(const u8 *p,u32 *previous){u32 score=get32(p);u8 j;if(score>*previous || p[7]>2)return 0;for(j=4;j<7;j++)if(p[j]!='-' && (p[j]<'A'||p[j]>'Z'))return 0;*previous=score;return 1;}
+static u8 entry_valid(const u8 *p,u32 *previous){u32 score=get32(p);u8 j;if(score>*previous || p[7]>2)return 0;for(j=4;j<7;j++)if(p[j]!='-' && p[j]!='.' && (p[j]<'A'||p[j]>'Z'))return 0;*previous=score;return 1;}
 static u8 legacy_table_read(u16 offset,u8 *data){u16 i;u32 previous=SCORE_LIMIT;for(i=0;i<52;i++)data[i]=SRAM_readByte(offset+i);if(get32(data)!=TABLE_MAGIC||get32(data+48)!=checksum(data,4,48))return 0;for(i=0;i<5;i++)if(!entry_valid(data+8+i*8,&previous))return 0;return 1;}
 static u8 table3_read(u16 offset,u8 *data){u16 i;u32 previous;
  for(i=0;i<TABLE3_SIZE;i++)data[i]=SRAM_readByte(offset+i);
@@ -45,6 +51,31 @@ static u8 valid_settings(const u8 *d){return d[0]<4&&d[1]<8&&d[2]<8&&d[3]<2&&d[4
 static u8 settings_read(u16 offset,u8 *payload,u16 *generation){u8 d[24],i;for(i=0;i<24;i++)d[i]=SRAM_readByte(offset+i);if(get32(d)!=SETTINGS_MAGIC||get32(d+20)!=checksum(d,4,20)||!valid_settings(d+6))return 0;*generation=((u16)d[4]<<8)|d[5];memcpy(payload,d+6,14);return 1;}
 static void settings_pack(u8 *d){u8 i,*p=(u8*)&settings[0];for(i=0;i<7;i++)d[i]=p[i];p=(u8*)&settings[1];for(i=0;i<7;i++)d[i+7]=p[i];}
 static void settings_load(void){u8 a[14],b[14],i,va,vb;u16 ga=0,gb=0;va=settings_read(512,a,&ga);vb=settings_read(544,b,&gb);if(va||vb){settings_slot=vb&&(!va||(s16)(gb-ga)>0)?1:0;settings_generation=settings_slot?gb:ga;for(i=0;i<7;i++){u8 *p=(u8*)&settings[0];p[i]=(settings_slot?b:a)[i];p=(u8*)&settings[1];p[i]=(settings_slot?b:a)[i+7];}}settings_pack(saved_settings);}
+static u8 same_entry(const HighScoreEntry *a,const HighScoreEntry *b){return a->score==b->score&&a->initials[0]==b->initials[0]&&a->initials[1]==b->initials[1]&&a->initials[2]==b->initials[2];}
+/* Retire the old blank 20000 placeholder, then place the arcade defaults into empty
+   Arcade slots only. Saved player records are never evicted, and once the five
+   slots are full (as every table written by this version is) nothing is re-added. */
+static u8 arcade_defaults(void){
+ HighScoreEntry *t=tables[0];u8 i,j,k,changed=0;
+ for(i=0;i<5;){
+  if(t[i].score==OLD_DEFAULT_SCORE&&t[i].initials[0]=='-'&&t[i].initials[1]=='-'&&t[i].initials[2]=='-'){
+   for(k=i;k<4;k++)t[k]=t[k+1];
+   t[4]=(HighScoreEntry){0,{'-','-','-'},0};changed=1;
+  }else i++;
+ }
+ for(i=0;i<5;i++){
+  const HighScoreEntry *d=&high_score_defaults[i];
+  if(t[4].score)break;
+  for(j=0;j<5&&!same_entry(&t[j],d);j++);
+  if(j<5)continue;
+  for(j=0;j<5&&t[j].score>=d->score;j++);
+  for(k=4;k>j;k--)t[k]=t[k-1];
+  t[j]=*d;changed=1;
+ }
+ return changed;
+}
+const HighScoreEntry *high_score_table(u8 mode){return tables[mode%3];}
+u8 high_score_defaults_intact(void){u8 i;for(i=0;i<5;i++)if(!same_entry(&tables[0][i],&high_score_defaults[i]))return 0;return 1;}
 __attribute__((noinline)) void high_score_init(void) {
  bool taken=begin_access();u32 a,b,legacy_best;u8 *old1=sram_workspace[0],*old2=sram_workspace[1],*new1=sram_workspace[0],*new2=sram_workspace[1],va,vb,oa,ob,*selected;u16 i;u32 max;
  SRAM_enableRO();a=read_slot(0);b=read_slot(16);va=table3_read(224,new1);vb=table3_read(368,new2);
@@ -52,12 +83,13 @@ __attribute__((noinline)) void high_score_init(void) {
  else {
   oa=legacy_table_read(32,old1);ob=legacy_table_read(96,old2);selected=ob&&(!oa||(s32)(get32(old2+4)-get32(old1+4))>0)?old2:old1;
   memset(tables,0,sizeof tables);for(i=0;i<15;i++){tables[i/5][i%5].initials[0]=tables[i/5][i%5].initials[1]=tables[i/5][i%5].initials[2]='-';tables[i/5][i%5].mode=i/5;}
-  if(oa||ob){for(i=0;i<5;i++){const u8 *p=selected+8+i*8;u8 m=p[7];HighScoreEntry e;u8 j;e.score=get32(p);e.mode=m;for(j=0;j<3;j++)e.initials[j]=p[4+j];for(j=0;j<5;j++)if(e.score>tables[m][j].score)break;if(j<5){u8 k;for(k=4;k>j;k--)tables[m][k]=tables[m][k-1];tables[m][j]=e;}}}else tables[0][0]=(HighScoreEntry){20000,{'-','-','-'},0};
+  if(oa||ob){for(i=0;i<5;i++){const u8 *p=selected+8+i*8;u8 m=p[7];HighScoreEntry e;u8 j;e.score=get32(p);e.mode=m;for(j=0;j<3;j++)e.initials[j]=p[4+j];for(j=0;j<5;j++)if(e.score>tables[m][j].score)break;if(j<5){u8 k;for(k=4;k>j;k--)tables[m][k]=tables[m][k-1];tables[m][j]=e;}}}
   table_generation=0;table_slot=1;table_dirty=1;
  }
  legacy_best=a>b?a:b;
  if(legacy_best&&!(va||vb)){u8 j;HighScoreEntry e;e.score=legacy_best;e.initials[0]=e.initials[1]=e.initials[2]='-';e.mode=0;for(j=0;j<5;j++)if(e.score>tables[0][j].score)break;if(j<5){u8 k;for(k=4;k>j;k--)tables[0][k]=tables[0][k-1];tables[0][j]=e;table_dirty=1;}}
- settings_load();end_access(taken);save_slot=b>a?1:0;saved_score=legacy_best;high_score=saved_score>20000?saved_score:20000;if(saved_score<20000)saved_score=20000;
+ if(arcade_defaults())table_dirty=1;
+ settings_load();end_access(taken);save_slot=b>a?1:0;saved_score=legacy_best;high_score=saved_score>DEFAULT_HIGH_SCORE?saved_score:DEFAULT_HIGH_SCORE;if(saved_score<DEFAULT_HIGH_SCORE)saved_score=DEFAULT_HIGH_SCORE;
  max=high_score;for(i=0;i<3;i++)if(tables[i][0].score>max)max=tables[i][0].score;high_score=max;
  high_score_mode=0;high_score_view(0);high_score_pending=255;high_score_cursor=0;run_best=observed_score=0;run_recorded=0;
 }
@@ -69,4 +101,4 @@ void high_score_letter(u8 up){if(high_score_pending<5&&high_score_cursor<3){char
 void high_score_confirm(void){high_score_pending=255;high_score_cursor=0;table_dirty=1;}
 static u8 settings_dirty(void){u8 current[14];settings_pack(current);return memcmp(saved_settings,current,14)!=0;}
 static void settings_save(void){u8 d[24],payload[14],verify[14],i;u16 offset=settings_slot?512:544,gen=settings_generation+1,check;settings_pack(payload);put32(d,SETTINGS_MAGIC);d[4]=gen>>8;d[5]=gen;memcpy(d+6,payload,14);put32(d+20,checksum(d,4,20));SRAM_writeByte(offset,0);for(i=4;i<24;i++)SRAM_writeByte(offset+i,d[i]);for(i=1;i<4;i++)SRAM_writeByte(offset+i,d[i]);SRAM_writeByte(offset,d[0]);if(settings_read(offset,verify,&check)&&check==gen&&!memcmp(payload,verify,14)){memcpy(saved_settings,payload,14);settings_generation=gen;settings_slot^=1;}}
-void high_score_save(void){bool taken;u16 offset;u32 score;u8 save_settings=settings_dirty();if(game.score!=observed_score){observed_score=game.score;if(observed_score>high_score)high_score=observed_score;if(game.mode!=TITLE&&!frontend.debug_active&&observed_score>run_best)run_best=observed_score;}score=high_score;if(!table_dirty&&(score<=saved_score||score>SCORE_LIMIT)&&!save_settings)return;taken=begin_access();SRAM_enable();if(score>saved_score&&score>20000&&score<=SCORE_LIMIT){offset=(save_slot^1)*16;SRAM_writeByte(offset,0);SRAM_writeLong(offset+4,score);SRAM_writeLong(offset+8,~score);SRAM_writeByte(offset+1,0x54);SRAM_writeByte(offset+2,0x53);SRAM_writeByte(offset+3,0x31);SRAM_writeByte(offset,0x42);if(read_slot(offset)==score){saved_score=score;save_slot^=1;}}if(table_dirty)table_save();if(save_settings)settings_save();end_access(taken);}
+void high_score_save(void){bool taken;u16 offset;u32 score;u8 save_settings=settings_dirty();if(game.score!=observed_score){observed_score=game.score;if(observed_score>high_score)high_score=observed_score;if(game.mode!=TITLE&&!frontend.debug_active&&observed_score>run_best)run_best=observed_score;}score=high_score;if(!table_dirty&&(score<=saved_score||score>SCORE_LIMIT)&&!save_settings)return;taken=begin_access();SRAM_enable();if(score>saved_score&&score>DEFAULT_HIGH_SCORE&&score<=SCORE_LIMIT){offset=(save_slot^1)*16;SRAM_writeByte(offset,0);SRAM_writeLong(offset+4,score);SRAM_writeLong(offset+8,~score);SRAM_writeByte(offset+1,0x54);SRAM_writeByte(offset+2,0x53);SRAM_writeByte(offset+3,0x31);SRAM_writeByte(offset,0x42);if(read_slot(offset)==score){saved_score=score;save_slot^=1;}}if(table_dirty)table_save();if(save_settings)settings_save();end_access(taken);}

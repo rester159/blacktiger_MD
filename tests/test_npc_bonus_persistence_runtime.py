@@ -39,6 +39,11 @@ try:
    r.run(1)
    if r.read('bonus_consumed',1)[0]&(1<<index):break
   else:raise AssertionError(('bonus contact failed',index))
+  # Let the source 182-update dungeon transition finish; the move (and poison cure) happens as it blanks.
+  for _ in range(260):
+   if not r.read('bonus_notice',1)[0]:break
+   r.run(1)
+  else:raise AssertionError(('dungeon transition did not finish',index))
   s=state(r);s.mode=2;put(r,s);r.run(30)
   assert state(r).spawned[row]&2,('rescued NPC lost persistence',index)
   assert r.read('shop_poison',1)==b'\0','arcade bonus poison cure changed'

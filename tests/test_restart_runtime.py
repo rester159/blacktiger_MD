@@ -35,7 +35,8 @@ x,y,definition,_=rows[row];slot=place(r,level,row,x,y)
 for _ in range(5):fire(r,slot)
 assert r.read('world_opened',1)[0]&1
 for _ in range(30):
- s=state(r);a=s.actors[slot];s.mode=1;s.p.x=a.x;s.p.y=a.y;s.p.vx=s.p.vy=0;s.p.invincible=10000;put(r,s);r.run(1)
+ # Centre the player body (x+8, y+8) on the 4x4 source reward contact (fixed 3188).
+ s=state(r);a=s.actors[slot];s.mode=1;s.p.x=a.x-8*256;s.p.y=a.y-8*256;s.p.vx=s.p.vy=0;s.p.invincible=10000;put(r,s);r.run(1)
  if state(r).spawned[row]==2:break
 assert state(r).spawned[row]==2 and r.read('taken',1)[0]&1
 die();assert state(r).spawned[row]==2 and r.read('world_opened',1)[0]&1 and r.read('taken',1)[0]&1

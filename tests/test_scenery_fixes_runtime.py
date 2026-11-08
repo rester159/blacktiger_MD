@@ -44,8 +44,8 @@ def cursor(label_x,name):
  assert right>=x+8 and right<label_x*8-1,(name,x,right,label_x)
  assert 0<=y<224,(name,'cursor offscreen')
  r.capture(f'v20-cursor-{name}.png');checks.append(dict(menu=name,gutter_pixels=label_x*8-right-1))
-cursor(13,'mode-picker');tap(2);assert r.read('attract_running',1)==b'\1';tap(32);cursor(2,'dip')
-tap(1);tap(1);tap(32);tap(2);cursor(14,'home');tap(128);tap(8);cursor(2,'options');tap(1)
+cursor(13,'mode-picker');tap(32);tap(2);assert r.read('attract_running',1)==b'\1';tap(32);cursor(2,'dip')
+tap(1);tap(1);tap(16);tap(2);cursor(14,'home');tap(128);tap(8);cursor(2,'options');tap(1)
 for key in (16,16,32,32,64,128,64,128):tap(key)
 tap(2);cursor(2,'debug')
 r.close()
@@ -55,7 +55,9 @@ for item in (0,1,2,3,4,6,7,8,9,10,11):
  s=state(r);s.mode=3;s.shop_item=item;put(r,s);r.run(20)
  # Shop uses the arcade frame around the cell, not a title cursor in its gutter.
  sat=r.read('vdpSpriteCache',48)
- assert sat[2]==5 and sat[3]==1 and sat[43]==0
+ # The six-piece frame ends the list unless v1.9.8 owned-item X sprites follow it.
+ s=state(r);owned=min(4,s.p.weapon-1)+min(4,s.p.armor>>1)
+ assert sat[2]==5 and sat[3]==1 and sat[43]==(6 if owned else 0),(item,owned,sat[43])
  r.capture(f'v20-cursor-shop-{item}.png');checks.append(dict(menu=f'shop-{item}',arcade_frame_sprites=6))
 r.close()
 report=dict(passed=True,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),checks=checks,scope=__doc__+' Camera fixtures injected; frontend navigation uses normal inputs. Source red/purple platforms retained.')

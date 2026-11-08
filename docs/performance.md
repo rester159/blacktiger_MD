@@ -102,12 +102,13 @@ immediately with the chosen Debug settings. Up/down traverses each column; left
 or right moves to the corresponding item in the other column. B returns to Home.
 There is no intermediate level-selection screen. Normal Play remains unchanged.
 
-The reported level-2 shopkeeper at (640, 928) had its 32-pixel body origin on
-an ice platform face. NPC spawning now raises a body by 32 pixels only when its
-origin intersects solid terrain and both cells above are open. This moves the
-shopkeeper and rescue contact together to (640, 896). Other sampled source NPC
-placements do not meet this correction condition. A regression rescues him through
-normal controller input and verifies that the shop opens.
+The level-2 shopkeeper source row at (640, 928) is filed under start-area spawn
+cell 25. Fixed 1B4C only walks the cell under its camera probe, and no camera
+that can see (640, 928) probes cell 25, so the original never constructs him.
+Before v1.9.8 the port lifted him 32 pixels out of the ice platform. That made
+him the first old man in Round 2 and opened an extra shop. From v1.9.8 the
+extractor omits the row and placements are no longer lifted. A regression
+checks that no old man appears or can be rescued there.
 
 The reported right-hand ledge is the map boundary, not a blocked exit. A cartridge
 regression starts at (1992, 528), jumps left, climbs the nearby poles, and reaches

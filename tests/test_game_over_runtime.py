@@ -33,7 +33,7 @@ for accept in (False,True):
   assert r.read('frontend',2)[1]==6
   for _ in range(3):r.run(5,2);r.run(5)
   assert r.read('frontend',2)[1]==5
-  r.run(5,1);r.run(5);r.run(5,16);r.run(5);r.run(5,2);r.run(5);r.run(5,8)
+  r.run(5,1);r.run(5);r.run(5,2);r.run(5);r.run(5,8)
   r.skip_intro();r.run(30);s=state(r);assert s.mode==1 and s.coins==200 and s.score==0 and s.p.weapon==1
  cases.append(dict(accept=accept,notice_blocks_start=True,continue_offer=True,expiry_to_title=not accept,held_start_safe=accept));r.close()
 report=dict(passed=True,cases=cases,rom_sha256=hashlib.sha256((ROOT/'out/release/rom.bin').read_bytes()).hexdigest(),scope='Last-life entry, all countdown digits, notice/continue FM cues, offer expiry to title, new-game reset, paid continuation retaining inventory and held-Start edge. Exact task-relative durations checked by host test; qualifying initials entry and new-run reset checked; original UI artwork/fades remain outside scope.')

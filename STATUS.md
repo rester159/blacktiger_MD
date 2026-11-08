@@ -1,4 +1,34 @@
-# Undead emergence fix (unreleased)
+# v1.9.8 — release BIN
+
+Fixes the v1.9.7 itch.io reports from PRETTY MAZE and ZeroVolt:
+- **Defaults and ranking:** the Arcade ranking uses the five arcade defaults (IMO 20,000 to Y.F 12,000; 2000–1200 in source units). Old blank 20000 placeholders are retired; existing records are kept and defaults fill only empty places. The ranking layout leaves column 20 blank, as in the arcade.
+- **Vitality:** empty slots use glyphs 82/83, observed in MAME.
+- **Hidden walls:** rewards use the 4×4 contact box of fixed 3188, and pickup and break sounds use the queued commands 5 and 13h.
+- **Dungeons:** doors follow 6FD7..710D: 60-update freeze, blank screen with WELCOME TO DUNGEON! on entry, then 60 updates of READY.
+- **Round 2:** the unreachable (640,928) shopkeeper is removed. A 1B4C MAME sweep shows it is never constructed.
+- **Armor colour:** hero pens 1–4 follow the 1ACB armor table (fixed 193C).
+- **Shop:** owned items get red X marks (6910/6CAF/6CB7). Prices follow the difficulty setting (12E8), as decided by the user.
+
+Validation:
+- The Makefile test commands pass. Five fixtures were updated for the intended changes: shop prices, the reward contact box, the shop sprite chain and the world host stub; each was re-run green. New check: `tests/test_v198_feedback_runtime.py`.
+- `prepare_source_data --all` was not re-run. Its MAME oracle timed out at the fixed 300 s under host load averages of 60–90. It only regenerates unchanged arcade references.
+- Strict packaging passes. A PicoDrive boot/attack smoke check passes.
+- BIN: `dist/blacktiger_MD_v1.9.8.bin`, SHA-256 `b52adfce42978cd1bf0b60e2f2ff85ca10cc9b77d5a22248045980caefcdc949`.
+- No physical hardware test. Notes: [v1.9.8](docs/v1.9.8.md).
+
+# v1.9.7 — local release BIN ready
+
+Restores the arcade score display's trailing zero in gameplay, title, saved-score tables and Arcade attract screens. Internal score units, vitality thresholds and SRAM formats are unchanged. NPC contact now checks the original jumping, camera-return and falling flags before rescue begins; it rechecks contact after landing rather than freezing the hero in mid-air. Includes the Home / Arcade / Credits menu and undead emergence fix below.
+
+Original routines 054F/0568 and 4995 are independently executed by `tools/run_score_npc_oracle.py`. Updated HUD and NPC regression checks fail against the previous implementation. The reported Round 5 hardware crash remains unresolved; see `docs/round5-v196-report.md`.
+
+Validation: all 198 Makefile test/profile commands pass after targeted fixture updates; strict packaging passes. Fresh source checks cover score display and NPC contact. Genesis Plus GX and PicoDrive pass boot/attack and airborne-contact/landing checks. BIN SHA-256: `dcd5ea2ff9818927870bd22e553aa752783c729524df52e850f9115f45a34634`. Hardware crash remains unresolved. Itch.io publication is blocked by refused API connections; no upload or Git push performed.
+
+# Community Credits menu (included in v1.9.7)
+
+Opening selector is Home / Arcade / Credits, with Home selected by default. Added Credits with 45 names on six alphabetic pages from the itch.io discussion reviewed on 2026-11-02. Left/right (or up/down) changes page; A, B or Start returns to the selector. Controller-driven tests verify every rendered name, navigation, return paths, idle stability and coin isolation. Existing Arcade/Home and attract regressions pass. See [contributor list](docs/credits.md). The packaged v1.9.6 BIN is unchanged.
+
+# Undead emergence fix (included in v1.9.7)
 
 Confirmed and corrected the delayed weapon vulnerability of all three recurring undead variants. Their partially emerged phase now accepts attacks while retaining the arcade body-contact immunity. Source comparisons and targeted tests pass on Genesis Plus GX and PicoDrive. See [investigation](reports/undead-emergence-fix.md). The packaged v1.9.6 BIN is unchanged; this local build has not undergone full release validation.
 

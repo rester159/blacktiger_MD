@@ -5,7 +5,7 @@ checks=[]
 for flags in range(8):
  r=Runner(ROOT/'out/release/rom.bin');r.run(100)
  def tap(mask):r.run(8,mask);r.run(8)
- tap(32);tap(8)
+ tap(8)
  if flags==7:r.capture('home-menu-v18.png')
  tap(128);assert r.read('frontend',3)[2]==2
  if flags==7:

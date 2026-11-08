@@ -77,7 +77,14 @@ def run():
     if damage<5:assert (s.actors[slot].x,s.actors[slot].y)==before,('closed wall moved',level,row)
     assert bool(r.read('world_opened',1)[0]&(1<<patch_index))==(damage==5)
     if damage<5:assert s.actors[slot].hp==5-damage
-   r.run(5);vram_patch(r,level,patch)
+   # Point-blank (v1.9.7 report): standing against the wall must reveal the reward
+   # rather than collect it on the break frame. Fixed 3188 uses a 4x4 reward box.
+   s=state(r);s.mode=2;put(r,s);r.run(20)
+   s=state(r);s.mode=1;a=s.actors[slot];home=(s.p.x,s.p.y);s.p.x=a.x-16*256;s.p.y=a.y;s.p.vx=s.p.vy=0;s.p.invincible=10000;put(r,s)
+   r.run(5);s=state(r)
+   assert s.spawned[row]!=2 and s.actors[slot].active and s.actors[slot].state==1,('point-blank reward collected',level,row)
+   s.mode=2;put(r,s);r.run(20);s=state(r);s.mode=1;s.p.x,s.p.y=home;s.p.vx=s.p.vy=0;put(r,s);r.run(30)
+   vram_patch(r,level,patch)
    if len(results)==0:r.capture('hidden-open.png')
    kind=(metadata['actor_definitions'][d]['address']-0xb7da)//23
    # Move away and back while preserving the open terrain and uncollected item.
@@ -92,7 +99,8 @@ def run():
     if found and s.spawned[row]&1:slot=found[0];break
    assert s.actors[slot].state==1,('closed wall respawned',level,row)
    s=state(r);s.mode=2;put(r,s);r.run(20)
-   s=state(r);s.mode=1;a=s.actors[slot];s.p.x=a.x;s.p.y=a.y;s.p.vx=s.p.vy=0;s.p.invincible=10000;s.clock=0
+   # Walk into the reward: centre the player body (x+8, y+8) on its contact point.
+   s=state(r);s.mode=1;a=s.actors[slot];s.p.x=a.x-8*256;s.p.y=a.y-8*256;s.p.vx=s.p.vy=0;s.p.invincible=10000;s.clock=0
    baseline=(s.p.lives,s.p.armor,s.p.hp,s.time,s.coins,s.score);put(r,s)
    for _ in range(120):
     r.run(1);s=state(r)
@@ -103,6 +111,6 @@ def run():
    actual=(s.p.lives,s.p.armor,s.p.hp,s.time,s.coins,s.score);assert actual==expected,(kind,actual,expected)
    s=state(r);s.mode=2;put(r,s);r.run(50);vram_patch(r,level,patch);reward_kinds.add(kind);results.append({'round':level+1,'persistent':patch['persistent'],'kind':kind})
  r.close()
- report={'passed':True,'wall_cases':len(results),'reward_kinds':sorted(reward_kinds),'cases':results,'rom_sha256':hashlib.sha256(rom).hexdigest(),'scope':'All actual wall rows: five hits, stationary closed actors, live VDP replacement pixels, reveal, reward, open-state respawn and collection. Screen-attack target fidelity is not covered.'}
+ report={'passed':True,'wall_cases':len(results),'reward_kinds':sorted(reward_kinds),'cases':results,'rom_sha256':hashlib.sha256(rom).hexdigest(),'point_blank_reveal':True,'scope':'All actual wall rows: five hits, point-blank reveal without collection, stationary closed actors, live VDP replacement pixels, reveal, reward, open-state respawn and collection. Screen-attack target fidelity is not covered.'}
  (ROOT/'reports/hidden-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
 if __name__=='__main__':run()

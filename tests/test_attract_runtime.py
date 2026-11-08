@@ -32,14 +32,16 @@ for b in record[4:48]:h=((h^b)*16777619)&0xffffffff
 record+=struct.pack('>I',h)
 saved=bytearray([255])*65536
 for i,b in enumerate(record):saved[(32+i)*2+1]=b
-r=boot(saved);tap(r,2)
+r=boot(saved);tap(r,32);tap(r,2)
 check('Arcade enters attract without spending a credit',r.read('attract_running',1)==b'\1' and r.read('frontend',9)[4]==0)
 sram=bytes(memory(r));records=r.read('high_scores',40);initial_game_score=state(r).score
 r.run(50)
-check('Saved high score appears in arcade header',row(r,1)[12:20]==[glyph(r,7,c) for c in '   90000'])
+check('Saved high score appears in arcade header',row(r,1)[12:21]==[glyph(r,7,c) for c in '   900000'])
 for i,(score,name,_) in enumerate(entries):
  y=16+i*2
- check('Saved ranking '+str(i+1),row(r,y)[13:20]==[glyph(r,7,c) for c in str(score).rjust(7)] and row(r,y)[21:24]==[glyph(r,0,chr(c)) for c in name])
+ # Source ranking layout (MAME boot capture): score with its appended zero ends at column 19,
+ # column 20 stays blank and the initials occupy 21-23.
+ check('Saved ranking '+str(i+1),row(r,y)[12:20]==[glyph(r,7,c) for c in str(score*10).rjust(8)] and row(r,y)[20]==glyph(r,0,' ') and row(r,y)[21:24]==[glyph(r,0,chr(c)) for c in name])
 r.capture('v15-attract-rankings.png')
 seen=set();blink=set();wrap=False;last=-1;samples=0
 # Read the actual native replay state out of the shared title-only workspace.
@@ -79,15 +81,30 @@ check('Qualifying Arcade run opens initials entry',r.read('frontend',2)[1]==6)
 for _ in range(3):tap(r,2)
 r.run(20)
 check('Confirmed Arcade initials return to attract',r.read('frontend',2)==b'\0\1' and r.read('attract_running',1)==b'\1' and r.read('high_scores',8)==struct.pack('>I3sB',95000,b'AAA',0))
-new_save=bytes(memory(r));r.close();r=boot(new_save);tap(r,2);r.run(50)
+new_save=bytes(memory(r));r.close();r=boot(new_save);tap(r,32);tap(r,2);r.run(50)
 check('New Arcade initials persist after restart',row(r,16)[21:24]==[glyph(r,0,c) for c in 'AAA'] and int.from_bytes(r.read('high_score',4),'big')==95000)
-r.close();r=boot(sram);tap(r,2);r.run(50)
+r.close();r=boot(sram);tap(r,32);tap(r,2);r.run(50)
 check('Power cycle preserves scores in attract rankings',r.read('high_scores',40)==records and row(r,16)[21:24]==[glyph(r,0,c) for c in 'ACE'])
 tap(r,32);check('Down opens DIP switches',r.read('frontend',2)==b'\0\2' and r.read('attract_running',1)==b'\0')
 tap(r,1);check('B returns from DIP to attract',r.read('attract_running',1)==b'\1')
 tap(r,1);check('B exits attract to mode selector',r.read('frontend',2)[1]==0 and r.read('attract_running',1)==b'\0')
-tap(r,32);tap(r,2);tap(r,8);r.skip_intro();r.run(20)
+tap(r,16);tap(r,2);tap(r,8);r.skip_intro();r.run(20)
 check('Home remains playable after attract and DIP exits',state(r).mode==1 and int.from_bytes(r.read('video_cache_faults'),'big')==0)
 r.close()
+# v1.9.7 report: a fresh table showed 200000 and lost every other default after one entry.
+r=boot();tap(r,32);tap(r,2);r.run(50)
+check('Fresh ranking keeps the arcade 20000 default',int.from_bytes(r.read('high_score',4),'big')==2000 and row(r,1)[12:21]==[glyph(r,7,c) for c in '    20000'])
+defaults=[(2000,b'IMO'),(1800,b'MKP'),(1600,b'M.H'),(1400,b'Y.K'),(1200,b'Y.F')]
+check('Fresh ranking holds all five arcade defaults',r.read('high_scores',40)==b''.join(struct.pack('>I3sB',s,n,0) for s,n in defaults))
+r.run(1700);r.run(24,8);r.run(8);tap(r,2);r.run(40);tap(r,2);r.run(20)
+game=state(r);game.score=1700;game.mode=2;put(r,game);r.run(10)
+game=state(r);game.mode=7;game.previous_input=0;put(r,game)
+r.write('game_over',0,struct.pack('>HBB',1,2,0));r.run(20)
+check('Mid-table Arcade score opens initials entry',r.read('frontend',2)[1]==6)
+for _ in range(3):tap(r,2)
+r.run(20)
+expected=[(2000,'IMO'),(1800,'MKP'),(1700,'AAA'),(1600,'M.H'),(1400,'Y.K')]
+check('Ranking after initials keeps the remaining defaults',all(row(r,16+i*2)[12:20]==[glyph(r,7,c) for c in str(s*10).rjust(8)] and row(r,16+i*2)[21:24]==[glyph(r,0,c) for c in n] for i,(s,n) in enumerate(expected)))
+r.capture('v198-attract-defaults-after-entry.png');r.close()
 report=dict(passed=True,checks=checks,source_frame_samples=samples,rom_sha256=hashlib.sha256(rom.read_bytes()).hexdigest(),scope=__doc__+' RGB333/palette and sprite-limit adaptation; original observed demo replay, not a second gameplay engine.')
 (ROOT/'reports/attract-runtime-tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

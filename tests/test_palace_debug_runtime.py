@@ -3,7 +3,7 @@ import hashlib,json
 from test_runtime import ROOT,Runner,state,put
 r=Runner(ROOT/'out/release/rom.bin');r.run(100)
 def tap(mask):r.run(8,mask);r.run(8)
-for key in (32,8,16,16,32,32,64,128,64,128,8):tap(key)
+for key in (8,16,16,32,32,64,128,64,128,8):tap(key)
 assert r.read('frontend',17)[16]==1,'Infinite Zenny must default YES'
 tap(16);assert r.read('frontend',14)[13]==12
 r.capture('v21-debug-zenny.png');tap(2);assert r.read('frontend',17)[16]==0

@@ -1,4 +1,4 @@
-"""Exact US labels/prices, stale-digit removal and sprites behind dialogue."""
+"""Exact Easiest-table labels/prices, stale-digit removal and sprites behind dialogue."""
 import ctypes as C,hashlib,json,struct
 import numpy as np
 from test_skeleton_runtime import ROOT,Runner,state,put,fixture
@@ -8,7 +8,9 @@ def words(r):
  return lambda at:(v[at^1]<<8)|v[(at+1)^1]
 def tap(r,key):r.run(8,key);r.run(8)
 r=Runner(ROOT/'out/release/rom.bin');r.run(100);r.start_game();r.run(20)
-assert r.read('shop_difficulty',1)==b'\0'
+# Prices follow the difficulty setting (fixed 12E8); default Normal is source table 4.
+assert r.read('shop_difficulty',1)==b'\4'
+r.write('shop_difficulty',0,b'\0')
 s=state(r);s.mode=3;s.shop_item=0;s.coins=20000;put(r,s);r.run(30)
 font=struct.unpack_from('>59H',rom,r.symbols['shop_font']);w=words(r)
 cols=[3,7,12,17,23,27];prices=[100,1000,2400,9600,30,80,300,800,1600,150]

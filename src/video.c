@@ -60,7 +60,7 @@ static u16 terrain_slots, terrain_width, terrain_height, terrain_shift;
 static const Backdrop *terrain_backdrop;
 static u8 shop_screen_active,torch_phase[4];
 static u8 clear_screen_active,ending_screen_active,ending_screen_scene,ending_screen_palette;
-static u8 poison_palette_active;
+static u8 poison_palette_active,armor_palette_level=255;
 static u8 last_round = 255, last_mode = 255, last_opened, last_clear_phase;
 static u8 last_bonus_entered,last_bonus_phases[4],last_game_over_phase,last_continue_digit;
 u16 video_dma_bytes, video_dropped_sprites, video_cache_faults;
@@ -691,9 +691,10 @@ static void digits(char *p, u16 v, u16 count) {
 }
 static void overlay(void) {
     static u8 last_ready;
-    u8 m = game.mode, ready = m==PLAY && round_ready,
-       changed = m != last_mode || (m==CLEAR && last_clear_phase!=round_clear.phase) || ready!=last_ready;
-    last_ready=ready;
+    static u8 last_notice;
+    u8 m = game.mode, ready = m==PLAY && round_ready, notice = m==PLAY ? bonus_notice_phase() : 0,
+       changed = m != last_mode || (m==CLEAR && last_clear_phase!=round_clear.phase) || ready!=last_ready || notice!=last_notice;
+    last_ready=ready;last_notice=notice;
     if(m==GAMEOVER && last_credits!=frontend.credits)changed=1;
     last_credits=frontend.credits;
     if(m==GAMEOVER && (last_game_over_phase!=game_over.phase || last_continue_digit!=game_over.digit))changed=1;
@@ -710,6 +711,9 @@ static void overlay(void) {
     }
     if(!clear_screen_active && !ending_screen_active)ui_hud();
     if(ready && changed)ui_ready(game.round,game.p.lives);
+    if(notice==2 && changed)ui_bonus_blank(bonus_notice_welcome);
+    if(notice==3 && changed)ui_bonus_ready();
+    if(arena_video_active && !changed && (notice==3 || (notice==2 && bonus_notice_welcome)))ui_bonus_text(notice==2);
     VDP_setTextPlane(BG_A);
     if(m==RESCUE && !arena_video_sprite_dialogue() && (changed || last_npc_page!=npc_sequence.page)) {
         u16 i,tiles[128];const u16 *page=npc_dialogue();
@@ -793,7 +797,7 @@ __attribute__((noinline)) static void reload_round(void) {
     memset(body_keys, 255, sizeof body_keys);
     eviction = sprite_eviction = body_eviction = epoch = 0;
     PAL_setColors(0, rounds[game.round].palette, 32, CPU);
-    PAL_setColors(32, object_palette, 32, CPU);poison_palette_active=0; /* SGDK font uses foreground pen 15. */
+    PAL_setColors(32, object_palette, 32, CPU);poison_palette_active=0;armor_palette_level=255; /* SGDK font uses foreground pen 15. */
     PAL_setColor(63, 0xeee);
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
@@ -901,6 +905,7 @@ void video_frame(void) {
     if(shop_screen_active && game.mode!=SHOP)video_round();
     if(game.mode==SHOP){
         if(poison_palette_active){PAL_setColors(39,object_palette+7,4,CPU);poison_palette_active=0;}
+        if(armor_palette_level!=255){PAL_setColors(34,object_palette+2,4,CPU);armor_palette_level=255;}
         if(!shop_screen_active){if(arena_video_active)arena_video_reset();shop_video_init();shop_screen_active=1;}
         shop_video_frame();last_mode=SHOP;
         if(profile_frame){video_cost[0]=getSubTick()-t;video_cost[1]=video_cost[2]=0;}return;
@@ -928,7 +933,15 @@ void video_frame(void) {
         video_dma_bytes+=8;poison_palette_active=poisoned;
     }
     }
-    sprites();
+    /* Fixed 193C: hero pens 1-4 follow armor level F3AD (gray, green, lavender, gold). */
+    {u8 level=game.p.armor>8?8:game.p.armor;
+    if(level!=armor_palette_level){
+        PAL_setColors(34,armor_palette+level*4,4,DMA_QUEUE);
+        video_dma_bytes+=8;armor_palette_level=level;
+    }
+    }
+    if(game.mode==PLAY && bonus_notice_phase()==2){VDP_setSpriteFull(0,0,-32,SPRITE_SIZE(1,1),0,0);VDP_updateSprites(1,DMA_QUEUE);}
+    else sprites();
     if(profile_frame){u32 now=getSubTick();video_cost[1]=now-t;t=now;}
     overlay();
     if(profile_frame)video_cost[2]=getSubTick()-t;

@@ -16,8 +16,9 @@ def boot(saved=None):
 def tap(r,key):r.run(6,key);r.run(6)
 def table(r):return [struct.unpack_from('>I3sB',r.read('high_scores',40),8*i) for i in range(5)]
 def open_high_scores(r):
- tap(r,32);tap(r,32);tap(r,2)
- assert r.read('frontend',2)[1]==5,'HIGH SCORES was not reachable from the public selector'
+ # Inspect the saved table; normal post-game entry is exercised below.
+ r.write('frontend',0,bytes([1,5,0]));r.run(12)
+ assert r.read('frontend',2)[1]==5
 def finish(r,score,name='AAA'):
  s=state(r);s.score=score;s.mode=2;put(r,s);r.run(10)
  s=state(r);s.mode=7;s.previous_input=0;put(r,s)
@@ -33,8 +34,8 @@ def finish(r,score,name='AAA'):
  assert r.read('frontend',2)[1]==5 and r.read('high_score_pending',1)==b'\xff'
  return True
 def next_run(r):
- tap(r,1) # Table -> main selector, retaining HIGH SCORES selection.
- tap(r,16);tap(r,2);tap(r,8);r.skip_intro();r.run(10)
+ tap(r,1) # Table -> main selector, selecting Home.
+ tap(r,2);tap(r,8);r.skip_intro();r.run(10)
  assert state(r).mode==1
 # Migration from the old 64-byte SRAM layout: preserve the user's record.
 legacy=bytearray([255]*65536);record=b'BTS1'+struct.pack('>II',54321,~54321&0xffffffff)
@@ -45,7 +46,7 @@ assert int.from_bytes(r.read('high_score',4),'big')==54321
 vram=(C.c_ubyte*65536).in_dll(r.lib,'vram')
 def word(at):return (vram[at^1]<<8)|vram[(at+1)^1]
 font_base=(word(0xc000+128+13*2)&2047)-(ord(' ')-32)
-assert [(word(0xc000+128+(13+i)*2)&2047)-font_base+32 for i in range(8)]==list(b'   54321')
+assert [(word(0xc000+128+(13+i)*2)&2047)-font_base+32 for i in range(9)]==list(b'   543210')
 r.capture('v15-saved-title.png')
 r.start_game();r.run(20)
 for score,name in ((60000,'BOB'),(40000,'ACE'),(90000,'ZED'),(70000,'ANN'),(80000,'MAX')):

@@ -124,6 +124,11 @@ def main():
     hero[14]=[4,4,4]
     cram=[0]+[int(c[0]*2+c[1]*32+c[2]*512) for c in hero]+[0]+[int(c[0]*2+c[1]*32+c[2]*512) for c in enemy]
     emit('object_palette',words(cram))
+    # Fixed 193C recolors hero pens 0-9 every update from table 1ACB[F3AD]; only pens 1-4
+    # (CRAM 34-37) differ by armor level. object_palette keeps the level-2 entry (1ACF).
+    armor_rows=[read(0,u16(read(0,0x1acb+2*level,2)),20) for level in range(9)]
+    assert all(row[:1]+row[5:10]+row[10:11]+row[15:20]==armor_rows[2][:1]+armor_rows[2][5:10]+armor_rows[2][10:11]+armor_rows[2][15:20] for row in armor_rows)
+    emit('armor_palette',words([((row[i]>>5)<<1)|(((row[i]&15)>>1)<<5)|(((row[10+i]&15)>>1)<<9) for row in armor_rows for i in range(1,5)]))
     poison_raw=read(0,0x1b41,8)
     emit('poison_skin_palette',words([((poison_raw[i]>>5)<<1)|(((poison_raw[i]&15)>>1)<<5)|(((poison_raw[i+4]&15)>>1)<<9) for i in range(4)]))
     smap=[]
@@ -145,6 +150,7 @@ def main():
                 targets=(hero,enemy)
                 distances=[((source_colors[:,None,:]-target[None,:,:])**2).sum(2) for target in targets]
                 if p==7:distances[0][:,6:10]=10000 # Skin changes during poison; dragon colors must not.
+                distances[0][:,1:5]=10000 # Armor pens follow F3AD (fixed 193C); dragon colors must not.
                 mappings=[np.r_[d.argmin(1)+1,0].astype(np.uint8) for d in distances]
                 choices=np.zeros(512,dtype=np.uint8)
                 for base in range(1536,2048,16):
@@ -453,6 +459,12 @@ def main():
                 if b>7 or pc<0x100 or pc>=0xc000:
                     report['unresolved_spawn_rows'].append({'round':r+1,'cell':cell,'address':p,'bytes':raw.hex()});break
                 p+=8
+                # Fixed 1B4C walks only the 256x256 cell list under its camera probe (table 1DFF).
+                # Round 2's (640,928) shopkeeper is filed under start-area cell 25, which no
+                # camera able to see it can probe; a MAME sweep of 1B4C over every Round 2
+                # camera position never constructs it. The original never shows this old man.
+                if (r,cell,x,y)==(1,25,640,928):
+                    report.setdefault('unreachable_spawn_rows',[]).append({'round':r+1,'cell':cell,'x':x,'y':y,'bytes':raw.hex()});continue
                 if pc in (0x7138,0x6f71):continue # pots and alternate-area triggers have separate native owners
                 key=(b if pc>=0x8000 else 0,pc)
                 if key not in defs:

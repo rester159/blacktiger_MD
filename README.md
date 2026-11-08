@@ -8,7 +8,7 @@ The title displays the live SRAM high score. Select HIGH SCORES below Arcade/Hom
 
 Enable battery/save RAM in your emulator. When moving to the v1.9.2 ROM filename, copy the previous battery save to the new filename so the emulator loads it. Options and DIP switches save to SRAM. Debug sessions do not enter the score tables.
 
-US shop prices are weapons 100/1000/2400/9600, armor 80/300/800/1600, key 30, and antidote 150; combat difficulty does not change this catalog. Dialogue draws over overlapping world sprites. Chest trap flames draw in front of their chest.
+Shop prices follow the difficulty setting, as in the arcade (the Arcade DIP switch or the Home option). Normal (the default) charges weapons 200/1200/4800/12800 and armor 150/500/1200/2400; Easiest charges 100/1000/2400/9600 and 80/300/800/1600. Keys cost 30 and the antidote 150 at every difficulty. Items you already own are marked with the arcade's red X. Dialogue draws over overlapping world sprites. Chest trap flames draw in front of their chest.
 
 Home Up/Down cycles through Play, Boss Rush, and Options. Ground acid blobs finish their death animation after a hit instead of returning as harmless moving ghosts.
 

@@ -5,7 +5,7 @@ checks=[]
 for level in range(8):
  r=Runner(ROOT/'out/release/rom.bin');r.run(100)
  def tap(key):r.run(8,key);r.run(8)
- tap(32);tap(8)
+ tap(8)
  for key in (16,16,32,32,64,128,64,128):tap(key)
  tap(8)
  assert r.read('frontend',2)==bytes([1,4])

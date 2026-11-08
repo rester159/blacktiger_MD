@@ -15,7 +15,7 @@ u16 world_word(u16 x, u16 y, u16 original);
 u8 world_collision(u16 cell, u8 original);
 void hidden_spawn(u16 slot);
 void hidden_break(u16 slot);
-u8 hidden_step(u16 slot, u8 contact);
+u8 hidden_step(u16 slot);
 const AnimFrame *hidden_frame(u16 slot);
 const AnimFrame *world_effect(u16 patch);
 #endif
