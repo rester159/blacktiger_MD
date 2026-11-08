@@ -96,7 +96,7 @@ move(15, 16)
 move(25, 65)  # Jump left off the pole to the other top ledge.
 move(20, 0)
 move(12, 1)   # Vertical jump, then steer left at the apex.
-move(22, 64)
+move(23, 64)  # One walking step to x=622, where the next pole is in reach.
 s = move(20, 0)
 assert s.p.y // 256 == -64 and s.p.grounded, 'vertical map join is blocked'
 move(12, 1)   # Catch the next pole above the seam.

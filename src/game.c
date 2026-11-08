@@ -90,6 +90,13 @@ static u8 support(s16 x, s16 y) {
     return terrain(x, y) >= 2;
 }
 static u8 restart_pending,loaded_round=255;
+/* The view is the source scroll camera E032 (player_motion.scroll_y). It holds
+   still while the hero jumps (only his screen Y moves) and returns 8 px per
+   update after a higher landing. Spawning, despawning and screen-relative
+   actor logic share it, as fixed 1B4C does. */
+static s16 arcade_camera_y(void) {
+    return camera_y((s16)player_motion.scroll_y);
+}
 static u8 boss_room_locked;
 static s16 boss_room_left,boss_room_right;
 void game_round(u8 round) {
@@ -159,7 +166,7 @@ void game_bonus_transition(void) {
  game.p.x=(s32)(u16)(x+player_motion.screen_x)*FX;
  game.p.y=(s32)(s16)(y+player_motion.screen_y)*FX;
  game.cam_x=(u16)(PX(game.p.x)-112);
- game.cam_y=camera_y(PX(game.p.y)-144);
+ game.cam_y=arcade_camera_y();
 }
 void game_new(void) {
     high_score_begin();
@@ -976,7 +983,7 @@ static void game_tick_step(u16 input) {
                 /* Keep the current horizontal lap while descending to victory.
                    Absolute map bounds jump the camera after a wrapped approach. */
                 game.cam_x=boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):boss_room_locked?bound_axis(PX(p->x)-112,boss_room_left,boss_room_right-256):(u16)(PX(p->x)-112);
-                game.cam_y=camera_y(PX(p->y)-144);
+                game.cam_y=arcade_camera_y();
                 return;
             }
             round_clear_start();
@@ -1114,7 +1121,7 @@ static void game_tick_step(u16 input) {
         }
     }
     game.cam_x = boss_rush.active?bound_axis(PX(p->x)-112,RUSH_X,RUSH_X+RUSH_WIDTH-256):boss_room_locked?bound_axis(PX(p->x)-112,boss_room_left,boss_room_right-256):(u16)(PX(p->x)-112);
-    game.cam_y = boss_rush.active?RUSH_Y:camera_y(PX(p->y)-144);
+    game.cam_y = boss_rush.active?RUSH_Y:arcade_camera_y();
 }
 
 void game_tick(u16 input){
