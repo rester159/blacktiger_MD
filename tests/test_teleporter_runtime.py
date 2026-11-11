@@ -7,13 +7,13 @@ s=state(r);score=s.score;assert s.actors[slot].life==18
 for _ in range(700):
  s=state(r);s.mode=1;s.p.invincible=10000;put(r,s);r.run(1)
  raw=r.read('container_traps',18*24)
- parts=[i for i in range(24) if raw[i*18+14] and raw[i*18+17]>=3]
+ parts=[i for i in range(24) if raw[i*18+14] and (raw[i*18+17]&0x7f)>=3]
  if len(parts)==6:break
 else:raise AssertionError('Teleporter did not create six attack parts')
 s=state(r);s.p.x=(s.cam_x+112)*256;s.p.y=(s.cam_y+112)*256;s.p.vx=s.p.vy=0;put(r,s);r.run(20)
 s=state(r);s.mode=2;put(r,s);r.run(20);r.capture('teleporter-wave.png')
 # Use an actual middle attack part at a controlled player contact boundary.
-part=next(i for i in parts if raw[i*18+17]==4)
+part=next(i for i in parts if (raw[i*18+17]&0x7f)==4)
 for antidotes in (0,1):
  s=state(r);s.mode=2;put(r,s);r.run(20)
  r.write('status_reverse',0,bytes([0]));r.write('status_gate',0,bytes([0]));r.write('shop_antidotes',0,bytes([antidotes]))
@@ -54,7 +54,7 @@ s=state(r);assert s.actors[slot].life==8
 for _ in range(700):
  s=state(r);s.mode=1;s.p.invincible=10000;put(r,s);r.run(1)
  raw=r.read('container_traps',18*24)
- parts=[i for i in range(24) if raw[i*18+14] and raw[i*18+17]<3]
+ parts=[i for i in range(24) if raw[i*18+14] and (raw[i*18+17]&0x7f)<3]
  if len(parts)==6:break
 else:raise AssertionError('Second teleporter did not create six ordinary attack parts')
 s=state(r);s.mode=2;put(r,s);r.run(20);r.capture('teleporter-ground.png')

@@ -5,6 +5,8 @@ extern u8 container_traps_occupied;
 typedef struct {const AnimClip *clip;u16 next;u8 event;} ContainerSegment;
 typedef struct {AnimState animation;u16 segment;s16 x,y;u8 active,left,contact,part;} ContainerTrap;
 #define MAX_CONTAINER_TRAPS 24
+/* part flag: the screen attack (Pow) retires this piece. */
+#define CONTAINER_TRAP_POW 0x80
 extern ContainerTrap container_traps[MAX_CONTAINER_TRAPS];
 extern u8 container_keys;
 void container_actor_reset(void);
@@ -29,6 +31,8 @@ void container_round(u8 round);
 u8 container_content(u8 persistent);
 void container_ground_spawn(s16 x,u8 left);
 extern const u16 dragon_wave_roots[2][6];
+extern const u8 container_trap_pow,container_wave_pow,dragon_wave_pow[2];
+void container_traps_screen_attack(void);
 void dragon_wave_spawn(s16 x,u8 left,u8 profile);
 void container_wave_spawn(s16 x,u8 left);
 #endif

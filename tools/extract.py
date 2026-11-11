@@ -335,6 +335,11 @@ def main():
     body.append('const u16 container_wave_roots[]={'+','.join(map(str,containers['wave_roots']))+'};')
     body.append('const u16 container_roots[]={'+','.join(map(str,containers['roots']))+'};')
     body.append('const u16 container_trap_roots[]={'+','.join(map(str,containers['trap_roots']))+'};')
+    # Bank 4 B5BA: the screen attack kills small-pool actors whose contact
+    # code (offset 13, bit 7 ignored) is 0, 2A or 34. One bit per piece.
+    def pow_mask(templates):
+        return sum(1<<i for i,t in enumerate(templates) if bytes.fromhex(t)[13]&0x7f in (0,0x2a,0x34))
+    body.append('const u8 container_trap_pow=%d,container_wave_pow=%d,dragon_wave_pow[2]={%s};'%(pow_mask(containers['trap_templates']),pow_mask(containers['wave_templates']),','.join(str(pow_mask(g)) for g in containers['dragon_templates'])))
     pair=extract_pair(Source(args.source))
     (ROOT/'reference/pair.json').write_text(json.dumps(pair,indent=2)+'\n')
     for i,seg in enumerate(pair['segments']):native_clip('pair_'+str(i),seg['clip']['frames'],seg['clip']['loop'])

@@ -1,3 +1,19 @@
+# v1.9.9 — release BIN
+
+Addresses the v1.9.8 itch.io feedback. Each claim was checked in MAME on a natural Round 1 game, with the camera (E030/E032) injected next to the stone boss:
+- **Boss wake-up (Rounds 1–2): no change; the port already matches.** The wake check 9FA6 is followed by sprites 352/354/356 for 8/8/68 updates. The head first acts 44 updates after its wake, and the body 84. MAME shows the same (frames 4361→4405/4445), and so does the port for both bosses. F401 is the player's screen X, and actor X is screen-relative as well (06FC adds E030), so the port's world-space distance test is equivalent.
+- **Post-defeat control:** the port no longer zeroes input while a boss dies. Source 5A38 only sets E02F (contact off; the port uses `boss_dead`). In MAME the hero walks and jumps from the defeat (4418) until the object retires and 5A4F starts the clear (4528). The port now gives 107 free updates and two jumps.
+- **Pow vs chest flames:** bank 4 B5A6 retires small-pool actors with contact code 0/2A/34. That covers every chest flame piece (template 831A, contact 80) and the ordinary wave pieces. The reversed-control middle pieces (AB) are not retired. Their death cursors (89FD/AAAD) are bare FE retirements. The port derives per-piece masks from the templates (`container_trap_pow` 63, `container_wave_pow` 45, `dragon_wave_pow` 63/45) and flags pieces in bit 7 of `ContainerTrap.part`.
+
+Validation:
+- All 201 remaining Makefile test commands pass. `tests/test_teleporter_runtime.py` now masks the new part flag. New check: `tests/test_v199_feedback_runtime.py`, also required by strict packaging.
+- `prepare_source_data --all` did not complete: the crawler MAME oracle hit the fixed 300 s timeout under host load averages of 40–90 (as in v1.9.8). It only regenerates unchanged arcade references.
+- Strict packaging passes. The PicoDrive boot/attack smoke check passes.
+- BIN: `dist/blacktiger_MD_v1.9.9.bin`, SHA-256 `5b64d6182b3bce3abee774e7a69fcf6bb59e2d075bb8942c5bfb67cc1804cd89`.
+- No physical hardware test. Notes: [v1.9.9](docs/v1.9.9.md).
+
+Open, not changed: `container_trap_contact` treats every piece of a special wave as reversed controls (`part>=3`). The arcade templates mark only the middle pieces (AB) that way.
+
 # v1.9.8 — release BIN
 
 Fixes the v1.9.7 itch.io reports from PRETTY MAZE and ZeroVolt:

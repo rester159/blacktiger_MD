@@ -29,7 +29,7 @@ void container_spawn(u16 slot) {
  animation_reset(&s->animation);
  s->segment=container_roots[s->phase==3?4:s->phase==2?(a->life==5?6:a->life?5:4):0];
 }
-static void attack_spawn(s16 x,s16 y,u8 anchored,u8 left,const u16 *roots,u8 special) {
+static void attack_spawn(s16 x,s16 y,u8 anchored,u8 left,const u16 *roots,u8 special,u8 pow) {
  u16 base,i;
  for(base=0;base<MAX_CONTAINER_TRAPS;base+=6) {
   for(i=0;i<6 && !container_traps[base+i].active;i++);
@@ -43,12 +43,12 @@ static void attack_spawn(s16 x,s16 y,u8 anchored,u8 left,const u16 *roots,u8 spe
  for(i=0;i<6;i++) {
   ContainerTrap *t=&container_traps[base+i];animation_reset(&t->animation);
   t->segment=roots[i];t->x=x+(i>=3?(left?-24:24):0);t->y=y;
-  t->active=1;if(container_traps_occupied<base+i+1)container_traps_occupied=base+i+1;t->left=left;t->contact=0;t->part=i%3+(special?3:0);
+  t->active=1;if(container_traps_occupied<base+i+1)container_traps_occupied=base+i+1;t->left=left;t->contact=0;t->part=i%3+(special?3:0)+((pow>>i)&1?CONTAINER_TRAP_POW:0);
  }
 }
-void container_ground_spawn(s16 x,u8 left){attack_spawn(x+8,game.cam_y+112,0,left,container_trap_roots,0);}
-void dragon_wave_spawn(s16 x,u8 left,u8 profile){attack_spawn(x+(left?-32:48),game.cam_y+112,0,left,dragon_wave_roots[profile],profile);}
-void container_wave_spawn(s16 x,u8 left){attack_spawn(x+(left?-32:48),game.cam_y+112,0,left,container_wave_roots,1);}
+void container_ground_spawn(s16 x,u8 left){attack_spawn(x+8,game.cam_y+112,0,left,container_trap_roots,0,container_trap_pow);}
+void dragon_wave_spawn(s16 x,u8 left,u8 profile){attack_spawn(x+(left?-32:48),game.cam_y+112,0,left,dragon_wave_roots[profile],profile,dragon_wave_pow[profile]);}
+void container_wave_spawn(s16 x,u8 left){attack_spawn(x+(left?-32:48),game.cam_y+112,0,left,container_wave_roots,1,container_wave_pow);}
 void container_step(u16 slot,u8 contact) {
  Actor *a=&game.actors[slot];ContainerState *s=&containers[slot];u16 tries;
  if(s->pending) {
@@ -58,7 +58,7 @@ void container_step(u16 slot,u8 contact) {
  for(tries=0;tries<4;tries++) {
   const ContainerSegment *seg=&container_segments[s->segment];
   if(animation_step(&s->animation,seg->clip))break;
-  if(seg->event==0) {attack_spawn(PX(a->x)+8,PX(a->y)+16,1,s->left,container_trap_roots,0);s->phase=3;game.sound=SND_HIT;}
+  if(seg->event==0) {attack_spawn(PX(a->x)+8,PX(a->y)+16,1,s->left,container_trap_roots,0,container_trap_pow);s->phase=3;game.sound=SND_HIT;}
   else if(seg->event==1 || seg->event==2) {s->phase=2;game.sound=SND_COIN;}
   else return;
   select_clip(&s->animation,&s->segment,seg->next);
@@ -102,7 +102,13 @@ container_traps_occupied=occupied;return occupied;
 }
 u8 container_trap_contact(u16 slot) {
  ContainerTrap *t=&container_traps[slot];
- return t->active && t->contact && !(game.frame&1) && player_contact(t->x,t->y,4,16)?(t->part>=3?2:1):0;
+ return t->active && t->contact && !(game.frame&1) && player_contact(t->x,t->y,4,16)?((t->part&~CONTAINER_TRAP_POW)>=3?2:1):0;
+}
+/* Bank 4 B5A6: Pow selects small-pool actors by contact code and 322A sends
+   them to their death cursor. Every trap piece's death record is a bare
+   retirement (FE), so an eligible flame simply disappears. */
+void container_traps_screen_attack(void) {
+ u16 i;for(i=0;i<container_traps_occupied;i++)if(container_traps[i].part&CONTAINER_TRAP_POW)container_traps[i].active=0;
 }
 const AnimFrame *container_trap_frame(u16 slot) {
  ContainerTrap *t=&container_traps[slot];return t->active && t->animation.remaining?animation_current(&t->animation,container_segments[t->segment].clip):0;

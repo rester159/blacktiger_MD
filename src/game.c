@@ -416,6 +416,7 @@ static void player_step(u16 in, u16 pressed) {
 }
 static void screen_attack(void) {
     flailer_weapons_clear_attack();reinforcement_shots_reset();edge_shots_reset();dragon_shots_reset();
+    container_traps_screen_attack();
     u16 j;
     for(j=0;j<MAX_MISSILES;j++)missile_hit(j,255);
     for (j = 0; j < MAX_ACTORS; j++) {
@@ -1036,7 +1037,9 @@ static void game_tick_step(u16 input) {
         boss_room_left=world_near_x(game.round==2?576:1152);
         boss_room_right=boss_room_left+384;
     }
-    if (bosses&2) input=pressed=0;
+    /* A defeated boss does not freeze the hero. Source 5A38 only disables
+       contact (boss_dead); MAME shows Round 1 walking and jumping through the
+       whole death animation until the round-clear callback 5A4F. */
     player_step(input, pressed);
     if (game.mode != PLAY)
         return;
