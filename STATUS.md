@@ -11,6 +11,7 @@ Validation:
 - Strict packaging passes. The PicoDrive boot/attack smoke check passes.
 - BIN: `dist/blacktiger_MD_v2.0.bin`, SHA-256 `ac55c048744b78a0d26ed0ab871ac1af820f379c49930f9eaf01d14e2439c897`. Title stamp reads v2.0. `tests/test_home_logo_runtime.py` now checks the stamp width from VERSION; it previously assumed a three-part version.
 - No physical hardware test; the Model 3 / Mega Sg cause is inferred from emulation, not observed on those consoles. Notes: [v2.0](docs/v2.0.md).
+- Published: butler channel `genesis` build #2444677 (userversion 2.0); [v2.0 devlog](https://rester159.itch.io/black-tiger-md/devlog/1792914/black-tiger-md-v20-real-hardware-boot-fix) with the BIN attached.
 
 # v1.9.9 — release BIN
 
