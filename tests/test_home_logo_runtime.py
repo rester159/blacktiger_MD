@@ -8,7 +8,10 @@ def tap(key):r.run(12,key);r.run(12)
 def shot(name):Image.fromarray(r.frame).save(ROOT/'screenshots'/name)
 original=r.frame.copy();shot('00_main_title.png')
 stamp=original[216:224,0:24].copy();assert np.count_nonzero(stamp)>30,'Version missing on main menu'
-assert np.count_nonzero(stamp[:,16:24])>0,'Patch version suffix missing'
+# The whole stamp (e.g. v2.0 or v1.9.9) is drawn: its last glyph column is lit, nothing after it.
+text='v'+(ROOT/'VERSION').read_text().strip();width=sum(1 if c=='.' else 3 for c in text)+len(text)-1
+columns=np.count_nonzero(stamp.any(axis=2),axis=0)
+assert columns[width-1]>0 and not columns[width:].any(),('Version stamp width',text,width,list(columns))
 tap(32);tap(8);arcade=r.frame.copy();tap(1)
 tap(16);tap(8)
 assert list(r.read('frontend',3))==[1,1,0]

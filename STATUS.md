@@ -1,4 +1,4 @@
-# v1.9.10 — release BIN
+# v2.0 — release BIN
 
 Addresses the hardware boot reports: ROBOT-RANDOM (Genesis Model 3, black screen from v1.9.3 on; v1.9.5 intermittent after reset) and PRETTY MAZE (Mega Sg, no boot on v1.9.4/v1.9.8).
 - **Cause:** SGDK's `_Entry_Point` skips the RAM clear and the initialized-data copy whenever A10008/A1000C read non-zero. That is the soft-reset path, `_reset_entry` → `main(FALSE)`. The reset button takes it, and a console whose I/O control registers are not zero at power-on would too. The game then ran from leftover RAM. In Genesis Plus GX, a warm reset from random RAM crashed v1.9.9 with an ADDRESS ERROR, and the title frame counter stuck at 1. Whether leftover RAM is fatal depends on the build layout, which fits the version-to-version pattern.
@@ -9,8 +9,8 @@ Validation:
 - New `tests/test_reset_boot_runtime.py` covers warm resets from kept, 0x00, 0xFF and six random RAM fills. It must reach a running title and enter play. It passes on Genesis Plus GX and PicoDrive and fails on the v1.9.9 BIN. Strict packaging requires it.
 - All 202 remaining Makefile test commands pass. `prepare_source_data --all` again hit the fixed 300 s crawler MAME oracle timeout (load average 60–78); it only regenerates unchanged arcade references.
 - Strict packaging passes. The PicoDrive boot/attack smoke check passes.
-- BIN: `dist/blacktiger_MD_v1.9.10.bin`, SHA-256 `a922d5c8950b9588de8bc33a0d8f408e68a6318bf59b4cae6166eb9891f8f677`.
-- No physical hardware test; the Model 3 / Mega Sg cause is inferred from emulation, not observed on those consoles. Notes: [v1.9.10](docs/v1.9.10.md).
+- BIN: `dist/blacktiger_MD_v2.0.bin`, SHA-256 `ac55c048744b78a0d26ed0ab871ac1af820f379c49930f9eaf01d14e2439c897`. Title stamp reads v2.0. `tests/test_home_logo_runtime.py` now checks the stamp width from VERSION; it previously assumed a three-part version.
+- No physical hardware test; the Model 3 / Mega Sg cause is inferred from emulation, not observed on those consoles. Notes: [v2.0](docs/v2.0.md).
 
 # v1.9.9 — release BIN
 
