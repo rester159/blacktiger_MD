@@ -1,3 +1,17 @@
+# v1.9.10 — release BIN
+
+Addresses the hardware boot reports: ROBOT-RANDOM (Genesis Model 3, black screen from v1.9.3 on; v1.9.5 intermittent after reset) and PRETTY MAZE (Mega Sg, no boot on v1.9.4/v1.9.8).
+- **Cause:** SGDK's `_Entry_Point` skips the RAM clear and the initialized-data copy whenever A10008/A1000C read non-zero. That is the soft-reset path, `_reset_entry` → `main(FALSE)`. The reset button takes it, and a console whose I/O control registers are not zero at power-on would too. The game then ran from leftover RAM. In Genesis Plus GX, a warm reset from random RAM crashed v1.9.9 with an ADDRESS ERROR, and the title frame counter stuck at 1. Whether leftover RAM is fatal depends on the build layout, which fits the version-to-version pattern.
+- **Fix:** `main(FALSE)` now masks interrupts, writes 0 to A130F1 (save RAM out of the 0x200000 window), reloads SSP/USP exactly as `_Entry_Point` does and jumps to `_start_entry`. Every start is a full cold boot. Save RAM contents are untouched.
+- Not fixed: a true cold boot still copies `.data` from 0x3E9238 before SGDK's `SRAM_disable()`. If a cart mapped save RAM at power-on, those 0x74 bytes would be garbage. Nine garbage patterns injected there all booted normally in emulation.
+
+Validation:
+- New `tests/test_reset_boot_runtime.py` covers warm resets from kept, 0x00, 0xFF and six random RAM fills. It must reach a running title and enter play. It passes on Genesis Plus GX and PicoDrive and fails on the v1.9.9 BIN. Strict packaging requires it.
+- All 202 remaining Makefile test commands pass. `prepare_source_data --all` again hit the fixed 300 s crawler MAME oracle timeout (load average 60–78); it only regenerates unchanged arcade references.
+- Strict packaging passes. The PicoDrive boot/attack smoke check passes.
+- BIN: `dist/blacktiger_MD_v1.9.10.bin`, SHA-256 `a922d5c8950b9588de8bc33a0d8f408e68a6318bf59b4cae6166eb9891f8f677`.
+- No physical hardware test; the Model 3 / Mega Sg cause is inferred from emulation, not observed on those consoles. Notes: [v1.9.10](docs/v1.9.10.md).
+
 # v1.9.9 — release BIN
 
 Addresses the v1.9.8 itch.io feedback (PRETTY MAZE; includes the earlier Round 6 camera fix 6a4f59c for ZeroVolt). Each claim was checked in MAME on a natural Round 1 game, with the camera (E030/E032) injected next to the stone boss:

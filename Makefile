@@ -214,6 +214,7 @@ test: all
 	.venv/bin/python tests/test_npc_landing_runtime.py
 	.venv/bin/python tests/test_v198_feedback_runtime.py
 	.venv/bin/python tests/test_v199_feedback_runtime.py
+	.venv/bin/python tests/test_reset_boot_runtime.py
 	.venv/bin/python tests/test_round6_pillar_runtime.py
 	.venv/bin/python tests/test_npc_runtime.py
 	.venv/bin/python tests/test_npc_bonus_persistence_runtime.py

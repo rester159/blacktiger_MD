@@ -39,7 +39,22 @@ int main(bool hardReset) {
     u32 last_presented=0xffffffff;
     u32 logic_video_frame;
     u8 previous_mode, previous_round;
-    (void)hardReset;
+    /* SGDK skips RAM clearing and initialized-data setup whenever the I/O
+       control registers at A10008/A1000C read non-zero. A reset button does
+       that, and some consoles (Model 3, FPGA clones) can at power-on, leaving
+       the game to start from leftover RAM. Always take the full cold boot:
+       stacks exactly as _Entry_Point sets them, save RAM unmapped before the
+       initialized data is copied from the upper ROM half. */
+    if (!hardReset) {
+        __asm__ volatile(
+            "move.w #0x2700,%%sr\n\t"
+            "move.b #0,0xA130F1\n\t"
+            "move.l 0x00000000,%%sp\n\t"
+            "move.l %%sp,%%usp\n\t"
+            "suba.w #512,%%sp\n\t"
+            "jmp _start_entry"
+            ::: "memory");
+    }
     JOY_init();
     boot_logos();
     video_init();
