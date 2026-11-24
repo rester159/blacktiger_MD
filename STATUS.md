@@ -9,6 +9,7 @@ Validation:
 - All 203 Makefile test commands pass, including `prepare_source_data --all` and `tests/test_reset_boot_runtime.py`. An ad hoc Genesis Plus GX check also reset repeatedly during boot and in play.
 - Strict packaging passes. BIN: `dist/blacktiger_MD_v2.0.1.bin`, SHA-256 `c4e7027bfb719831390eb6646d5214a7aae128df6cb8f21c2e1c2c131fedbd38`.
 - Hardware, from testers on the test builds: TEST F powers on on the Mega Sg and the Model 3 VA1 (no MODE needed); TEST G resets correctly on the Mega Sg. The v2.0.1 BIN is TEST G's code with the new version stamp and has not itself been run on hardware. Model 3 reset is unreported. Notes: [v2.0.1](docs/v2.0.1.md).
+- Published: butler channel `genesis` build #2490250 (userversion 2.0.1); [v2.0.1 devlog](https://rester159.itch.io/black-tiger-md/devlog/1804286/black-tiger-md-v201-mega-sg-and-model-3-boot-fix) with the BIN attached. All test uploads removed.
 
 # v2.0 — release BIN
 
