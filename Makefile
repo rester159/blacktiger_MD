@@ -4,7 +4,7 @@ GDK ?= $(HOME)/mars/m68k-elf
 .PHONY: all assets check-rom test references clean
 all: check-rom
 	$(MAKE) assets
-	$(MAKE) -f $(GDK)/makefile.gen JAVA=$(JAVA) LIBGCC="$(shell $(GDK)/bin/m68k-elf-gcc -m68000 -print-libgcc-file-name)"
+	$(MAKE) -f $(GDK)/makefile.gen JAVA=$(JAVA) LIBGCC="$(shell $(GDK)/bin/m68k-elf-gcc -m68000 -print-libgcc-file-name) -Wl,--wrap=_reset_entry"
 	python3 tools/finalize_rom.py out/release/rom.bin
 check-rom:
 	@python3 tools/arcade_source.py

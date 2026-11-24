@@ -1,3 +1,15 @@
+# v2.0.1 — release BIN
+
+Fixes the v2.0 hardware black screens (PRETTY MAZE, Mega Sg; ROBOT-RANDOM, Genesis Model 3 VA1). Located with public test builds A–G:
+- **Power-on:** `main()` called `JOY_init()` a second time, after SGDK's `internal_reset` had already run it. The TEST E trace build stopped there on the Mega Sg. The second call is removed. The exact hardware mechanism of the hang is unproven.
+- **Reset:** the v2.0 `main(FALSE)` re-entry ran `internal_reset` twice, the second time with the Z80 released. `src/reset_entry.s` now takes SGDK's `_reset_entry` (Makefile links with `--wrap=_reset_entry`): it resets the Z80/YM2612, clears the I/O ports, writes the TMSS unlock, unmaps save RAM, restores linear banks and takes the single `_start_entry` cold start.
+- **Hardening:** pads are read in 3-button mode; the START-release and Z80-driver boot waits are bounded. `make EXTRA_FLAGS=-DBOOT_TRACE` paints the backdrop at each boot stage.
+
+Validation:
+- All 203 Makefile test commands pass, including `prepare_source_data --all` and `tests/test_reset_boot_runtime.py`. An ad hoc Genesis Plus GX check also reset repeatedly during boot and in play.
+- Strict packaging passes. BIN: `dist/blacktiger_MD_v2.0.1.bin`, SHA-256 `c4e7027bfb719831390eb6646d5214a7aae128df6cb8f21c2e1c2c131fedbd38`.
+- Hardware, from testers on the test builds: TEST F powers on on the Mega Sg and the Model 3 VA1 (no MODE needed); TEST G resets correctly on the Mega Sg. The v2.0.1 BIN is TEST G's code with the new version stamp and has not itself been run on hardware. Model 3 reset is unreported. Notes: [v2.0.1](docs/v2.0.1.md).
+
 # v2.0 — release BIN
 
 Addresses the hardware boot reports: ROBOT-RANDOM (Genesis Model 3, black screen from v1.9.3 on; v1.9.5 intermittent after reset) and PRETTY MAZE (Mega Sg, no boot on v1.9.4/v1.9.8).

@@ -39,30 +39,30 @@ int main(bool hardReset) {
     u32 last_presented=0xffffffff;
     u32 logic_video_frame;
     u8 previous_mode, previous_round;
-    /* SGDK skips RAM clearing and initialized-data setup whenever the I/O
-       control registers at A10008/A1000C read non-zero. A reset button does
-       that, and some consoles (Model 3, FPGA clones) can at power-on, leaving
-       the game to start from leftover RAM. Always take the full cold boot:
-       stacks exactly as _Entry_Point sets them, save RAM unmapped before the
-       initialized data is copied from the upper ROM half. */
-    if (!hardReset) {
-        __asm__ volatile(
-            "move.w #0x2700,%%sr\n\t"
-            "move.b #0,0xA130F1\n\t"
-            "move.l 0x00000000,%%sp\n\t"
-            "move.l %%sp,%%usp\n\t"
-            "suba.w #512,%%sp\n\t"
-            "jmp _start_entry"
-            ::: "memory");
-    }
-    JOY_init();
+    /* hardReset is always TRUE: src/reset_entry.s turns every reset into the
+       full cold start (cleared RAM, TMSS unlock, Z80 held). */
+    (void)hardReset;
+    BOOT_TRACE_COLOR(0x00E);          /* red: main() reached */
+    /* No JOY_init() here: SGDK's internal_reset already ran pad detection
+       with interrupts masked and before the Z80 driver started. Repeating it
+       here (interrupts on, Z80 running) hung on a Mega Sg: the TEST E trace
+       build stopped between the red and yellow stages. */
+    /* Read pads with one TH cycle, as a 6-button pad does with MODE held at
+       power-on (the only setting that boots on the reporting Model 3). The
+       game uses no X/Y/Z/MODE input. */
+    if (JOY_getPortType(PORT_1) == PORT_TYPE_PAD) JOY_setSupport(PORT_1, JOY_SUPPORT_3BTN);
+    if (JOY_getPortType(PORT_2) == PORT_TYPE_PAD) JOY_setSupport(PORT_2, JOY_SUPPORT_3BTN);
+    BOOT_TRACE_COLOR(0x0EE);          /* yellow: pads ready */
     boot_logos();
+    BOOT_TRACE_COLOR(0x0E0);          /* green: boot logos done */
     video_init();
     frontend_init();
     game_new();
     game.mode = TITLE;
     video_round();
+    BOOT_TRACE_COLOR(0xE00);          /* blue: video and title ready */
     high_score_init();
+    BOOT_TRACE_COLOR(0x000);
     logic_video_frame=vtimer-1;
     previous_mode=game.mode;
     previous_round=game.round;
